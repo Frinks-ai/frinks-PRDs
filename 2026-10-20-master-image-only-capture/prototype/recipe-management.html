@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe Management prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+<style>
+/* Tailwind v3 preflight (the parts this screen relies on) */
+*,::before,::after{box-sizing:border-box;border:0 solid #e5e7eb}
+html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
+body{margin:0;line-height:inherit}
+a{color:inherit;text-decoration:inherit}
+button{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0;background:transparent;cursor:pointer;text-transform:none;-webkit-appearance:button}
+ul{list-style:none;margin:0;padding:0}
+table{text-indent:0;border-color:inherit;border-collapse:collapse}
+th{font-weight:inherit}
+svg{display:block;vertical-align:middle}
+
+/* src/index.css */
+html,body{font-size:16px;height:100vh;width:100vw;overflow-y:hidden;color:black}
+body{overflow:auto;background:#fff} /* index.html: <body class="overflow-auto"> */
+:root{font-family:'Outfit',sans-serif;font-optical-sizing:auto;line-height:1.5;font-weight:400;font-style:normal;min-height:100vh;height:fit-content;color-scheme:light;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+/* shared/layouts/project/sidebar.tsx */
+.sb{position:fixed;left:0;top:0;display:flex;height:100vh;width:80px;flex-direction:column;align-items:center;border-right:1px solid #d1d5db;background:#1e1c1c;padding:24px 8px;box-shadow:0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1);z-index:9999}
+.sb-logo{margin:12px 0 40px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sb-menu{margin-top:32px;display:flex;width:100%;flex-direction:column;gap:8px}
+.sb-menu li{position:relative}
+.sb-link{display:flex;width:100%;align-items:center;justify-content:center;border-radius:6px;padding:8px 0;overflow:hidden;color:#fff;transition:all .3s}
+.sb-link:hover,.sb-link.active{background:rgb(255 255 255/.2)}
+.sb-tip{position:absolute;left:100%;top:50%;margin-left:12px;z-index:50;padding:6px 10px;font-size:12px;line-height:16px;font-weight:600;color:#fff;background:#ff4301;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transform:translate(-4px,-50%);transition:all .3s;pointer-events:none;width:max-content;max-width:200px;white-space:normal}
+.sb-tip::before{content:'';position:absolute;top:50%;left:-4px;transform:translateY(-50%);border-right:4px solid #1e293b;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.sb-menu li:hover .sb-tip{opacity:1;transform:translate(0,-50%)}
+.sb-foot{display:flex;width:100%;flex-grow:1;flex-direction:column;justify-content:flex-end;gap:8px}
+
+/* project layout content column */
+.main{height:100%;min-height:100vh;margin-left:80px}
+
+/* shared/layouts/main/heading.tsx */
+.heading{display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px;height:60px;padding:16px 20px;background:#fff}
+.heading-left{display:flex;align-items:baseline;gap:8px}
+.heading-sub{display:flex;align-items:baseline;font-size:20px;line-height:28px;font-weight:500;gap:8px}
+
+/* shared/ui/Breadcrumb.tsx */
+.bc{display:flex;align-items:center;font-size:14px;line-height:20px;color:#6b7280;margin-bottom:16px;padding:8px 4px}
+.bc>*+*{margin-left:8px}
+.bc-home{display:flex;align-items:center;padding:4px 8px;border-radius:6px;transition:all .2s}
+.bc-home:hover{background:#f3f4f6;color:#ff4301}
+.bc-chev{flex-shrink:0;color:#9ca3af}
+.bc-link{display:inline-flex;align-items:center;max-width:200px;padding:4px 8px;font-weight:500;color:#4b5563;border-radius:6px;transition:all .2s}
+.bc-link:hover{color:#ff4301;background:#f3f4f6}
+.bc-cur{display:inline-flex;align-items:center;max-width:200px;padding:4px 8px;font-weight:600;color:#111827;border-radius:6px}
+.bc-label{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* shared/components/InfoTooltip.tsx */
+.info{position:relative;display:inline-flex;align-items:center}
+.info>span{display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;transition:transform .15s;color:#6b7280;cursor:default}
+.info>span:hover{transform:scale(1.1)}
+.info.on-dark>span{color:#fff}
+.info.on-dark>span:hover{transform:none}
+
+/* project-configuration toolbar row */
+.bar{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 8px}
+.filters{position:sticky;top:0;z-index:30;display:flex;flex-direction:row;align-self:flex-end;gap:32px;padding-bottom:4px}
+/* shared/ui/FilterBox.tsx (Filter) */
+.flt{position:relative;display:inline-block;text-align:left;margin-top:8px}
+.flt-badge{position:absolute;right:-4px;top:-4px;display:flex;flex-direction:row;justify-content:center;width:16px;height:16px;border-radius:8px;background:#FF4301;color:#fff;font-weight:600;font-size:.7rem;text-align:center;margin:auto;vertical-align:middle}
+.flt-btn{display:inline-flex;width:100%;justify-content:center;column-gap:6px;border-radius:6px;background:#fff;padding:8px 12px;font-size:14px;line-height:20px;cursor:pointer;color:#111827}
+.flt-btn:hover{background:#f9fafb}
+.flt-btn svg{margin:auto -4px auto 0;padding-top:4px;width:12px;height:12px}
+.actions-top{display:flex;align-items:center;gap:8px}
+/* shared/ui/Button.tsx — color primary, size lg */
+.btn{font-weight:600;height:fit-content;cursor:pointer;border:1px solid transparent;background:#ff4301;color:#fff;font-size:14px;line-height:20px;padding:8px 24px;border-radius:6px}
+.btn:hover{background:rgb(255 67 1/.9)}
+.btn-flex{display:flex;align-items:center;gap:8px}
+.btn-max{min-width:max-content;width:max-content;white-space:nowrap}
+
+/* shared/ui/Table.tsx */
+.tbl-pad{padding:0 20px 20px}
+.tbl-rel{position:relative;border-radius:8px}
+.tbl-flow{display:flow-root;height:auto;width:100%;overflow-x:auto}
+.tbl-max{width:max-content;min-width:100%}
+table.tbl{min-width:100%}
+table.tbl>*+*{border-top:1px solid #d1d5db} /* divide-y divide-gray-300 */
+thead{position:sticky;top:0;z-index:10}
+thead tr{background:#ff4301;position:relative}
+th{position:sticky;top:0;z-index:10;padding:16px 8px;text-align:center;font-size:16px;line-height:24px;font-weight:500;color:#fff}
+th .th-in{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+th .rh{position:absolute;top:10px;right:0;bottom:10px;width:2px;cursor:col-resize;border-radius:16px;background:#fff}
+th:last-child .rh{display:none}
+tbody{background:#fff}
+tbody tr{border-top:1px solid transparent;transition:all .2s}
+tbody>tr+tr{border-top:1px solid #e5e7eb} /* divide-y divide-gray-200 */
+tbody tr:hover,tbody tr.is-hover{background:rgb(249 250 251/.8)}
+td{padding:8px;color:#000;overflow:visible} /* TableBodyData default */
+td.cls{padding:0;min-width:0;max-width:0;cursor:pointer} /* className overrides the default td classes */
+td.cls-status{padding:0;cursor:pointer}
+.td-in{display:flex;height:100%;width:100%;align-items:center;justify-content:center;text-align:center}
+.twt{position:relative;width:100%;min-width:0}
+.twt>div{width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mip{display:flex;width:100%;min-width:0;align-items:center} /* MasterImageHoverPreview */
+.mip-btn{margin-left:6px;margin-right:8px;display:flex;flex-shrink:0;align-items:center;justify-content:center;border-radius:4px;padding:2px;color:#ff4301}
+.mip-btn:hover{background:rgb(255 67 1/.1)}
+.status{position:relative;display:inline-flex;align-items:center;text-decoration-line:underline}
+.status:hover,tr.is-hover .status{opacity:.8}
+.tone-green{color:#16a34a}
+.tone-red{color:#ef4444}
+.act{display:flex;align-items:center;justify-content:center}
+.act button{border-radius:4px;padding:4px;color:#4b5563}
+.act button:hover{background:#f3f4f6}
+
+/* shared/components/Tooltip.tsx bubble */
+.tip{position:fixed;z-index:99999;pointer-events:none;width:max-content;max-width:300px;overflow-wrap:break-word;white-space:normal;border-radius:4px;border:1px solid #d1d5db;background:#f3f4f6;padding:4px 8px;font-size:12px;line-height:16px;color:#4b5563;box-shadow:0 1px 2px 0 rgb(0 0 0/.05)}
+
+/* shared/ui/PortalDropdown.tsx (row actions) */
+.menu{position:absolute;z-index:9999;display:flex;flex-direction:column;border-radius:6px;background:#fff;filter:drop-shadow(0 25px 25px rgb(0 0 0/.15));overflow:hidden;min-width:140px;border:1px solid #e5e7eb;color:#374151;transform:translateX(-100%)}
+.menu li{cursor:pointer;padding:8px 12px;font-size:14px;line-height:20px}
+.menu li:hover{background:#f3f4f6}
+.menu li.del{color:#ef4444}
+
+/* prototype-only controls */
+.proto-ctl{display:flex;align-items:center;gap:10px}
+.proto{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#4b5563;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:999px;padding:2px 10px}
+.seg{display:inline-flex;border:1px solid #d1d5db;border-radius:999px;padding:2px;background:#fff}
+.seg button{font-size:12px;line-height:18px;font-weight:600;padding:3px 12px;border-radius:999px;color:#6b7280}
+.seg button[aria-pressed="true"]{background:#1e1c1c;color:#fff}
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <a class="sb-logo" href="#" aria-label="Home">
+    <svg width="58" height="58" viewBox="0 0 230 58" preserveAspectRatio="xMinYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:58px">
+      <g clip-path="url(#clip0_84_12245)">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.3373 23.3047C19.4945 23.3047 19.6219 23.4253 19.6219 23.5742L19.6219 30.8503C19.6219 30.9991 19.4945 31.1197 19.3373 31.1197C19.1801 31.1197 19.0527 30.9991 19.0527 30.8503L19.0527 23.5742C19.0527 23.4253 19.1801 23.3047 19.3373 23.3047Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M25.7337 24.7076C25.7015 24.8533 25.5507 24.9467 25.3968 24.9162L19.2783 23.7035C19.1244 23.673 19.0258 23.5302 19.058 23.3845C19.0902 23.2389 19.241 23.1455 19.3949 23.176L25.5134 24.3886C25.6673 24.4191 25.7659 24.5619 25.7337 24.7076Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M20.9018 23.5742C21.0589 23.5742 21.1864 23.6949 21.1864 23.8437V32.3325C21.1864 32.4813 21.0589 32.602 20.9018 32.602C20.7446 32.602 20.6172 32.4813 20.6172 32.3325V23.8437C20.6172 23.6949 20.7446 23.5742 20.9018 23.5742Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M22.4672 23.8437C22.6244 23.8437 22.7518 23.9644 22.7518 24.1132L22.7518 33.8147C22.7518 33.9635 22.6244 34.0842 22.4672 34.0842C22.31 34.0842 22.1826 33.9635 22.1826 33.8147L22.1826 24.1132C22.1826 23.9644 22.31 23.8437 22.4672 23.8437Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M24.0326 24.1128C24.1898 24.1128 24.3172 24.2334 24.3172 24.3823V35.2964C24.3172 35.4452 24.1898 35.5659 24.0326 35.5659C23.8755 35.5659 23.748 35.4452 23.748 35.2964V24.3823C23.748 24.2334 23.8755 24.1128 24.0326 24.1128Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M25.4555 24.3828C25.6127 24.3828 25.7401 24.5035 25.7401 24.6523V36.6444C25.7401 36.7932 25.6127 36.9138 25.4555 36.9138C25.2983 36.9138 25.1709 36.7932 25.1709 36.6444V24.6523C25.1709 24.5035 25.2983 24.3828 25.4555 24.3828Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.0527 7H39.9697C40.1269 7 40.2543 7.12065 40.2543 7.26948C40.2543 7.41832 40.1269 7.53897 39.9697 7.53897H19.6219V16.0529L25.6487 15.2193H35.7721C35.9293 15.2193 36.0567 15.3399 36.0567 15.4888C36.0567 15.6376 35.9293 15.7583 35.7721 15.7583H25.69L19.0527 16.6763V7Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M20.6885 8.48193H37.7636C37.9207 8.48193 38.0481 8.60259 38.0481 8.75142C38.0481 8.90025 37.9207 9.0209 37.7636 9.0209H21.2576V16.0949C21.2576 16.2437 21.1302 16.3644 20.9731 16.3644C20.8159 16.3644 20.6885 16.2437 20.6885 16.0949V8.48193Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M22.2539 9.96387H36.412C36.5692 9.96387 36.6966 10.0845 36.6966 10.2334C36.6966 10.3822 36.5692 10.5028 36.412 10.5028H22.8231V15.8925C22.8231 16.0414 22.6957 16.162 22.5385 16.162C22.3813 16.162 22.2539 16.0414 22.2539 15.8925V9.96387Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M23.8193 11.4463H34.0644C34.2216 11.4463 34.349 11.5669 34.349 11.7158C34.349 11.8646 34.2216 11.9853 34.0644 11.9853H24.3885V15.6907C24.3885 15.8395 24.2611 15.9602 24.1039 15.9602C23.9467 15.9602 23.8193 15.8395 23.8193 15.6907V11.4463Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M25.3135 12.7939H32.9261C33.0833 12.7939 33.2107 12.9146 33.2107 13.0634C33.2107 13.2123 33.0833 13.3329 32.9261 13.3329H25.8826V15.4888C25.8826 15.6376 25.7552 15.7583 25.5981 15.7583C25.4409 15.7583 25.3135 15.6376 25.3135 15.4888V12.7939Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M26.865 16.8354L33.998 16.944C34.1552 16.9463 34.2805 17.0689 34.278 17.2177C34.2755 17.3665 34.146 17.4852 33.9889 17.4829L26.8798 17.3747L19.3567 17.8614C19.1999 17.8715 19.0641 17.7594 19.0534 17.6109C19.0427 17.4624 19.1611 17.3338 19.3179 17.3237L26.865 16.8354Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M26.8698 18.1353L32.7569 18.2437C32.9141 18.2466 33.039 18.3696 33.0359 18.5184C33.0329 18.6672 32.903 18.7855 32.7459 18.7826L26.875 18.6744L19.3481 18.9449C19.1911 18.9506 19.0589 18.8346 19.0529 18.6859C19.047 18.5371 19.1695 18.412 19.3265 18.4064L26.8698 18.1353Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.0528 19.7007C19.055 19.5518 19.1843 19.4329 19.3414 19.4351L31.265 19.5976C31.4222 19.5997 31.5478 19.7221 31.5455 19.8709C31.5432 20.0197 31.414 20.1386 31.2568 20.1365L19.3332 19.974C19.1761 19.9719 19.0505 19.8495 19.0528 19.7007Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.0531 20.7743C19.0611 20.6257 19.1948 20.5113 19.3518 20.5189L27.2108 20.8977H29.8533C30.0105 20.8977 30.1379 21.0183 30.1379 21.1672C30.1379 21.316 30.0105 21.4367 29.8533 21.4367H27.1964L19.3229 21.0572C19.1659 21.0496 19.0451 20.923 19.0531 20.7743Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.0539 21.9558C19.068 21.8075 19.2063 21.6982 19.3629 21.7116L26.968 22.3604H28.4457C28.6028 22.3604 28.7302 22.4811 28.7302 22.6299C28.7302 22.7787 28.6028 22.8994 28.4457 22.8994H26.9424L19.3118 22.2483C19.1553 22.235 19.0398 22.104 19.0539 21.9558Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+        <path d="M9.48544 14.0082H7.28711V-0.0317383H21.3271V2.16659H9.48544V14.0082Z" fill="white" />
+        <path d="M21.3271 44.1406H7.28711V30.1006H9.48544V41.9422H21.3271V44.1406Z" fill="white" />
+        <path d="M50.4033 14.0082H48.2049V2.16659H36.3633V-0.0317383H50.4033V14.0082Z" fill="white" />
+        <path d="M50.4033 44.1406H36.3633V41.9422H48.2049V30.1006H50.4033V44.1406Z" fill="white" />
+      </g>
+      <defs><clipPath id="clip0_84_12245"><rect width="230" height="51.427" fill="white"/></clipPath></defs>
+    </svg>
+  </a>
+  <ul class="sb-menu">
+    <li>
+      <a class="sb-link active" href="#">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g clip-path="url(#clip0_5827_1475)">
+            <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.285 19.4995 16.5843 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.8959 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.8959 16.96 19.71L16.9 19.65C16.6643 19.4195 16.365 19.2648 16.0406 19.206C15.7162 19.1472 15.3816 19.1869 15.08 19.32C14.7842 19.4468 14.532 19.6572 14.3543 19.9255C14.1766 20.1938 14.0813 20.5082 14.08 20.83V21C14.08 21.5304 13.8693 22.0391 13.4942 22.4142C13.1191 22.7893 12.6104 23 12.08 23C11.5496 23 11.0409 22.7893 10.6658 22.4142C10.2907 22.0391 10.08 21.5304 10.08 21V20.91C10.0723 20.579 9.96512 20.258 9.77251 19.9887C9.5799 19.7194 9.31074 19.5143 9 19.4C8.69838 19.2669 8.36381 19.2272 8.03941 19.286C7.71502 19.3448 7.41568 19.4995 7.18 19.73L7.12 19.79C6.93425 19.976 6.71368 20.1235 6.47088 20.2241C6.22808 20.3248 5.96783 20.3766 5.705 20.3766C5.44217 20.3766 5.18192 20.3248 4.93912 20.2241C4.69632 20.1235 4.47575 19.976 4.29 19.79C4.10405 19.6043 3.95653 19.3837 3.85588 19.1409C3.75523 18.8981 3.70343 18.6378 3.70343 18.375C3.70343 18.1122 3.75523 17.8519 3.85588 17.6091C3.95653 17.3663 4.10405 17.1457 4.29 16.96L4.35 16.9C4.58054 16.6643 4.73519 16.365 4.794 16.0406C4.85282 15.7162 4.81312 15.3816 4.68 15.08C4.55324 14.7842 4.34276 14.532 4.07447 14.3543C3.80617 14.1766 3.49179 14.0813 3.17 14.08H3C2.46957 14.08 1.96086 13.8693 1.58579 13.4942C1.21071 13.1191 1 12.6104 1 12.08C1 11.5496 1.21071 11.0409 1.58579 10.6658C1.96086 10.2907 2.46957 10.08 3 10.08H3.09C3.42099 10.0723 3.742 9.96512 4.0113 9.77251C4.28059 9.5799 4.48572 9.31073 4.6 9C4.73312 8.69838 4.77282 8.36381 4.714 8.03941C4.65519 7.71502 4.50054 7.41568 4.27 7.18L4.21 7.12C4.02405 6.93425 3.87653 6.71368 3.77588 6.47088C3.67523 6.22808 3.62343 5.96783 3.62343 5.705C3.62343 5.44217 3.67523 5.18191 3.77588 4.93912C3.87653 4.69632 4.02405 4.47575 4.21 4.29C4.39575 4.10405 4.61632 3.95653 4.85912 3.85588C5.10192 3.75523 5.36217 3.70343 5.625 3.70343C5.88783 3.70343 6.14808 3.75523 6.39088 3.85588C6.63368 3.95653 6.85425 4.10405 7.04 4.29L7.1 4.35C7.33568 4.58054 7.63502 4.73519 7.95941 4.794C8.28381 4.85282 8.61838 4.81311 8.92 4.68H9C9.29577 4.55324 9.54802 4.34275 9.72569 4.07446C9.90337 3.80617 9.99872 3.49179 10 3.17V3C10 2.46957 10.2107 1.96086 10.5858 1.58579C10.9609 1.21071 11.4696 1 12 1C12.5304 1 13.0391 1.21071 13.4142 1.58579C13.7893 1.96086 14 2.46957 14 3V3.09C14.0013 3.41179 14.0966 3.72617 14.2743 3.99447C14.452 4.26276 14.7042 4.47324 15 4.6C15.3016 4.73311 15.6362 4.77282 15.9606 4.714C16.285 4.65519 16.5843 4.50054 16.82 4.27L16.88 4.21C17.0657 4.02405 17.2863 3.87653 17.5291 3.77588C17.7719 3.67523 18.0322 3.62343 18.295 3.62343C18.5578 3.62343 18.8181 3.67523 19.0609 3.77588C19.3037 3.87653 19.5243 4.02405 19.71 4.21C19.896 4.39575 20.0435 4.61632 20.1441 4.85912C20.2448 5.10191 20.2966 5.36217 20.2966 5.625C20.2966 5.88783 20.2448 6.14808 20.1441 6.39088C20.0435 6.63368 19.896 6.85425 19.71 7.04L19.65 7.1C19.4195 7.33568 19.2648 7.63501 19.206 7.95941C19.1472 8.28381 19.1869 8.61838 19.32 8.92V9C19.4468 9.29577 19.6572 9.54802 19.9255 9.72569C20.1938 9.90337 20.5082 9.99872 20.83 10H21C21.5304 10 22.0391 10.2107 22.4142 10.5858C22.7893 10.9609 23 11.4696 23 12C23 12.5304 22.7893 13.0391 22.4142 13.4142C22.0391 13.7893 21.5304 14 21 14H20.91C20.5882 14.0013 20.2738 14.0966 20.0055 14.2743C19.7372 14.452 19.5268 14.7042 19.4 15Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <defs><clipPath id="clip0_5827_1475"><rect width="24" height="24" fill="white"/></clipPath></defs>
+        </svg>
+      </a>
+      <div class="sb-tip" role="tooltip">Recipe Management</div>
+    </li>
+    <li>
+      <a class="sb-link" href="#">
+        <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6H6.01M19.59 12.41L12.42 19.58C12.2343 19.766 12.0137 19.9135 11.7709 20.0141C11.5281 20.1148 11.2678 20.1666 11.005 20.1666C10.7422 20.1666 10.4819 20.1148 10.2391 20.0141C9.99632 19.9135 9.77575 19.766 9.59 19.58L1 11V1H11L19.59 9.59C19.9625 9.96473 20.1716 10.4716 20.1716 11C20.1716 11.5284 19.9625 12.0353 19.59 12.41Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <div class="sb-tip" role="tooltip">Datasets &amp; Annotations</div>
+    </li>
+    <li>
+      <a class="sb-link" href="#">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 1V4M15 1V4M9 20V23M15 20V23M20 9H23M20 14H23M1 9H4M1 14H4M6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4ZM9 9H15V15H9V9Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <div class="sb-tip" role="tooltip">AI Models</div>
+    </li>
+    <li>
+      <a class="sb-link" href="#">
+        <svg width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 1L1 13H10L9 21L19 9H10L11 1Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <div class="sb-tip" role="tooltip">Instances</div>
+    </li>
+  </ul>
+  <div class="sb-foot">
+    <a class="sb-link" href="#" aria-label="Home">
+      <svg width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 7.49984L9 1.6665L16.5 7.49984V16.6665C16.5 17.1085 16.3244 17.5325 16.0118 17.845C15.6993 18.1576 15.2754 18.3332 14.8333 18.3332H3.16667C2.72464 18.3332 2.30072 18.1576 1.98816 17.845C1.67559 17.5325 1.5 17.1085 1.5 16.6665V7.49984Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+</aside>
+
+<div class="main" id="main"></div>
+
+<script>
+(function () {
+  // ---- lucide-react icons used on this screen (24px grid, stroke = currentColor) ----
+  var LUCIDE = {
+    home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    chevronRight: '<path d="m9 18 6-6-6-6"/>',
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+    camera: '<path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/>',
+    moreVertical: '<circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>'
+  };
+  function icon(name, size, sw, cls) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 2) + '" stroke-linecap="round" stroke-linejoin="round"' + (cls ? ' class="' + cls + '"' : '') + '>' + LUCIDE[name] + '</svg>';
+  }
+  // shared/ui/ArrowDown.tsx
+  var ARROW_DOWN = '<svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.00018 4.34229L7.37243 1.00796L6.7538 0.395268L4.00018 3.11863L1.24743 0.395268L0.62793 1.00796L4.00018 4.34229Z" fill="#4F4F4F"/></svg>';
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function infoTip(text, size, onDark) {
+    return '<span class="info' + (onDark ? ' on-dark' : '') + '" data-tip="' + esc(text) + '"><span role="button" tabindex="0" aria-label="' + esc(text) + '">' + icon('info', size, 2.25) + '</span></span>';
+  }
+
+  // ---- copy: src/shared/copy/tooltips.ts ----
+  var T = {
+    heading: 'One row per recipe: a variant seen through one capture. Configure all four steps here before that capture can be trained or added to an instance.',
+    variantName: 'A version of the product being inspected — a different SKU, size or colour that needs its own reference images.',
+    capture: 'One camera looking at one position on the part. Each capture is configured, trained and deployed independently.',
+    configStatus: 'How far this capture has been set up. You cannot skip ahead — each step unlocks the next.',
+    moduleInfo: 'The inspection modules configured on this capture, in the order they run.',
+    cameraName: 'The physical camera position this capture is taken from. Shared across variants.',
+    complete: 'All four steps done. Ready to train and deploy.',
+    algorithmOnly: 'Algorithm-only capture — no sample labels needed.',
+    // planned (decided) copy for a finished master-image-only capture
+    masterOnlyComplete: 'No inspection modules. Every image is marked OK.'
+  };
+
+  // Columns: initialColumns in project-configuration/index.tsx, with Camera Name switched on via Edit Table
+  var COLS = [
+    { id: 'variant', name: 'Variant Name', tip: T.variantName },
+    { id: 'capture', name: 'Capture', tip: T.capture },
+    { id: 'config_status', name: 'Configuration Status', tip: T.configStatus },
+    { id: 'module_info', name: 'Module Info', tip: T.moduleInfo },
+    { id: 'camera_name', name: 'Camera Name', tip: T.cameraName },
+    { id: 'actions', name: 'Actions' }
+  ];
+
+  // moduleInfo strings follow formatModuleInfo() in frinksvision-backend/src/utils/module.ts
+  function rows(mode) {
+    var green = 'tone-green', red = 'tone-red';
+    return [
+      { id: 'r1', variant: 'Variant A', capture: 'Front View', camera: 'Camera 1', moduleInfo: 'ODC (1)',
+        status: { label: 'Complete', tone: green, tip: T.complete } },
+      mode === 'today'
+        ? { id: 'r2', variant: 'Variant A', capture: 'Top View', camera: 'Camera 2', moduleInfo: 'No modules added yet!',
+            status: { label: 'At Step 1/2: Inspection Workflow', tone: red, tip: T.algorithmOnly }, pinned: true }
+        : { id: 'r2', variant: 'Variant A', capture: 'Top View', camera: 'Camera 2', moduleInfo: 'Master image only',
+            status: { label: 'Complete', tone: green, tip: T.masterOnlyComplete }, pinned: true },
+      { id: 'r3', variant: 'Variant A', capture: 'Label Side', camera: 'Camera 3', moduleInfo: 'OCR (1)',
+        status: { label: 'Complete', tone: green, tip: T.complete } }
+    ];
+  }
+
+  function twt(text, alwaysShow) {
+    return '<div class="twt"' + (alwaysShow ? ' data-tip="' + esc(text) + '"' : '') + '><div>' + esc(text) + '</div></div>';
+  }
+  function cell(col, r) {
+    switch (col.id) {
+      case 'variant':
+        return '<td class="cls"><div class="td-in">' + twt(r.variant) + '</div></td>';
+      case 'capture':
+        return '<td class="cls"><div class="td-in"><div class="mip">' + twt(r.capture) +
+          '<button type="button" class="mip-btn" title="Preview master image" aria-label="Preview master image">' + icon('camera', 14) + '</button></div></div></td>';
+      case 'config_status':
+        return '<td class="cls-status"><div class="td-in"><div class="status ' + r.status.tone + '" data-tip="' + esc(r.status.tip) + '"' + (r.pinned ? ' id="pinned-trigger"' : '') + '>' + esc(r.status.label) + '</div></div></td>';
+      case 'module_info':
+        return '<td class="cls"><div class="td-in">' + twt(r.moduleInfo, true) + '</div></td>';
+      case 'camera_name':
+        return '<td class="cls"><div class="td-in">' + twt(r.camera) + '</div></td>';
+      case 'actions':
+        return '<td><div class="td-in"><div class="act"><button type="button" data-menu="' + r.id + '" aria-label="Row actions">' + icon('moreVertical', 16) + '</button></div></div></td>';
+    }
+    return '';
+  }
+
+  var params = new URLSearchParams(location.search);
+  var mode = params.get('mode') === 'today' ? 'today' : 'after';
+
+  function render() {
+    var colW = COLS.map(function (c) { return c.id === 'actions' ? 100 : null; });
+    var html = '';
+    html += '<div class="heading">' +
+      '<div class="heading-left"><div class="heading-sub">' +
+        '<nav aria-label="Breadcrumb" class="bc">' +
+          '<a href="#" class="bc-home" title="Go to Home">' + icon('home', 16) + '</a>' +
+          icon('chevronRight', 16, 2, 'bc-chev') +
+          '<a href="#" class="bc-link" title="Line 1"><span class="bc-label"><span class="truncate">Line 1</span></span></a>' +
+          icon('chevronRight', 16, 2, 'bc-chev') +
+          '<span class="bc-cur" aria-current="page"><span class="bc-label"><span class="truncate">Recipe Management</span>' + infoTip(T.heading, 15) + '</span></span>' +
+        '</nav>' +
+      '</div></div>' +
+      '<div><div class="proto-ctl"><span class="proto">Prototype</span><div class="seg" id="seg">' +
+        '<button type="button" data-mode="today" aria-pressed="' + (mode === 'today') + '">Today</button>' +
+        '<button type="button" data-mode="after" aria-pressed="' + (mode === 'after') + '">After change</button>' +
+      '</div></div></div>' +
+    '</div>';
+
+    html += '<div class="bar">' +
+      '<div class="filters">' +
+        '<div class="flt"><div class="flt-badge">0</div><div class="flt-btn">Variant Name' + ARROW_DOWN + '</div></div>' +
+        '<div class="flt"><div class="flt-badge">0</div><div class="flt-btn">Reco Status' + ARROW_DOWN + '</div></div>' +
+      '</div>' +
+      '<div class="actions-top">' +
+        '<button type="button" class="btn btn-flex">Add Recipe</button>' +
+        '<div style="position:relative"><button type="button" class="btn btn-max">Edit Table</button></div>' +
+      '</div>' +
+    '</div>';
+
+    html += '<div class="tbl-pad"><div class="tbl-rel"><div class="tbl-flow" id="tbl-flow"><div class="tbl-max">' +
+      '<table class="tbl"><colgroup>' + COLS.map(function (c, i) { return '<col data-i="' + i + '">'; }).join('') + '</colgroup>' +
+      '<thead><tr>' + COLS.map(function (c) {
+        return '<th scope="col">' + (c.tip ? '<span class="th-in">' + esc(c.name) + infoTip(c.tip, 16, true) + '</span>' : esc(c.name)) + '<div class="rh"></div></th>';
+      }).join('') + '</tr></thead>' +
+      '<tbody>' + rows(mode).map(function (r) {
+        return '<tr' + (r.pinned ? ' class="is-hover"' : '') + '>' + COLS.map(function (c) { return cell(c, r); }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div></div></div></div>';
+
+    document.getElementById('main').innerHTML = html;
+    sizeColumns(colW);
+    placePinned();
+  }
+
+  // Table.tsx: fullWidth — fixed columns keep their width, the rest share what is left
+  function sizeColumns(colW) {
+    var flow = document.getElementById('tbl-flow');
+    var w = flow.offsetWidth, fixed = 0, flex = 0;
+    colW.forEach(function (x) { if (x != null) fixed += x; else flex++; });
+    var each = flex ? Math.max((w - fixed) / flex, 0) : 0;
+    document.querySelectorAll('colgroup col').forEach(function (col, i) {
+      col.style.width = (colW[i] != null ? colW[i] : each) + 'px';
+    });
+  }
+
+  // Tooltip.tsx getSafeCoords, position "top": centred, 8px above, clamped 8px inside the viewport
+  function coords(trigger, tip) {
+    var t = trigger.getBoundingClientRect(), b = tip.getBoundingClientRect();
+    var vw = window.innerWidth, vh = window.innerHeight, GAP = 8, PAD = 8;
+    var bottom = t.top - GAP - b.height < PAD;
+    var left = t.left + t.width / 2 - b.width / 2;
+    left = Math.min(Math.max(left, PAD), Math.max(vw - PAD - b.width, PAD));
+    var top = bottom ? t.bottom + GAP : t.top - GAP - b.height;
+    if (bottom && top + b.height > vh - PAD) top = t.top - GAP - b.height;
+    return { top: top, left: left };
+  }
+  function makeTip(text) {
+    var d = document.createElement('div');
+    d.className = 'tip';
+    d.setAttribute('role', 'tooltip');
+    d.style.visibility = 'hidden';
+    d.textContent = text;
+    document.body.appendChild(d);
+    return d;
+  }
+  function show(tip, trigger) {
+    var c = coords(trigger, tip);
+    tip.style.top = c.top + 'px';
+    tip.style.left = c.left + 'px';
+    tip.style.visibility = 'visible';
+  }
+
+  var pinnedTip = null;
+  function placePinned() {
+    var trig = document.getElementById('pinned-trigger');
+    if (pinnedTip) { pinnedTip.remove(); pinnedTip = null; }
+    if (!trig) return;
+    pinnedTip = makeTip(trig.getAttribute('data-tip'));
+    show(pinnedTip, trig);
+  }
+
+  // hover tooltips (150ms show delay, as in Tooltip.tsx)
+  var hoverTip = null, hoverTimer = null, hoverEl = null;
+  function hideHover() {
+    clearTimeout(hoverTimer);
+    if (hoverTip) { hoverTip.remove(); hoverTip = null; }
+    hoverEl = null;
+  }
+  document.addEventListener('mouseover', function (e) {
+    var el = e.target.closest('[data-tip]');
+    if (el === hoverEl) return;
+    hideHover();
+    if (!el || el.id === 'pinned-trigger') return;
+    hoverEl = el;
+    hoverTimer = setTimeout(function () {
+      hoverTip = makeTip(el.getAttribute('data-tip'));
+      show(hoverTip, el);
+    }, 150);
+  });
+  document.addEventListener('scroll', hideHover, true);
+
+  // row actions menu (PortalDropdown): opens below the trigger, right-aligned to it
+  var menu = null;
+  function closeMenu() { if (menu) { menu.remove(); menu = null; } }
+  document.addEventListener('mousedown', function (e) {
+    if (menu && !menu.contains(e.target) && !e.target.closest('[data-menu]')) closeMenu();
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-menu]');
+    if (b) {
+      var same = menu && menu.getAttribute('data-for') === b.getAttribute('data-menu');
+      closeMenu();
+      if (same) return;
+      var r = b.getBoundingClientRect();
+      menu = document.createElement('ul');
+      menu.className = 'menu';
+      menu.setAttribute('data-for', b.getAttribute('data-menu'));
+      menu.innerHTML = '<li>View / Edit</li><li class="del">Delete</li>';
+      menu.style.top = (r.bottom + window.scrollY) + 'px';
+      menu.style.left = (r.right + window.scrollX) + 'px';
+      document.body.appendChild(menu);
+      return;
+    }
+    if (e.target.closest('.menu li')) { closeMenu(); return; }
+    var s = e.target.closest('#seg button[data-mode]');
+    if (s && s.getAttribute('data-mode') !== mode) {
+      mode = s.getAttribute('data-mode');
+      try { history.replaceState(null, '', '?mode=' + mode); } catch (err) { /* file:// may refuse */ }
+      hideHover(); closeMenu(); render();
+    }
+    if (e.target.closest('a[href="#"]')) e.preventDefault();
+  });
+
+  window.addEventListener('resize', function () {
+    hideHover(); closeMenu();
+    sizeColumns(COLS.map(function (c) { return c.id === 'actions' ? 100 : null; }));
+    placePinned();
+  });
+
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(placePinned);
+  window.addEventListener('load', placePinned);
+})();
+</script>
+</body>
+</html>
