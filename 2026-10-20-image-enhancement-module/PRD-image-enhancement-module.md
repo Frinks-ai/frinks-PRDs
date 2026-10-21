@@ -103,6 +103,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 ![Today: Select Module on a search area](prototype/vision-module-config-today.png)
 ![After: Select Module lists Image Enhancement](prototype/vision-module-config-after-picker.png)
+![After: Select Module opened on IE_1](prototype/vision-module-config-after-picker-under-ie.png)
 
 - **AC1.1** Select Module, opened on a Search Area (including the master image's Input Image) or an Orientator, lists "Image Enhancement" with a one-line description, enabled, whatever class types the project has.
 - **AC1.2** Select Module opened on Masking, on another Image Enhancement, or on any other module greys out "Image Enhancement", the same way it greys rows today; the server refuses the same placements if they are sent directly.
@@ -123,6 +124,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 ![After: the chain with its before and after preview](prototype/vision-module-config-after.png)
 ![After: Add filter grouped into six categories](prototype/vision-module-config-after-add-filter.png)
+![After: an empty chain cannot be saved](prototype/vision-module-config-after-empty-chain.png)
 
 - **AC2.1** Module Setup lists the chain in order. "Add filter" opens a list grouped into six categories: Colour and tone (Invert, Equalize, Stretch, Clip, Optical Density, Greyscale Distance), Thresholding (Binarize, Threshold Range), Smooth and blur (Low Pass, Local Median), Sharpen and edges (Sharpen, High Pass, Gradient Full, Gradient Horizontal, Gradient Vertical, Edge Magnitude), Shape clean-up (Erode, Dilate, Open, Close, Fill Dark Holes, Fill Light Holes), Background and lighting (Top Hat, Bot Hat, Max (Top Hat/Bottom Hat), Local Median Normalization).
 - **AC2.2** Filters can be added without a limit, the same filter can appear more than once, and each row can be dragged to a new position or removed.
@@ -142,6 +144,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Today:** A module's "Base search area" lists only the parent's search areas or masked areas.
 - **Prototype:** [Module configuration, Inputs and Outputs](https://vbv-fr.github.io/image-enhancement-prototype/vision-module-config.html)
 
+![After: Module Inputs](prototype/vision-module-config-after-inputs.png)
 ![After: Module Outputs with the enhanced area name](prototype/vision-module-config-after-outputs.png)
 ![After: OCR's Base search area offers the enhanced area](prototype/vision-module-config-after-ocr-inputs.png)
 
@@ -184,6 +187,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC5.1** When annotating a module under an Image Enhancement, the area shows the enhanced image (same pixels as the line); outside it stays blurred.
 - **AC5.2** Labels drawn on the enhanced image land in the same place on the original image, so they stay valid if the chain changes.
 - **AC5.3** Auto-annotation of an OCR under an Image Enhancement runs on enhanced images.
+- **AC5.4** The annotation job shows no card for the Image Enhancement itself; it has nothing to label.
 
 ### US6 — Train an OCR on enhanced images
 *As an ML engineer, I want an OCR under an Image Enhancement to be trained on enhanced images, so that it reads on the line what it learned on.*
@@ -205,14 +209,14 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Parts:** vision-instance-creation, edge-instance-details
 - **Teams:** SDE
 - **Covers:** C7, C10
-- **Today:** The download dropdown lists every registered Edge version.
+- **Today:** "Select Scripts Bundle Version" in the Download Complete Instance and Download Selected Files dialogs lists every enabled version, newest first, and preselects the last one used.
 - **Prototype:** [Instance download](https://vbv-fr.github.io/image-enhancement-prototype/vision-instance-download.html)
 
 ![Today: every Edge version listed](prototype/vision-instance-download-today.png)
 ![After: only versions that can run Image Enhancement](prototype/vision-instance-download-after.png)
 
 - **AC7.1** The instance package carries each Image Enhancement with its enhanced area, chain and values.
-- **AC7.2** For an instance containing an Image Enhancement, the Edge version dropdown shows only versions from the first one that can run it (Q2); older ones are not listed at all. Instances without it list every version as today.
+- **AC7.2** For an instance containing an Image Enhancement, "Select Scripts Bundle Version" in both download dialogs lists only versions from the first one that can run it (Q2); older ones are not listed at all, and a last-used version that is no longer listed is not preselected. Instances without it list every version as today.
 - **AC7.3** Uploading the package to a supporting Edge stores every Image Enhancement with its chain and values, and the upload's checks accept it.
 - **AC7.4** On a variant change, each capture runs its own variant's chain.
 
@@ -241,7 +245,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Prototype:** [Edit Module Configurations](https://vbv-fr.github.io/image-enhancement-prototype/edge-emc.html)
 
 ![Today: the Module list](prototype/edge-emc-today.png)
+![After: Module list includes IE_1](prototype/edge-emc-after-module-list.png)
 ![After: values editable with Image | Preview](prototype/edge-emc-after.png)
+![After: warning on Save](prototype/edge-emc-after-save-warning.png)
 
 - **AC9.1** The Module list in Edit Module Configurations lists each Image Enhancement (IE_1 …).
 - **AC9.2** Its section shows the chain in its Vision order; filters cannot be added, removed or reordered there.
@@ -263,12 +269,13 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![Today: Image Saving](prototype/edge-image-saving-today.png)
 ![After: Image Saving with the Enhanced block](prototype/edge-image-saving-after.png)
 ![After: Dashboard Builder lists the enhanced area](prototype/edge-dashboard-builder-after.png)
+![After: the dashboard preview shows the enhanced image](prototype/edge-dashboard-builder-after-preview.png)
 ![After: Reports lists the enhanced image by name](prototype/edge-reports-after.png)
 
-- **AC10.1** The enhanced area has its own analysed image: the enhanced picture with the OCR boxes and the area border drawn on it. The parent area's analysed image stays the normal crop; the raw image stays the camera picture.
-- **AC10.2** Image Saving shows a third block, "Enhanced", beside Analysed and Raw on each capture row that has an Image Enhancement, with its own on/off and OK / NG choices; it saves the enhanced area's analysed image with the Analysed block's resolution and quality, in a folder named after the enhanced area.
+- **AC10.1** The enhanced area has its own analysed image: the enhanced picture with the OCR boxes and the area border drawn on it. The parent area's analysed image stays the normal crop, and which other areas show the OCR boxes follows today's Analysed Image Configurations; the raw image stays the camera picture.
+- **AC10.2** Image Saving shows a third column group, "Enhanced Image" (Image Saving Mode), after Raw Image. A capture with an Image Enhancement gets an on/off toggle with OK / NG that behaves like Raw's (switching on ticks NG; unticking both switches it off); a capture without one shows "—". It saves the enhanced area's analysed image with the Analysed Image resolution and quality, in a folder named after the enhanced area.
 - **AC10.3** Analysed Image Configurations lists each Image Enhancement with a single row, as it lists Masking today.
-- **AC10.4** The Dashboard Builder image widget's area list includes each enhanced area by name, and a widget pointed at it shows it live on the Live Dashboard.
+- **AC10.4** The Dashboard Builder image widget's "Select Search Area" list includes each enhanced area by name; a widget pointed at it shows the enhanced image in the dashboard preview and live on the Live Dashboard (on the builder canvas it shows the named placeholder every image widget shows today).
 - **AC10.5** Reports → View Images lists the enhanced area's image under its name, never a raw id; Excel export and Reverse Judgement carry it like other area images.
 
 ### US11 — Rules: who can set it up and tune it
@@ -357,7 +364,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 **Coverage check:** coverage checker, 21 Oct 2026
 **Result:** PASS
 
-- 15 user stories (10 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 75 ACs, 26 touched parts, 7 discussion points.
+- 15 user stories (10 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 76 ACs, 26 touched parts, 7 discussion points.
 - Checklist: 16 items covered by stories, 2 N/A, 0 open.
 
 Manual checks: every coverage-sheet item maps to exactly one AC; every goal is delivered (G1: US2, US8; G2: US2; G3: US5, US6); no AC contradicts today's code without saying so (US4 departs from Masking's lock on purpose; AC10.5 changes today's raw-id labels).
@@ -376,6 +383,7 @@ Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-mod
 
 ## Changelog
 - 20 Oct 2026 — Draft started as "Image filters for OCR"; scope changed to a standalone module any listed module can sit under (Tanay Deo)
+- 21 Oct 2026 — Prototypes built for all seven screens; ACs aligned with them (download picker wording, Image Saving "—" for captures without the module, no annotation card for the module) (Tanay Deo)
 - 21 Oct 2026 — Renamed Image Enhancement; decisions: train and annotate on enhanced images, children OCR / Code Reader / Shape Extractor / Search Area, values (not the chain) editable on Edge, six filter categories, Enhanced block in Image Saving, older Edge versions hidden in the download dropdown; Masking kept as a discussion point (Tanay Deo)
 
 ## Checked, not affected

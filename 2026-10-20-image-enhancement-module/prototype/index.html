@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Enhancement prototypes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1e1c1c; --muted:#6b6f72; --line:#e6e6e6; --brand:#ff4301; --bg:#f6f6f6; --card:#fff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Outfit, system-ui, sans-serif; }
+  header { padding:32px 24px 8px; max-width:1200px; margin:0 auto; }
+  h1 { margin:0 0 6px; font-size:28px; font-weight:600; }
+  .sub { color:var(--muted); font-size:15px; }
+  h2 { max-width:1200px; margin:28px auto 12px; padding:0 24px; font-size:15px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .grid { max-width:1200px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; }
+  a.card { display:block; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; text-decoration:none; color:inherit; transition:box-shadow .15s, border-color .15s; }
+  a.card:hover { border-color:var(--brand); box-shadow:0 4px 18px rgba(0,0,0,.08); }
+  a.card img { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; object-position:top left; border-bottom:1px solid var(--line); }
+  .body { padding:12px 14px 14px; }
+  .t { font-weight:600; font-size:16px; }
+  .us { color:var(--brand); font-size:13px; font-weight:500; margin-top:2px; }
+  footer { max-width:1200px; margin:32px auto; padding:0 24px; color:var(--muted); font-size:13px; }
+  @media (max-width:420px) { .grid { grid-template-columns:1fr; padding:0 16px; } header, h2, footer { padding-left:16px; padding-right:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Image Enhancement module</h1>
+  <div class="sub">Prototype · each screen has a Today / After change switch</div>
+</header>
+
+<h2>Frinks Vision</h2>
+<div class="grid">
+  <a class="card" href="vision-module-config.html?state=picker"><img src="vision-module-config-after-picker.png" alt="Select Module with Image Enhancement"><div class="body"><div class="t">Select Module</div><div class="us">US1</div></div></a>
+  <a class="card" href="vision-module-config.html"><img src="vision-module-config-after.png" alt="Image Enhancement Module Setup"><div class="body"><div class="t">Module Setup: filter chain and preview</div><div class="us">US2</div></div></a>
+  <a class="card" href="vision-module-config.html?state=add-filter"><img src="vision-module-config-after-add-filter.png" alt="Add filter grouped into six categories"><div class="body"><div class="t">Add filter: six categories</div><div class="us">US2</div></div></a>
+  <a class="card" href="vision-module-config.html?state=ocr-inputs"><img src="vision-module-config-after-ocr-inputs.png" alt="OCR Base search area lists the enhanced area"><div class="body"><div class="t">OCR picks the enhanced area</div><div class="us">US3</div></div></a>
+  <a class="card" href="vision-module-config.html?state=edit-warning"><img src="vision-module-config-after-edit-warning.png" alt="Warning when editing a configured chain"><div class="body"><div class="t">Edit warning</div><div class="us">US4</div></div></a>
+  <a class="card" href="vision-annotation.html"><img src="vision-annotation-after.png" alt="Annotation on the enhanced image"><div class="body"><div class="t">Annotation on the enhanced image</div><div class="us">US5</div></div></a>
+  <a class="card" href="vision-instance-download.html"><img src="vision-instance-download-after.png" alt="Download dialog with supported versions only"><div class="body"><div class="t">Instance download: supported versions</div><div class="us">US7</div></div></a>
+</div>
+
+<h2>Frinks Edge</h2>
+<div class="grid">
+  <a class="card" href="edge-emc.html"><img src="edge-emc-after.png" alt="Edit Module Configurations for Image Enhancement"><div class="body"><div class="t">Edit Module Configurations</div><div class="us">US9</div></div></a>
+  <a class="card" href="edge-image-saving.html"><img src="edge-image-saving-after.png" alt="Image Saving with Enhanced Image"><div class="body"><div class="t">Image Saving Configurations</div><div class="us">US10</div></div></a>
+  <a class="card" href="edge-dashboard-builder.html"><img src="edge-dashboard-builder-after.png" alt="Dashboard Builder area picker"><div class="body"><div class="t">Dashboard Builder</div><div class="us">US10</div></div></a>
+  <a class="card" href="edge-reports.html"><img src="edge-reports-after.png" alt="Reports View Images"><div class="body"><div class="t">Analytics &amp; Reports: View Images</div><div class="us">US10</div></div></a>
+</div>
+
+<footer>Sample data only. Filter reference: Image Filter Guide.</footer>
+</body>
+</html>
