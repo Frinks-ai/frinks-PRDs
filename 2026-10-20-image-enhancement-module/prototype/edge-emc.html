@@ -226,20 +226,6 @@ body.grabbing,body.grabbing *{cursor:grabbing!important;user-select:none}
 .pd-i{display:flex;width:100%;align-items:center;gap:8px;padding:8px 12px;text-align:left;font-size:12px;line-height:16px;color:#374151}
 .pd-i:hover{background:#f9fafb}
 
-/* Modal (modules/modal/index.jsx) + running-deployment pop-up body (inferencing-customizations/index.jsx) */
-.ov{position:fixed;left:0;top:0;z-index:99991;height:100vh;width:100vw;border-radius:8px;background:rgb(107 114 128/.75)}
-.mdl{position:relative;top:50%;margin:0 auto;transform:translateY(-50%);border-radius:8px;background:#fff;text-align:left;width:33.333333%;
-  box-shadow:0 20px 25px -5px rgb(0 0 0/.1),0 8px 10px -6px rgb(0 0 0/.1)}
-.mdl-in{border-radius:8px;background:#fff}
-.mdl-h{display:flex;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:16px 24px}
-.mdl-h h3{text-align:left;font-weight:600}
-.mdl-x{cursor:pointer}
-.mdl-b{border-bottom:1px solid #e5e7eb;padding:16px 24px}
-.pt-2{padding-top:8px}
-.mdl-f{display:flex;justify-content:space-between;gap:16px;padding:16px 24px}
-.mbtn{height:40px;cursor:pointer;border-radius:9999px;border:1px solid #e5e7eb;padding:0 16px;font-size:16px}
-.mbtn.pri{background:#ff4301;color:#fff}
-
 /* react-hot-toast */
 .toaster{position:fixed;z-index:9999;top:16px;left:16px;right:16px;bottom:16px;pointer-events:none;display:flex;justify-content:center;align-items:flex-start}
 .toast{display:flex;align-items:center;background:#fff;color:#363636;line-height:1.3;box-shadow:0 3px 10px rgba(0,0,0,.1),0 3px 3px rgba(0,0,0,.05);max-width:350px;pointer-events:auto;padding:8px 10px;border-radius:8px;font-size:16px;animation:tin .35s cubic-bezier(.21,1.02,.73,1) forwards}
@@ -413,7 +399,7 @@ body.grabbing,body.grabbing *{cursor:grabbing!important;user-select:none}
   'use strict';
 
   // ---------- Prototype mode / state ----------
-  // ?mode=today|after (default after); ?state=module-list | edit-chain | uploaded | save-warning
+  // ?mode=today|after (default after); ?state=module-list | edit-chain | uploaded
   var mode = 'after', state = '';
   try {
     var qs = new URLSearchParams(location.search);
@@ -516,9 +502,9 @@ body.grabbing,body.grabbing *{cursor:grabbing!important;user-select:none}
 
   var SAVED_CHAIN = loadSaved();
   var chain = clone(SAVED_CHAIN);
-  // ?state=edit-chain (and save-warning): Local Median Normalization picked from Add filter, set to 15 x 15 and
+  // ?state=edit-chain: Local Median Normalization picked from Add filter, set to 15 x 15 and
   // dragged from the last step to Step 1.
-  if (state === 'edit-chain' || state === 'save-warning') {
+  if (state === 'edit-chain') {
     var lmn = newRow('localmediannorm');
     lmn.v = { rows: '15', cols: '15' };
     chain.unshift(lmn);
@@ -541,7 +527,7 @@ body.grabbing,body.grabbing *{cursor:grabbing!important;user-select:none}
   ];
   var OCR_LABELS = ['Lot', 'Expiry'];
 
-  var dirty = state === 'edit-chain' || state === 'save-warning';
+  var dirty = state === 'edit-chain';
   var uploaded = false, uploading = false, upErr = '';
   var SIZE_ERR = 'Pick a picture the same size as the master image';
 
@@ -559,7 +545,6 @@ body.grabbing,body.grabbing *{cursor:grabbing!important;user-select:none}
   var ICON_ONE = '<svg viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6667 4H6.66667C5.95942 4 5.28115 4.28095 4.78105 4.78105C4.28095 5.28115 4 5.95942 4 6.66667V10.6667M28 10.6667V6.66667C28 5.95942 27.719 5.28115 27.219 4.78105C26.7189 4.28095 26.0406 4 25.3333 4H21.3333M21.3333 28H25.3333C26.0406 28 26.7189 27.719 27.219 27.219C27.719 26.7189 28 26.0406 28 25.3333V21.3333M4 21.3333V25.3333C4 26.0406 4.28095 26.7189 4.78105 27.219C5.28115 27.719 5.95942 28 6.66667 28H10.6667" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5043 11.2727V20H10.6591V13.0241H10.608L8.60938 14.277V12.6406L10.7699 11.2727H12.5043ZM15.6566 18.9858C15.3754 18.9858 15.1339 18.8864 14.9322 18.6875C14.7333 18.4886 14.6339 18.2472 14.6339 17.9631C14.6339 17.6847 14.7333 17.446 14.9322 17.2472C15.1339 17.0483 15.3754 16.9489 15.6566 16.9489C15.9293 16.9489 16.168 17.0483 16.3725 17.2472C16.5771 17.446 16.6793 17.6847 16.6793 17.9631C16.6793 18.1506 16.631 18.3224 16.5344 18.4787C16.4407 18.6321 16.3171 18.7557 16.1637 18.8494C16.0103 18.9403 15.8413 18.9858 15.6566 18.9858ZM15.6566 14.7031C15.3754 14.7031 15.1339 14.6037 14.9322 14.4048C14.7333 14.206 14.6339 13.9645 14.6339 13.6804C14.6339 13.402 14.7333 13.1648 14.9322 12.9688C15.1339 12.7699 15.3754 12.6705 15.6566 12.6705C15.9293 12.6705 16.168 12.7699 16.3725 12.9688C16.5771 13.1648 16.6793 13.402 16.6793 13.6804C16.6793 13.8707 16.631 14.044 16.5344 14.2003C16.4407 14.3537 16.3171 14.4759 16.1637 14.5668C16.0103 14.6577 15.8413 14.7031 15.6566 14.7031ZM21.9496 11.2727V20H20.1044V13.0241H20.0533L18.0547 14.277V12.6406L20.2152 11.2727H21.9496Z" fill="currentColor"/></svg>';
   var ICON_ZIN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
   var ICON_ZOUT = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
-  var CLOSE_25 = '<svg width="25" height="25" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 8L8 24M8 8L24 24" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   // ---------- SelectInput (vanilla port of shared/ui/SelectInput.jsx) ----------
   var selects = {};
@@ -1181,46 +1166,18 @@ body.grabbing,body.grabbing *{cursor:grabbing!important;user-select:none}
     toast.t = setTimeout(function () { toaster.innerHTML = ''; }, err ? 4000 : 2000);
   }
   function toastError(msg) { toast(msg, true); }
-  var modalEl = null;
-  function closeModal() { if (modalEl) { modalEl.remove(); modalEl = null; } }
-  function openSaveWarning() {
-    closeModal();
-    modalEl = document.createElement('div');
-    modalEl.className = 'ov';
-    modalEl.setAttribute('role', 'dialog');
-    modalEl.setAttribute('aria-modal', 'true');
-    modalEl.innerHTML =
-      '<div class="mdl"><div class="mdl-in">' +
-        '<div class="mdl-h"><h3>Confirmation Message</h3><div class="mdl-x" data-m="x">' + CLOSE_25 + '</div></div>' +
-        '<div class="mdl-b">' +
-          '<p>The models of the modules below ' + esc(moduleName) + ' (OCR_1) were trained on images enhanced with the old filters or values.</p>' +
-          '<p class="pt-2">Do you want to proceed to save these changes?</p>' +
-        '</div>' +
-        '<div class="mdl-f">' +
-          '<button class="mbtn" type="button" data-m="cancel">Cancel</button>' +
-          '<button class="mbtn pri" type="button" data-m="ok">Confirm</button>' +
-        '</div>' +
-      '</div></div>';
-    modalEl.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-m]');
-      if (!b) return;
-      var m = b.getAttribute('data-m');
-      closeModal();
-      if (m === 'ok') {
-        SAVED_CHAIN = clone(chain); dirty = false; syncFooter();
-        writeEdgeChain();
-        toast('Changes saved');
-        // Inside the workflow shell, move on to the dashboard once the filters are saved.
-        if (inShell) setTimeout(function () { try { window.parent.postMessage({ type: 'ie-nav', to: 'edge-dashboard' }, '*'); } catch (err) { /* ignore */ } }, 700);
-      }
-    });
-    document.body.appendChild(modalEl);
-  }
   document.getElementById('btnReset').addEventListener('click', function () { resetDirty(); render(); });
   document.getElementById('btnSave').addEventListener('click', function () {
     var current = modulesFor(selectedCap).filter(function (m) { return m.id === selectedModule; })[0];
-    if (current && current.type === 'imageEnhancement') { if (chain.length) openSaveWarning(); }
-    else { dirty = false; syncFooter(); toast('Changes saved'); }
+    if (current && current.type === 'imageEnhancement') {
+      // Saved straight away like every other module: the filters and values go to edgeChain.
+      if (!chain.length) return;
+      SAVED_CHAIN = clone(chain); dirty = false; syncFooter();
+      writeEdgeChain();
+      toast('Changes saved');
+      // Inside the workflow shell, move on to the dashboard once the filters are saved.
+      if (inShell) setTimeout(function () { try { window.parent.postMessage({ type: 'ie-nav', to: 'edge-dashboard' }, '*'); } catch (err) { /* ignore */ } }, 700);
+    } else { dirty = false; syncFooter(); toast('Changes saved'); }
   });
 
   // ---------- Prototype switcher (hidden inside the workflow shell, whose own toggle passes ?mode=) ----------
@@ -1244,8 +1201,6 @@ body.grabbing,body.grabbing *{cursor:grabbing!important;user-select:none}
     var modWrap = document.querySelector('.sel[data-sel="mod"]');
     openSelect(modWrap, mode === 'after' ? 'm2' : null);
     pinned = true;
-  } else if (state === 'save-warning') {
-    openSaveWarning();
   } else if (state === 'edit-chain') {
     openMenu();
     menuPinned = true;

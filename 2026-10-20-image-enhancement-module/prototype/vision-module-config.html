@@ -135,11 +135,36 @@ a.crumb:hover{color:#ff4301;background:#f3f4f6}
   border-radius:4px;border:1px solid #d1d5db;background:#f3f4f6;padding:4px 8px;font-size:12px;line-height:16px;color:#4b5563;
   box-shadow:0 1px 2px 0 rgb(0 0 0/.05);visibility:hidden;font-weight:400}
 
+/* ---- shared/ui/Modal.tsx + exit-confirmation content (module-configuration/index.tsx) ---- */
+.modal-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgb(0 0 0/.5);transition:opacity .3s}
+.modal-overlay[hidden]{display:none}
+.modal-card{position:relative;width:100%;max-width:28rem;border-radius:8px;background:#fff;outline:none;
+  box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1);transition:transform .3s}
+.modal-head{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e5e7eb;padding:16px}
+.modal-title{font-size:18px;font-weight:500}
+.modal-x{cursor:pointer;font-weight:500}
+.modal-body{padding:16px}
+.delete-image-control{display:flex;border-top:1px solid #e3e5e5;padding:1rem 1.5rem;gap:10px;text-align:center}
+.delete-image-control>button{padding:8px 10px;font-size:16px;flex:1;font-weight:500}
+
+/* ---- react-hot-toast (Toaster top-center, maxWidth 700) ---- */
+.toast-container{position:fixed;z-index:9999;inset:16px;pointer-events:none}
+.toast-row{position:absolute;left:0;right:0;top:0;display:flex;justify-content:center;transition:all .23s cubic-bezier(.21,1.02,.73,1)}
+.toast-bar{display:flex;align-items:center;background:#fff;color:#363636;line-height:1.3;pointer-events:auto;padding:8px 10px;border-radius:8px;max-width:700px;
+  box-shadow:0 3px 10px rgba(0,0,0,.1),0 3px 3px rgba(0,0,0,.05);animation:toastIn .35s cubic-bezier(.21,1.02,.73,1) forwards}
+.toast-bar.leaving{animation:toastOut .4s forwards cubic-bezier(.06,.71,.55,1)}
+@keyframes toastIn{0%{transform:translate3d(0,-200%,0) scale(.6);opacity:.5}100%{transform:translate3d(0,0,0) scale(1);opacity:1}}
+@keyframes toastOut{0%{transform:translate3d(0,0,-1px) scale(1);opacity:1}100%{transform:translate3d(0,-150%,-1px) scale(.6);opacity:0}}
+.toast-icon{position:relative;display:flex;justify-content:center;align-items:center;min-width:20px;min-height:20px}
+.toast-check{width:20px;height:20px;border-radius:10px;background:#61d345;position:relative;transform:rotate(45deg)}
+.toast-check::after{content:"";box-sizing:border-box;position:absolute;border-right:2px solid #fff;border-bottom:2px solid #fff;bottom:6px;left:6px;height:10px;width:6px}
+.toast-msg{display:flex;justify-content:center;margin:4px 10px;color:inherit;flex:1 1 auto;white-space:pre-line}
+
 /* ---- prototype-only chrome ---- */
-.proto{position:fixed;top:14px;right:16px;z-index:100000;display:flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif}
+.proto{position:fixed;top:15px;right:16px;z-index:100000;display:flex;align-items:center;gap:6px;font-family:'Outfit',sans-serif}
 .proto-tag{font-size:10px;line-height:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#44403c;border-radius:4px;padding:2px 6px}
 .seg{display:flex;border:1px solid #d6d3d1;border-radius:6px;overflow:hidden;background:#fff}
-.seg button{font-size:11px;line-height:16px;font-weight:500;color:#57534e;padding:4px 9px;border-left:1px solid #e7e5e4;white-space:nowrap}
+.seg button{font-size:10.5px;line-height:15px;font-weight:500;color:#57534e;padding:3px 6px;border-left:1px solid #e7e5e4;white-space:nowrap}
 .seg button:first-child{border-left:0}
 .seg button:hover{background:#f5f5f4}
 .seg button[aria-pressed="true"]{background:#44403c;color:#fff}
@@ -248,9 +273,6 @@ h3{margin:0;font-size:inherit}
 .mdl-h h3{font-weight:600;display:flex;align-items:center;gap:6px}
 .mdl-h .x{cursor:pointer;display:block}
 .mdl-b{overflow:auto;padding:20px}
-.mdl-f{border-top:1px solid #e5e7eb;padding:20px}
-.mdl-f>div{display:flex;flex-direction:row;justify-content:flex-end;gap:16px}
-.mdl-b ul.dl{margin:12px 0;padding-left:20px;list-style:disc}
 
 /* shared/ui/Table.tsx */
 .tbl{width:100%;overflow-x:auto}
@@ -267,6 +289,19 @@ h3{margin:0;font-size:inherit}
 .tbl tr.en:hover{background:#e5e7eb}
 .tbl tr.dis{pointer-events:none}
 .tbl tr.dis td{color:#9ca3af}
+
+/* react-hot-toast success bar (main.tsx <Toaster position="top-center" toastOptions maxWidth 700px, duration 4000>) */
+.toast-container{position:fixed;z-index:9999;inset:16px;pointer-events:none}
+.toast-row{position:absolute;left:0;right:0;top:0;display:flex;justify-content:center}
+.toast-bar{display:flex;align-items:center;background:#fff;color:#363636;line-height:1.3;pointer-events:auto;padding:8px 10px;border-radius:8px;max-width:700px;
+  box-shadow:0 3px 10px rgba(0,0,0,.1),0 3px 3px rgba(0,0,0,.05);animation:toastIn .35s cubic-bezier(.21,1.02,.73,1) forwards}
+.toast-bar.leaving{animation:toastOut .4s forwards cubic-bezier(.06,.71,.55,1)}
+@keyframes toastIn{0%{transform:translate3d(0,-200%,0) scale(.6);opacity:.5}100%{transform:translate3d(0,0,0) scale(1);opacity:1}}
+@keyframes toastOut{0%{transform:translate3d(0,0,-1px) scale(1);opacity:1}100%{transform:translate3d(0,-150%,-1px) scale(.6);opacity:0}}
+.toast-icon{position:relative;display:flex;justify-content:center;align-items:center;min-width:20px;min-height:20px}
+.toast-check{width:20px;height:20px;border-radius:10px;background:#61d345;position:relative;transform:rotate(45deg)}
+.toast-check::after{content:"";box-sizing:border-box;position:absolute;border-right:2px solid #fff;border-bottom:2px solid #fff;bottom:6px;left:6px;height:10px;width:6px}
+.toast-msg{display:flex;justify-content:center;margin:4px 10px;color:inherit;flex:1 1 auto;white-space:pre-line}
 
 /* prototype-only switch (sits under modal overlays so it never covers a dialog) */
 .proto{z-index:40!important}
@@ -425,6 +460,7 @@ html.embedded .proto{display:none!important}
 </div>
 
 <div id="overlays"></div>
+<div class="toast-container" id="toaster"></div>
 <div class="tt" id="hoverTip" role="tooltip"></div>
 
 <div class="proto" id="proto">
@@ -441,7 +477,7 @@ html.embedded .proto{display:none!important}
     <option value="inputs">Module Inputs</option>
     <option value="empty-chain">Empty chain</option>
     <option value="outputs">Module Outputs</option>
-    <option value="edit-warning">Save edit</option>
+    <option value="edit">Edit filters</option>
     <option value="ocr-inputs">OCR_1 inputs</option>
   </select>
 </div>
@@ -598,7 +634,11 @@ html.embedded .proto{display:none!important}
   }
   // Adding Image Enhancement from Select Module creates a NEW IE_1: default filters, default area name, nothing tuned on Edge yet.
   function resetSharedForNewModule() { writeShared({ chain: chainToShared(defaultChain()), edgeChain: null, areaName: DEFAULT_AREA }); }
-  function chainChanged() { S.changed = true; S.showErr = false; S.sharedChain = true; saveChain(); render(); }
+  function chainChanged() {
+    S.changed = true; S.showErr = false;
+    if (!S.deferSave) { S.sharedChain = true; saveChain(); }
+    render();
+  }
 
   /* ---------- workflow shell (index.html) navigation ---------- */
   var EMBEDDED = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
@@ -742,7 +782,7 @@ html.embedded .proto{display:none!important}
     var ieNew = { id: 'ie1', name: 'IE_1', parentId: 'sa1', store: 'imageEnhancement', conf: false, t: 2 };
     var ocrUnderIe = { id: 'ocr1', name: 'OCR_1', parentId: 'ie1', store: 'ocr', conf: true, t: 3 };
     var s = { mode: mode, state: state, tree: [ROOT, SA1, ieConf, ocrUnderIe], selected: null, step: 0, chain: loadChain(), sharedChain: true,
-      showErr: false, picker: null, addOpen: false, ocrSelOpen: false, warn: false, outName: loadAreaName(), ocrBase: 'enh',
+      showErr: false, picker: null, addOpen: false, ocrSelOpen: false, deferSave: false, outName: loadAreaName(), ocrBase: 'enh',
       editingName: false, nameDraft: '', nameErr: '', changed: false };
     if (mode === 'today') { s.tree = [ROOT, SA1, ocrUnderSa]; s.picker = 'sa1'; return s; }
     switch (state) {
@@ -752,7 +792,9 @@ html.embedded .proto{display:none!important}
       case 'inputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 0; break;
       case 'empty-chain': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1; s.chain = []; s.sharedChain = false; s.showErr = true; break;
       case 'outputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 2; break;
-      case 'edit-warning': s.selected = 'ie1'; s.step = 2; s.warn = true; s.changed = true; break;
+      // Configured IE_1 (OCR_1 below) reopened on Module Setup with one change made: a third filter added at the top
+      // (Local Median Normalization 15 x 15 evens out the lighting before Binarize). Saved only on Finish, so not shared until then.
+      case 'edit': s.selected = 'ie1'; s.step = 1; s.chain = [mkFilter('localmediannorm', { rows: 15, cols: 15 })].concat(loadChain()); s.sharedChain = false; s.deferSave = true; s.changed = true; break;
       case 'ocr-inputs': s.selected = 'ocr1'; s.step = 0; s.ocrSelOpen = true; break;
       default: s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1;
     }
@@ -920,17 +962,6 @@ html.embedded .proto{display:none!important}
       '<div class="tbl"><table><colgroup><col style="width:50%"><col style="width:50%"></colgroup><thead><tr><th>Module Name<div class="rh"></div></th><th>Description</th></tr></thead><tbody>' +
       rows + '</tbody></table></div></div></div></div>';
   }
-  function warnModalHTML() {
-    var below = S.tree.filter(function (m) { return m.parentId === 'ie1'; }).map(function (m) { return '<li>' + esc(m.name) + '</li>'; }).join('');
-    return '<div class="ov" id="warnOv"><div class="mdl" role="dialog" aria-modal="true">' +
-      '<div class="mdl-h"><h3>Save changes</h3><span id="warnClose">' + ICON_IOCLOSE + '</span></div>' +
-      '<div class="mdl-b"><div>The models of these modules were trained on the old filters of IE_1 and must be retrained:</div>' +
-      '<ul class="dl">' + below + '</ul><div>The instances that use Capture 1 will go back to draft. Do you want to continue?</div></div>' +
-      '<div class="mdl-f"><div>' +
-      '<span class="tipwrap" data-tip="Stays on this module so you can keep editing it."><button type="button" class="btn btn-border" id="warnCancel">Cancel</button></span>' +
-      '<span class="tipwrap" data-tip="Saves the new filters for IE_1."><button type="button" class="btn btn-primary" id="warnSave">Save</button></span>' +
-      '</div></div></div></div>';
-  }
 
   /* ---------- canvases ---------- */
   function fitCanvas(cv, w, h) {
@@ -971,7 +1002,6 @@ html.embedded .proto{display:none!important}
     ms.innerHTML = konva + '<div class="canvas-cover with-image" id="cover">' + tree.html + '</div>' + (S.selected ? panelHTML() : '');
     var ov = '';
     if (S.picker) ov += pickerModalHTML();
-    if (S.warn) ov += warnModalHTML();
     document.getElementById('overlays').innerHTML = ov;
     renderFooter();
     requestAnimationFrame(function () { placeTree(); drawLeft(); placeMenus(); });
@@ -1066,6 +1096,27 @@ html.embedded .proto{display:none!important}
     }
   }
 
+  /* ---------- saving an edited, configured IE_1 (selectedModule.tsx onFinish: PUT /module/update, panel closes,
+     toast.success('Module changes saved!')); the instances that use Capture 1 go back to draft ---------- */
+  function toastSuccess(msg) {
+    var box = document.getElementById('toaster');
+    box.innerHTML = '';
+    var row = document.createElement('div');
+    row.className = 'toast-row';
+    row.innerHTML = '<div class="toast-bar" role="status" aria-live="polite"><div class="toast-icon"><div class="toast-check"></div></div><div class="toast-msg"></div></div>';
+    row.querySelector('.toast-msg').textContent = msg;
+    box.appendChild(row);
+    setTimeout(function () { var b = row.querySelector('.toast-bar'); if (b) b.classList.add('leaving'); }, 4000);
+    setTimeout(function () { if (row.parentNode) row.parentNode.removeChild(row); }, 4400);
+  }
+  function saveEdit() {
+    S.deferSave = false; S.sharedChain = true; saveChain();
+    S.selected = null; S.step = 0; S.changed = false;
+    render();
+    toastSuccess('Module changes saved!');
+    setTimeout(function () { flow('vision-draft', function () {}); }, 1500);
+  }
+
   /* ---------- interactions ---------- */
   document.addEventListener('mousedown', function (e) {
     if (!floatEl) return;
@@ -1094,12 +1145,13 @@ html.embedded .proto{display:none!important}
       if (m.store === 'ocr') { flow('vision-annotate', function () { m.conf = true; S.selected = null; render(); }); return; }
       if (S.step === 1 && !S.chain.length) { S.showErr = true; render(); return; }
       if (S.step < 2) {
+        if (m.conf) { S.step++; S.showErr = false; render(); return; }
         flow(S.step === 0 ? 'vision-setup' : 'vision-outputs', function () {
           S.step++; S.showErr = false; render();
         });
         return;
       }
-      if (m.conf) { S.warn = true; render(); return; }
+      if (m.conf) { saveEdit(); return; }
       flow('vision-below', function () { m.conf = true; S.selected = null; render(); });
       return;
     }
@@ -1118,8 +1170,6 @@ html.embedded .proto{display:none!important}
       if (S.mode === 'after' && under.store === 'imageEnhancement' && picked === 'ocr') { flow('vision-ocr', function () { go('after', 'ocr-inputs', true); }); return; }
       S.picker = null; render(); return;
     }
-    if (t.closest('#warnClose') || t.closest('#warnCancel') || t.id === 'warnOv') { S.warn = false; render(); return; }
-    if (t.closest('#warnSave')) { flow('vision-draft', function () { S.warn = false; S.selected = null; S.changed = false; render(); }); return; }
     if (t.closest('#editName')) { S.editingName = true; S.nameDraft = S.outName; S.nameErr = ''; render(); return; }
     if (t.closest('#cancelName')) { S.editingName = false; S.nameErr = ''; render(); return; }
     if (t.closest('#saveName')) {
@@ -1210,7 +1260,7 @@ html.embedded .proto{display:none!important}
   });
 
   /* ---------- prototype switch (?mode=today|after, ?state=) ---------- */
-  var VALID = ['', 'add-filter', 'picker', 'picker-under-ie', 'inputs', 'empty-chain', 'outputs', 'edit-warning', 'ocr-inputs'];
+  var VALID = ['', 'add-filter', 'picker', 'picker-under-ie', 'inputs', 'empty-chain', 'outputs', 'edit', 'ocr-inputs'];
   function readURL() {
     var q = new URLSearchParams(location.search);
     var mode = q.get('mode') === 'today' ? 'today' : 'after';
