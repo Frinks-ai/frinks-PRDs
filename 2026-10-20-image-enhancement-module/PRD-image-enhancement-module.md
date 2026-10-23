@@ -26,7 +26,7 @@ Everything still to be settled. Each row is decided before the tickets are cut.
 - It has no AI model and never makes a part OK or NG by itself; the modules below it still count toward the verdict.
 - Annotators label, and models of every type train, on the enhanced image when their module picked the enhanced area.
 - Any change to an Image Enhancement puts back to draft only the instances that use that capture, and a filter change warns that the models below must be retrained; each drafted instance goes through its five instance steps again.
-- On Edge, Edit Module Configurations lists the module; its filter values can be tuned there with a preview on the master image, but the chain itself is fixed in Vision. The instance-update pop-up shows Edge-tuned values as preserved, or as replaced when Vision's chain changed.
+- On Edge, Edit Module Configurations lists the module; filters can be added, reordered, removed and tuned there, with a Raw Image / Enhanced Image preview on the master image or an uploaded picture. On an instance update, Edge-tuned values are kept, and when the Edge and Vision filter lists differ the pop-up asks which list to use.
 - The enhanced area is one more analysed image next to the master image and the search areas: it shows the enhanced picture with the boxes, while they keep the normal picture with the boxes. Image Saving keeps its two blocks.
 
 ## 2. Why we are making this
@@ -44,7 +44,6 @@ Everything still to be settled. Each row is decided before the tickets are cut.
 - Image Enhancement under Masking (Q1).
 - Changing which Edge versions the download dropdown offers (Q2, a separate task).
 - Colour enhancement: the enhanced image is always greyscale.
-- Adding, removing or reordering filters on Edge.
 - Auto-annotation: it does not work today.
 - Fixing Masking's existing gaps (modules directly under Masking are left out of the verdict; training under Masking): raised separately.
 - Recommending filters automatically.
@@ -78,13 +77,13 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Model training (vision-model-training) | Models of every type whose module picked the enhanced area train on enhanced images, augmentation first, then the chain | US6, US12 |
 | Model evaluation (vision-model-evaluation) | Evaluation of those models runs on enhanced images | US6 |
 | Instance creation (vision-instance-creation) | The package carries the chain and values; the instances that use a changed capture go back to draft and through their five steps again | US4, US7, US15 |
-| Instance upload (edge-instance-details) | Edge stores the chain and values on upload; the update pop-up lists Edge-tuned values as preserved, or replaced when Vision's chain changed | US7, US9, US15 |
-| Edit Module Configurations (edge-emc) | Lists Image Enhancement; values editable with Image \| Preview on the master image; chain order fixed; warning on save | US9, US11, US13 |
+| Instance upload (edge-instance-details) | Edge stores the chain and values on upload; the update pop-up keeps Edge-tuned values and asks which filter list to use when Edge's and Vision's differ | US7, US9, US15 |
+| Edit Module Configurations (edge-emc) | Lists Image Enhancement; filters can be added, reordered, removed and tuned, with Raw Image \| Enhanced Image on the master image or an uploaded picture; warning on save | US9, US11, US13 |
 | Inferencing customization (edge-inferencing-customization) | Analysed Image Configurations does not list the enhanced area; its boxes follow the settings of the search area it comes from | US10 |
 | Image saving (edge-storage-image-saving) | With Analysed Image on, the enhanced area's analysed image is saved too, under its own name; the screen keeps its two blocks | US10 |
 | Live Dashboard (edge-live-dashboard) | An image widget pointed at the enhanced area shows its analysed image live | US10 |
 | Dashboard Builder (edge-dashboard-builder) | The image widget's area list includes the enhanced area | US10 |
-| Reports (edge-reports-analytics) | View Images lists the enhanced area's image by its name; Excel export carries it | US10 |
+| Reports (edge-reports-analytics) | View Images lists Input Image, then the search areas, then the enhanced area, each by name; Excel export carries it | US10 |
 | Health and error codes (edge-health) | Three new engine codes for Image Enhancement failures | US14 |
 | Edge upgrades (edge-release-upgrade) | The upgrade adds the settings table; downloads for older Edge versions wait on Q2 | US15 |
 | Edge backup and migration (edge-backup-migration) | Backups and upgrades carry the enhancement settings | US15 |
@@ -136,6 +135,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC2.6** Once the module is applied, the canvas shows the area enhanced, in place of the original (the master image around it as today), and updates within a second of any add, remove, reorder or value change.
 - **AC2.7** On a fixed set of reference images, the Vision canvas gives exactly the same pixels as the line does for every filter and every allowed value (golden-image test run on every release).
 - **AC2.8** The enhanced image is greyscale; filters whose results go beyond black and white (Optical Density, the Gradients, Edge Magnitude, High Pass) are scaled into the 0–255 range, as the guide pictures show.
+- **AC2.9** A new Image Enhancement starts with Binarize followed by Invert in its chain.
 
 ### US3 — Hand the areas to the modules below
 *As an integrator, I want each module under an Image Enhancement to pick the normal or the enhanced area, so that every module works on the picture that suits it.*
@@ -238,8 +238,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC8.4** When the parent area has no image on a frame, the enhanced area has none either, and the modules below report a missing area as they do today.
 - **AC8.5** Each Image Enhancement's time per image is written to the engine's time log like any module's, and counts in the capture's inference time.
 
-### US9 — Tune the values on Edge
-*As a quality engineer, I want to tune the filter values on Edge with a preview, so that I can react to print changes without going back to Vision.*
+### US9 — Tune the filters on Edge
+*As a quality engineer, I want to change the filters and their values on Edge with a preview, so that I can react to print changes without going back to Vision.*
 - **Kind:** Feature
 - **Parts:** edge-emc, edge-instance-details, mod-shape-extractor, mod-bead-inspection
 - **Teams:** SDE
@@ -248,22 +248,29 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Prototype:** [Workflow, steps 10 and 11](https://vbv-fr.github.io/image-enhancement-prototype/#edge-tune)
 
 ![Today: the Module list](prototype/edge-emc-today.png)
-![After: values editable with Image | Preview](prototype/edge-emc-after.png)
+![After: the chain with Raw Image | Enhanced Image](prototype/edge-emc-after.png)
+![After: adding and reordering filters on Edge](prototype/edge-emc-after-edit-chain.png)
+![After: an uploaded picture in the preview](prototype/edge-emc-after-uploaded.png)
 ![After: warning on Save](prototype/edge-emc-after-save-warning.png)
 ![After: update pop-up, Edge values kept](prototype/edge-instance-update-after.png)
-![After: update pop-up, Vision's chain changed](prototype/edge-instance-update-after-chain-changed.png)
+![After: update pop-up asks which filter list to use](prototype/edge-instance-update-after-chain-changed.png)
 
 - **AC9.1** The Module list in Edit Module Configurations lists each Image Enhancement (IE_1 …).
-- **AC9.2** Its section shows the chain in its Vision order; filters cannot be added, removed or reordered there.
+- **AC9.2** Its section shows the chain in its current order, and filters can be added there from the same six-category list as in Vision (AC2.1).
 - **AC9.3** Each filter's values can be changed within the same ranges as in Vision (AC2.3, AC2.4).
-- **AC9.4** An Image \| Preview pair shows the capture's master image cut to the area, before and after the chain, and updates within a second of a value change.
-- **AC9.5** Saving shows a warning that the models below were trained on the old values.
+- **AC9.4** A Raw Image \| Enhanced Image pair shows the capture's master image cut to the area, before and after the chain, and updates within a second of any change.
+- **AC9.5** Saving shows a warning that the models below were trained on the old filters or values.
 - **AC9.6** On Edge, setup that draws on the master image (Shape Extractor shape generation, Bead Inspection trace) shows the enhanced picture when the module picked the enhanced area.
-- **AC9.7** Reset returns every value to the last saved state.
-- **AC9.8** When a newer export of the instance is uploaded and Vision's filter list is unchanged, every value tuned on Edge is kept, and the update pop-up lists each one under Ground Truth Preservation (Module IE_1, Class/Label the filter's step and name, Parameter, Edge (Preserved), Vision).
-- **AC9.9** When Vision's filter list changed (a filter added, removed or moved), Vision's list and values replace Edge's, and the update pop-up shows the Edge list and the Vision list for that module under a heading of its own.
-- **AC9.10** When a newer export is uploaded and Vision's filter list is unchanged, every value not tuned on Edge takes Vision's value, so a value changed in Vision for a retrained model reaches the line.
-- **AC9.11** Edit Module Configurations changes to these values reach the line on the next deployment, as other changes there do today.
+- **AC9.7** Reset returns the chain and every value to the last saved state.
+- **AC9.8** When a newer export of the instance is uploaded and its filter list is the same as Edge's, every value tuned on Edge is kept, and the update pop-up lists each one under Ground Truth Preservation (Module IE_1, Class/Label the filter's step and name, Parameter, Edge (Preserved), Vision).
+- **AC9.9** When the filter list on Edge and in the newer export differ (changed on Edge, in Vision or both), the update pop-up shows both lists for that module under a heading of its own and asks the user to keep the Edge filters or use the Vision filters, with Vision's preselected.
+- **AC9.10** When a newer export is uploaded and its filter list is the same as Edge's, every value not tuned on Edge takes Vision's value, so a value changed in Vision for a retrained model reaches the line.
+- **AC9.11** Edit Module Configurations changes to these filters and values reach the line on the next deployment, as other changes there do today.
+- **AC9.12** Filters can be dragged to a new position or removed there.
+- **AC9.13** Saving an empty chain there is refused with the message "Add at least one filter".
+- **AC9.14** "Upload image" lets the engineer pick a PNG or JPEG that replaces the master image in Raw Image and Enhanced Image, cut to the area the same way.
+- **AC9.15** The uploaded picture is only for the preview: it is not saved, and Reset or leaving the page brings back the master image.
+- **AC9.16** Upload applies the choice of AC9.9: Keep Edge filters keeps Edge's list and values; Use Vision filters takes Vision's list and values.
 
 ### US10 — See and save the enhanced image
 *As a plant engineer, I want the enhanced image as one more analysed image, so that I can see what the modules below worked on when I investigate a result.*
@@ -283,7 +290,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC10.2** Image Saving keeps only its Analysed Image and Raw Image blocks; with Analysed Image on, the enhanced area's analysed image is saved too, in a folder named after the enhanced area, by the same OK / NG choice and quality.
 - **AC10.3** Analysed Image Configurations does not list the enhanced area; the boxes and labels on its analysed image follow the settings of the search area it comes from.
 - **AC10.4** The Dashboard Builder image widget's "Select Search Area" list includes each enhanced area by name; a widget pointed at it shows the enhanced area's analysed image in the dashboard preview and live on the Live Dashboard (on the builder canvas it shows the named placeholder every image widget shows today).
-- **AC10.5** Reports → View Images lists the enhanced area's image under its name, never a raw id; Excel export and Reverse Judgement carry it like other area images.
+- **AC10.5** Reports → View Images lists the analysed images in this order: Input Image, then the search areas, then the enhanced areas, each under its name, never a raw id.
+- **AC10.6** Excel export and Reverse Judgement carry the enhanced area's image like other area images.
 
 ### US11 — Rules: who can set it up and tune it
 *As an Org Admin, I want the existing permissions to cover this module, so that no new role setup is needed.*
@@ -391,6 +399,7 @@ Manual checks: every coverage-sheet item maps to exactly one AC; two duplicate a
 Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-model-evaluation @ 7a0403a (2025-11-04), assembly-training @ 725f834 (2026-06-02), Assembly-Training-OCR @ 99d0d62 (2025-07-08), Auto-annotation @ d213b71 (2025-10-30), auto-training-backend @ 63ba9a6 (2026-08-04), Classification-Evaluation @ eda0d3b (2025-12-19), classification-training-docker @ 3f7a64e (2025-11-05), Craft-model-evaluation @ 5a95e16 (2025-07-10), frinkschat-backend @ 88e5c91 (2026-07-21), frinksedge-deployment-backend @ 009fc11 (2026-10-19), frinksedge-deployment-frontend @ 7e92de34 (2026-10-19), frinksedge-file-releases @ 7041254 (2026-07-16), frinksedge-health @ e8ef112 (2026-10-15), frinksedge-inferencing-backend @ eddd8e5 (2026-10-19), frinksedge-installer-electron @ b4a5049 (2026-10-12), frinksedge-plc-backend @ 254d08e (2026-10-15), frinksedge-report @ 5fe5390 (2026-10-15), frinksedge-report-frontend @ 9893a19 (2026-10-13), frinksedge-staging-environment @ 4993036 (2026-09-09), frinksvision-backend @ eda944f (2026-10-14), frinksvision-frontend @ 110a23c (2026-10-19), OCR-Evaluation @ c9c413c (2025-07-10), OCR-Training-Detection-ALL @ fc59f48 (2026-10-14), Python-inference-docker @ 62e22bd (2026-05-29), Recommendation-classification @ 0796dbb (2026-08-03), Recommendation-OCR @ ae1e953 (2026-04-30), release-manager-backend @ b8016f7 (2026-09-22), Segmentation-Data-Recommender @ d6f679e (2026-07-22), Segmentation-Evaluation @ 44bb8c6 (2025-08-28), Segmentation-Training @ f749aab (2025-08-22), train-utils @ d3e6378 (2026-09-15), vip-inference-python @ 93451d1 (2026-10-15), workflow-dataprocessor @ d2cd9bd (2026-08-11)
 
 ## Changelog
+- 23 Oct 2026 — Edge can now add, reorder and remove filters, reversing the 23 Oct "values only" decision (AC9.2, AC9.12, AC9.13); preview labelled Raw Image / Enhanced Image (AC9.4) with Upload image, preview only (AC9.14, AC9.15); warning covers filters or values (AC9.5); differing Edge and Vision filter lists are now a choice in the update pop-up, Vision preselected (AC9.9, AC9.16), replacing "Vision's list wins"; default chain Binarize → Invert (AC2.9); Reports order Input Image, search areas, enhanced areas (AC10.5); AC10.6 split from AC10.5 (Tanay Deo)
 - 23 Oct 2026 — Second duplicate pass: AC11.4 (removed): covered by AC11.1; AC2.6 and AC13.4 trimmed; AC12.2 scoped to recipes with or without the module. Decision: adding, deleting or renaming an Image Enhancement also drafts only the instances using its capture (AC4.5) (Tanay Deo)
 - 23 Oct 2026 — Duplicate pass applied: AC3.4 (removed): covered by AC3.3; AC1.5 trimmed (greyed Image Enhancement is AC1.2); AC6.3 reworded to a training check; AC14.6, AC14.4, AC10.2, AC12.3, AC15.1 trimmed; contradictions fixed in AC7.3, AC15.2, AC4.5, AC12.4, AC12.1, AC13.1; AC2.4 adds 0–255. Decisions: Edge-tuned values kept, untuned values from Vision (AC9.8, AC9.10); AC13.5 (removed): moved to AC9.11; two Image Enhancements may share a search area (AC1.4) (Tanay Deo)
 - 23 Oct 2026 — Q3 decided (AC9.8, AC9.9), Q4 dropped (no AC), Q5 decided (AC9.4), Q7 and section 8 measures dropped; any module can sit under the module and picks the normal or enhanced area (AC1.5, AC3.3, AC3.5, AC6.1, AC6.5, AC8.1, AC8.3); models of every type train on enhanced images (US6); analysed images: master and search areas normal, enhanced area enhanced (AC10.1); Image Saving keeps two blocks (AC10.2); Analysed Image Configurations does not list the enhanced area (AC10.3); auto-annotation removed (AC5.3); download-version filter moved to Q2 (AC7.2, AC15.2); drafting limited to instances using the capture (AC4.2, AC4.5, AC4.6, AC12.4); canvas shows only the enhanced image (AC2.6); bold category headings (AC2.1); prototype rebuilt as one interactive workflow (Tanay Deo)
