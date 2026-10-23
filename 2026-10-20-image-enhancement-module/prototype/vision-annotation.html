@@ -247,7 +247,7 @@ a{color:inherit;text-decoration:inherit}
 
         <div class="aj-bottom">
           <div class="aj-save">
-            <span class="tw" data-tip="Saves this image's labels and moves to the next one."><button type="button" class="btn btn-lg btn-primary">Save &amp; Next</button></span>
+            <span class="tw" data-tip="Saves this image's labels and moves to the next one."><button type="button" class="btn btn-lg btn-primary" data-nav="vision-edit">Save &amp; Next</button></span>
           </div>
           <!-- shared/ui/Pagination.tsx -->
           <div class="pg">
@@ -264,7 +264,7 @@ a{color:inherit;text-decoration:inherit}
         </div>
       </div>
       <div class="aj-exit">
-        <span class="tw" data-tip="Leave the annotation workspace and return to the dataset list."><button type="button" class="btn btn-lg btn-border">Exit</button></span>
+        <span class="tw" data-tip="Leave the annotation workspace and return to the dataset list."><button type="button" class="btn btn-lg btn-border" data-nav="vision-edit">Exit</button></span>
       </div>
     </div>
 
@@ -293,7 +293,7 @@ a{color:inherit;text-decoration:inherit}
 <div class="tt" id="hoverTip" role="tooltip"></div>
 
 <!-- Prototype-only state switcher -->
-<div class="proto">
+<div class="proto" id="proto">
   <span class="proto-tag">Prototype</span>
   <div class="seg" id="seg">
     <button type="button" data-mode="today">Today</button>
@@ -315,12 +315,24 @@ a{color:inherit;text-decoration:inherit}
   // SA_1 on the master image (the print region). OCR_1's parent area in both modes:
   // today SA_1 itself, after "Enhanced Search Area 1" from IE_1 (same geometry).
   var SA = { x: 420, y: 285, w: 440, h: 150 };
-  // IE_1 chain (after mode)
-  var CHAIN = [
-    { id: 'localmediannorm', P: { rows: 15, cols: 15 } },
-    { id: 'binarize', P: {} },
-    { id: 'open', P: { rows: 3, cols: 3 } }
+  // IE_1 chain (after mode) — shared prototype state localStorage["ie-proto:v1"].chain ([{f, p}]),
+  // written by Vision Module Setup; falls back to the default chain when nothing is stored.
+  var STORE_KEY = 'ie-proto:v1';
+  var DEFAULT_CHAIN = [
+    { f: 'localmediannorm', p: { rows: 15, cols: 15 } },
+    { f: 'binarize' },
+    { f: 'open', p: { rows: 3, cols: 3 } }
   ];
+  function readChain() {
+    var chain = null;
+    try {
+      var st = JSON.parse(window.localStorage.getItem(STORE_KEY) || 'null');
+      if (st && Array.isArray(st.chain) && st.chain.length) chain = st.chain;
+    } catch (e) { chain = null; }
+    return (chain || DEFAULT_CHAIN).filter(function (s) { return s && s.f; })
+      .map(function (s) { return { id: s.f, P: s.p || {} }; });
+  }
+  var CHAIN = readChain();
   // OCR_1 labels (config[0].info) — Read & Match, word level, one box each.
   var LABELS = [
     { name: 'Lot Prefix', gt: 'LOT', box: [451, 298, 547, 345] },
@@ -612,6 +624,14 @@ a{color:inherit;text-decoration:inherit}
     });
     renderTitle(); draw();
   }
+  // Inside the workflow shell: the shell's global switch drives ?mode, and Save & Next / Exit move the story on.
+  var framed = false;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+  if (framed) document.getElementById('proto').style.display = 'none';
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-nav]');
+    if (b && framed) window.parent.postMessage({ type: 'ie-nav', to: b.getAttribute('data-nav') }, '*');
+  });
   document.getElementById('seg').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (b) setMode(b.getAttribute('data-mode'));
   });
@@ -620,9 +640,18 @@ a{color:inherit;text-decoration:inherit}
   window.addEventListener('resize', function () { sizeWrap(); draw(); });
   img.onload = function () {
     rawCrop = cropCanvas();
+    CHAIN = readChain();
     enhCrop = runChain(rawCrop, CHAIN);
     buildBlur(function () { setMode(MODE); });
   };
+  // Another screen (Vision Module Setup) changed the chain: recompute the enhanced area.
+  window.addEventListener('storage', function (e) {
+    if (e.key !== null && e.key !== STORE_KEY) return;
+    CHAIN = readChain();
+    if (!rawCrop) return;
+    enhCrop = runChain(rawCrop, CHAIN);
+    draw();
+  });
   setMode(MODE);
   img.src = IMG_SRC;
 })();

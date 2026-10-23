@@ -392,7 +392,7 @@ canvas{display:block}
   function modulesFor(capId) {
     if (capId === 'c2') return [{ id: 'm4', name: 'ODC_2', type: 'assembly' }];
     var list = [{ id: 'm1', name: 'ODC_1', type: 'assembly' }];
-    if (mode === 'after') list.push({ id: 'm2', name: 'IE_1', type: 'imageEnhancement' });
+    if (mode === 'after') list.push({ id: 'm2', name: moduleName, type: 'imageEnhancement' });
     list.push({ id: 'm3', name: 'OCR_1', type: 'ocr' });
     return list;
   }
@@ -407,13 +407,69 @@ canvas{display:block}
     range: [{ k: 'low', label: 'Low', min: 0, max: 255 }, { k: 'high', label: 'High', min: 0, max: 255 }],
     grey: [{ k: 'grey', label: 'Grey level', min: 0, max: 255 }]
   };
-  var SAVED_CHAIN = [
-    { type: 'localmediannorm', name: 'Local Median Normalization', p: 'kernel', v: { rows: '15', cols: '15' } },
-    { type: 'binarize', name: 'Binarize' },
-    { type: 'open', name: 'Open', p: 'kernel', v: { rows: '3', cols: '3' } }
-  ];
+  // Filter ids shared by every prototype screen; p = which values the filter has.
+  var FILTERS = {
+    binarize: { name: 'Binarize' }, bothat: { name: 'Bot Hat', p: 'kernel' }, clip: { name: 'Clip', p: 'clip' },
+    close: { name: 'Close', p: 'kernel' }, dilate: { name: 'Dilate', p: 'kernel' }, edgemag: { name: 'Edge Magnitude' },
+    equalize: { name: 'Equalize' }, erode: { name: 'Erode', p: 'kernel' }, filldark: { name: 'Fill Dark Holes' },
+    filllight: { name: 'Fill Light Holes' }, gradfull: { name: 'Gradient Full' }, gradh: { name: 'Gradient Horizontal' },
+    gradv: { name: 'Gradient Vertical' }, greydist: { name: 'Greyscale Distance', p: 'grey' }, highpass: { name: 'High Pass', p: 'kernel' },
+    invert: { name: 'Invert' }, localmedian: { name: 'Local Median', p: 'kernel' },
+    localmediannorm: { name: 'Local Median Normalization', p: 'kernel' }, lowpass: { name: 'Low Pass', p: 'kernel' },
+    maxhat: { name: 'Max (Top Hat/Bottom Hat)', p: 'kernel' }, open: { name: 'Open', p: 'kernel' },
+    opticaldensity: { name: 'Optical Density' }, sharpen: { name: 'Sharpen', p: 'kernel' }, stretch: { name: 'Stretch' },
+    thresholdrange: { name: 'Threshold Range', p: 'range' }, tophat: { name: 'Top Hat', p: 'kernel' }
+  };
+  var DEFAULTS = { kernel: { rows: 5, cols: 5 }, clip: { low: 40, high: 200 }, range: { low: 0, high: 110 }, grey: { grey: 128 } };
+
+  // ---------- Shared prototype state: localStorage["ie-proto:v1"] ----------
+  // The filter list comes from Vision ("chain"). Values come from "edgeChain" (saved here) while it has the same
+  // filters in the same order; once Vision's list differs, Vision's values replace the Edge ones.
+  var KEY = 'ie-proto:v1';
+  var DEFAULT_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'open', p: { rows: 3, cols: 3 } }];
+  var moduleName = 'IE_1';
+  function readStore() { try { return JSON.parse(localStorage.getItem(KEY) || 'null') || {}; } catch (e) { return {}; } }
+  function validChain(c) { return Array.isArray(c) && c.length > 0 && c.every(function (s) { return s && FILTERS[s.f]; }); }
+  function sameList(a, b) { return a.length === b.length && a.every(function (s, i) { return s.f === b[i].f; }); }
+  function toRows(c) {
+    return c.map(function (s) {
+      var F = FILTERS[s.f], row = { type: s.f, name: F.name };
+      if (F.p) {
+        row.p = F.p; row.v = {};
+        Object.keys(DEFAULTS[F.p]).forEach(function (k) { row.v[k] = String(s.p && s.p[k] != null ? s.p[k] : DEFAULTS[F.p][k]); });
+      }
+      return row;
+    });
+  }
+  function fromRows(rows) {
+    return rows.map(function (r) {
+      var o = { f: r.type };
+      if (r.v) { o.p = {}; Object.keys(r.v).forEach(function (k) { o.p[k] = Number(r.v[k]); }); }
+      return o;
+    });
+  }
+  function loadSaved() {
+    var st = readStore();
+    var vision = validChain(st.chain) ? st.chain : DEFAULT_CHAIN;
+    var edge = validChain(st.edgeChain) && sameList(st.edgeChain, vision) ? st.edgeChain : vision;
+    if (typeof st.moduleName === 'string' && st.moduleName) moduleName = st.moduleName;
+    return toRows(edge);
+  }
+  function writeEdgeChain() {
+    try {
+      var st = readStore();
+      if (!validChain(st.chain)) st.chain = DEFAULT_CHAIN;
+      st.edgeChain = fromRows(SAVED_CHAIN);
+      localStorage.setItem(KEY, JSON.stringify(st));
+    } catch (e) { /* storage may be blocked */ }
+  }
+
+  var SAVED_CHAIN = loadSaved();
   var chain = clone(SAVED_CHAIN);
-  if (state === 'save-warning') chain[2].v = { rows: '5', cols: '5' };
+  if (state === 'save-warning') {
+    var tuned = chain.filter(function (s) { return s.p === 'kernel'; }).pop();
+    if (tuned) tuned.v = { rows: '5', cols: '5' };
+  }
 
   // ---------- ODC / OCR sample config (for the other modules in the list) ----------
   var OPERATORS = [{ id: 0, name: '=' }, { id: 1, name: '<' }, { id: 2, name: '>' }, { id: 3, name: 'b/w' }];
@@ -901,7 +957,7 @@ canvas{display:block}
       '<div class="mdl"><div class="mdl-in">' +
         '<div class="mdl-h"><h3>Confirmation Message</h3><div class="mdl-x" data-m="x">' + CLOSE_25 + '</div></div>' +
         '<div class="mdl-b">' +
-          '<p>The models of the modules below IE_1 (OCR_1) were trained on images enhanced with the old values.</p>' +
+          '<p>The models of the modules below ' + esc(moduleName) + ' (OCR_1) were trained on images enhanced with the old values.</p>' +
           '<p class="pt-2">Do you want to proceed to save these changes?</p>' +
         '</div>' +
         '<div class="mdl-f">' +
@@ -916,7 +972,10 @@ canvas{display:block}
       closeModal();
       if (m === 'ok') {
         SAVED_CHAIN = clone(chain); dirty = false; syncFooter();
+        writeEdgeChain();
         toast('Changes saved');
+        // Inside the workflow shell, move on to the dashboard once the values are saved.
+        if (inShell) setTimeout(function () { try { window.parent.postMessage({ type: 'ie-nav', to: 'edge-dashboard' }, '*'); } catch (err) { /* ignore */ } }, 700);
       }
     });
     document.body.appendChild(modalEl);
@@ -928,11 +987,20 @@ canvas{display:block}
     else { dirty = false; syncFooter(); toast('Changes saved'); }
   });
 
-  // ---------- Prototype switcher ----------
+  // ---------- Prototype switcher (hidden inside the workflow shell, whose own toggle passes ?mode=) ----------
+  var inShell = window.self !== window.top;
+  if (inShell) document.querySelector('.proto-bar').style.display = 'none';
   document.getElementById('seg').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-mode]');
     if (!b || b.getAttribute('data-mode') === mode) return;
     location.search = '?mode=' + b.getAttribute('data-mode');
+  });
+
+  // Another screen of the flow changed the shared state: pick up the new chain unless values are being edited here.
+  window.addEventListener('storage', function (e) {
+    if (e.key !== null && e.key !== KEY) return;
+    SAVED_CHAIN = loadSaved();
+    if (!dirty) { chain = clone(SAVED_CHAIN); render(); }
   });
 
   render();

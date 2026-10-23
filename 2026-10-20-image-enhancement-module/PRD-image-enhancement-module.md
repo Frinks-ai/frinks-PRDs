@@ -110,8 +110,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC1.1** Select Module, opened on a Search Area (including the master image's Input Image) or an Orientator, lists "Image Enhancement" with a one-line description, enabled, whatever class types the project has.
 - **AC1.2** Select Module opened on another Image Enhancement, or on any module other than a Search Area or Orientator (Masking: Q1), greys out "Image Enhancement" the way it greys rows today; the server refuses the same placements if they are sent directly.
 - **AC1.3** A new Image Enhancement is named IE_1, then IE_2, IE_3 …; the "IE_" part of the name is locked as other module prefixes are.
-- **AC1.4** A capture can hold several Image Enhancement modules, each on its own parent area.
-- **AC1.5** Select Module opened on an Image Enhancement enables every module that Select Module enables on a Search Area today, Colour Detection included; only Image Enhancement itself is greyed.
+- **AC1.4** A capture can hold several Image Enhancement modules, on the same or different parent areas, each with its own chain and its own enhanced area.
+- **AC1.5** Select Module opened on an Image Enhancement enables every module that Select Module enables on a Search Area today, Colour Detection included.
 - **AC1.6** Adding an Image Enhancement never changes how many setup steps a capture has; that still depends only on the other modules, as today.
 
 ### US2 — Build the filter chain
@@ -131,7 +131,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC2.1** Module Setup lists the chain in order. "Add filter" opens a list grouped under six bold category headings: Colour and tone (Invert, Equalize, Stretch, Clip, Optical Density, Greyscale Distance), Thresholding (Binarize, Threshold Range), Smooth and blur (Low Pass, Local Median), Sharpen and edges (Sharpen, High Pass, Gradient Full, Gradient Horizontal, Gradient Vertical, Edge Magnitude), Shape clean-up (Erode, Dilate, Open, Close, Fill Dark Holes, Fill Light Holes), Background and lighting (Top Hat, Bot Hat, Max (Top Hat/Bottom Hat), Local Median Normalization).
 - **AC2.2** Filters can be added without a limit, the same filter can appear more than once, and each row can be dragged to a new position or removed.
 - **AC2.3** Each filter shows only its own values with these ranges and defaults: kernel filters (Low Pass, Local Median, Sharpen, High Pass, Erode, Dilate, Open, Close, Top Hat, Bot Hat, Max, Local Median Normalization) take Rows and Columns, odd numbers 1–15, default 5 × 5; Clip takes Low and High 0–255, default 40 and 200; Threshold Range takes Low and High 0–255, default 0 and 110; Greyscale Distance takes Grey level 0–255, default 128; the other filters, Binarize included, have no values (Binarize picks its threshold itself).
-- **AC2.4** A Low above its High is refused at the field with the message "Low must not be above High"; an even or out-of-range kernel size cannot be entered.
+- **AC2.4** A Low above its High is refused at the field with the message "Low must not be above High"; an even or out-of-range kernel size, or a grey value outside 0–255, cannot be entered.
 - **AC2.5** Saving with an empty chain is refused with the message "Add at least one filter".
 - **AC2.6** Once the module is applied, the canvas shows the area enhanced, in place of the original (the master image around it as today), and updates within a second of any add, remove, reorder or value change; the original and enhanced pictures are never shown side by side.
 - **AC2.7** On a fixed set of reference images, the Vision canvas gives exactly the same pixels as the line does for every filter and every allowed value (golden-image test run on every release).
@@ -152,8 +152,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC3.1** The Image Enhancement's Module Inputs has "Base search area", listing the parent's areas; with one area it is picked automatically.
 - **AC3.2** Module Outputs shows one enhanced area named "Enhanced Search Area 1" (2, 3 … for later modules), editable; a name already used by any area in the capture, ignoring case, is refused with the same message search-area names get today.
-- **AC3.3** The "Base search area" of any module placed under an Image Enhancement lists both the parent's area as it is and the enhanced area, and the canvas outlines the one picked; the module works on the picked area.
-- **AC3.4** A Search Area under an Image Enhancement cuts its areas out of the area it picked.
+- **AC3.3** The "Base search area" of any module placed under an Image Enhancement lists both the parent's area as it is and the enhanced area, and the canvas outlines the one picked; the module works on the picked area (a Search Area, for example, cuts its areas out of it).
+- **AC3.4** (removed) Covered by AC3.3.
 - **AC3.5** In Vision, module setup that shows the module's picture (Shape Extractor shape previews, Colour Detection colour picks, Bead Inspection trace) shows the enhanced picture when the module picked the enhanced area.
 - **AC3.6** Saving or editing an Image Enhancement never changes any search area's settings.
 
@@ -175,7 +175,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC4.2** Saving such a change shows a confirmation that the models below were trained on the old filters and must be retrained; Confirm saves, Cancel keeps the old chain.
 - **AC4.3** Deleting an Image Enhancement asks for confirmation listing the modules below it, and removes it with everything below it, as deleting any module does today.
 - **AC4.4** Wherever Vision copies a recipe or project today, the Image Enhancement and its chain are copied with it.
-- **AC4.5** Saving a changed chain puts back to draft only the instances that include this capture; the project's other instances stay as they are.
+- **AC4.5** Saving a changed chain or changed values puts back to draft only the instances that include this capture; the project's other instances stay as they are.
 - **AC4.6** A drafted instance must go through its five instance steps and Finish again before it is saved and can be downloaded.
 
 ### US5 — Annotate on the enhanced image
@@ -206,7 +206,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC6.1** Training any model type (object detection, classification, segmentation, OCR detection and reading, bead inspection) whose module picked an enhanced area applies the chain to every training image.
 - **AC6.2** Augmentation (brightness, blur, noise, character swaps) runs on the normal image first and the chain runs after it, so every training image looks like one the line produces.
-- **AC6.3** Training and the line use the same filter code, checked by the golden-image test in AC2.7.
+- **AC6.3** On the reference images of AC2.7, training gives exactly the same enhanced pixels as the line (part of the same golden-image test on every release).
 - **AC6.4** Restart Training and evaluation use the chain as it stands in the recipe at that moment.
 - **AC6.5** A model whose module picked the parent's area, not the enhanced one, trains on normal images as today.
 
@@ -220,7 +220,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC7.1** The instance package carries each Image Enhancement with its enhanced area, chain and values.
 - **AC7.2** (removed) Download dropdown showing only supported Edge versions: moved to Q2, a separate task.
-- **AC7.3** Uploading the package to a supporting Edge stores every Image Enhancement with its chain and values, and the upload's checks accept it.
+- **AC7.3** Uploading the package for the first time to a supporting Edge stores every Image Enhancement with its chain and values, and the upload's checks accept it.
 - **AC7.4** On a variant change, each capture runs its own variant's chain.
 
 ### US8 — Run the enhancement on the line
@@ -260,8 +260,10 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC9.5** Saving shows a warning that the models below were trained on the old values.
 - **AC9.6** On Edge, setup that draws on the master image (Shape Extractor shape generation, Bead Inspection trace) shows the enhanced picture when the module picked the enhanced area.
 - **AC9.7** Reset returns every value to the last saved state.
-- **AC9.8** When a newer export of the instance is uploaded and Vision's filter list is unchanged, the Edge values are kept, and the update pop-up lists each one under Ground Truth Preservation (Module IE_1, Class/Label the filter's step and name, Parameter, Edge (Preserved), Vision).
+- **AC9.8** When a newer export of the instance is uploaded and Vision's filter list is unchanged, every value tuned on Edge is kept, and the update pop-up lists each one under Ground Truth Preservation (Module IE_1, Class/Label the filter's step and name, Parameter, Edge (Preserved), Vision).
 - **AC9.9** When Vision's filter list changed (a filter added, removed or moved), Vision's list and values replace Edge's, and the update pop-up shows the Edge list and the Vision list for that module under a heading of its own.
+- **AC9.10** When a newer export is uploaded and Vision's filter list is unchanged, every value not tuned on Edge takes Vision's value, so a value changed in Vision for a retrained model reaches the line.
+- **AC9.11** Edit Module Configurations changes to these values reach the line on the next deployment, as other changes there do today.
 
 ### US10 — See and save the enhanced image
 *As a plant engineer, I want the enhanced image as one more analysed image, so that I can see what the modules below worked on when I investigate a result.*
@@ -278,7 +280,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: Reports lists the enhanced area by name](prototype/edge-reports-after.png)
 
 - **AC10.1** The enhanced area has its own analysed image next to the master image and the search areas: the enhanced picture, scaled by the Image Saving resolution, with the boxes of the modules under it.
-- **AC10.2** Image Saving keeps only its Analysed Image and Raw Image blocks; with Analysed Image on, the enhanced area's analysed image is saved too, in a folder named after the enhanced area, by the same OK / NG choice, resolution and quality.
+- **AC10.2** Image Saving keeps only its Analysed Image and Raw Image blocks; with Analysed Image on, the enhanced area's analysed image is saved too, in a folder named after the enhanced area, by the same OK / NG choice and quality.
 - **AC10.3** Analysed Image Configurations does not list the enhanced area; the boxes and labels on its analysed image follow the settings of the search area it comes from.
 - **AC10.4** The Dashboard Builder image widget's "Select Search Area" list includes each enhanced area by name; a widget pointed at it shows the enhanced area's analysed image in the dashboard preview and live on the Live Dashboard (on the builder canvas it shows the named placeholder every image widget shows today).
 - **AC10.5** Reports → View Images lists the enhanced area's image under its name, never a raw id; Excel export and Reverse Judgement carry it like other area images.
@@ -303,10 +305,10 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Stakeholders:** Smit (AI), Tanay (SDE)
 - **Covers:** C6
 
-- **AC12.1** A recipe without an Image Enhancement shows, saves, trains, exports and runs exactly as before.
+- **AC12.1** A recipe without an Image Enhancement shows, saves, trains, exports and runs exactly as before, apart from the new "Image Enhancement" row in Select Module (AC1.1).
 - **AC12.2** Placement rules between the other modules stay as they are.
-- **AC12.3** Training of every model whose module is not under an Image Enhancement produces the same training images as before.
-- **AC12.4** Recipe changes other than an Image Enhancement's filters still put every instance of the project back to draft, as today.
+- **AC12.3** In a recipe that contains an Image Enhancement, models whose module is not under it train on the same images as before.
+- **AC12.4** Recipe changes other than changes to an Image Enhancement still put every instance of the project back to draft, as today.
 
 ### US13 — Keeps working: modules under an Image Enhancement
 *As a plant engineer, I want a module under an Image Enhancement to keep every behaviour it has today, so that rules and signals built on it still work.*
@@ -315,11 +317,11 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C9, C10
 
-- **AC13.1** A module under an Image Enhancement keeps its Edit Module Configurations section, its keys, its actions (for OCR, the Change Ground Truth action) and its PLC writes unchanged.
+- **AC13.1** A module under an Image Enhancement keeps its Edit Module Configurations section (apart from the picture shown in setup, AC9.6), its keys, its actions (for OCR, the Change Ground Truth action) and its PLC writes unchanged.
 - **AC13.2** Result groups that include a module under an Image Enhancement work as today.
 - **AC13.3** A frame on which a module fails is handled as today: no result is sent and the cycle ends NG at its timeout.
 - **AC13.4** Masking keeps today's behaviour; nothing in this release changes how modules under Masking are judged.
-- **AC13.5** Edit Module Configurations changes, Image Enhancement values included, reach the line on the next deployment, as other changes there do today.
+- **AC13.5** (removed) Moved to AC9.11: it states a result for this module's values.
 
 ### US14 — Platform
 *As a Frinks support engineer, I want to know which packages change, so that releases and installs are planned.*
@@ -332,9 +334,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC14.1** Node Docker image: no change; no new Node library is needed.
 - **AC14.2** Python Docker image: no change; every filter uses image libraries already in it.
 - **AC14.3** Scripts bundle: changes; it carries the engine, inferencing backend, deployment backend and frontend, and report changes.
-- **AC14.4** Installer: no change; it already replays the database script on every install and update, which now also creates the enhancement settings.
+- **AC14.4** Installer: no change; it replays the database script on install and update as today.
 - **AC14.5** New error codes in the engine's catalogue, each with a message: MOD_IE_001 (the chain could not be set up at start), MOD_IE_002 (a filter failed on an image), MOD_IE_003 (the parent area is not connected). They show in Deployment Health the way engine codes show today, and the Error Code Reference in the manual lists them.
-- **AC14.6** The training containers of every model type get the shared filter code the same way the OCR trainers get the shared image-cutting code today; no new library.
+- **AC14.6** The training containers of every model type change to include the filter step; no new library.
 - **AC14.7** The Vision manual gains an Image Enhancement section linking the filter guide; the Edge manual's Edit Module Configurations and instance update sections are updated with new screenshots.
 - **AC14.8** Release note: "Vision and Edge now offer an Image Enhancement module that cleans a search area's image with a chain of 26 filters before the modules below it work on it."
 
@@ -345,8 +347,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C6, C7
 
-- **AC15.1** Existing data: projects, recipes, datasets, models and instances made before this release look and behave the same; the Vision database gains the new module type and its settings with no change to existing rows.
-- **AC15.2** Older Edge with a new instance: a package downloaded without a target version is refused by an older Edge with today's schema-mismatch message; downloads for an older target version are handled in Q2.
+- **AC15.1** Existing data: projects, datasets, models and instances made before this release look and behave the same; the Vision database gains the new module type and its settings with no change to existing rows.
+- **AC15.2** Older Edge with a new instance: a package that contains an Image Enhancement, downloaded without a target version, is refused by an older Edge with today's schema-mismatch message; downloads for an older target version are handled in Q2.
 - **AC15.3** Older instance on the new Edge: uploads, deploys and runs unchanged.
 - **AC15.4** Upgrades of Edge boxes in the field add the enhancement settings and change nothing else; backups and restores carry the enhancement settings.
 
@@ -384,6 +386,7 @@ PENDING
 Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-model-evaluation @ 7a0403a (2025-11-04), assembly-training @ 725f834 (2026-06-02), Assembly-Training-OCR @ 99d0d62 (2025-07-08), Auto-annotation @ d213b71 (2025-10-30), auto-training-backend @ 63ba9a6 (2026-08-04), Classification-Evaluation @ eda0d3b (2025-12-19), classification-training-docker @ 3f7a64e (2025-11-05), Craft-model-evaluation @ 5a95e16 (2025-07-10), frinkschat-backend @ 88e5c91 (2026-07-21), frinksedge-deployment-backend @ 009fc11 (2026-10-19), frinksedge-deployment-frontend @ 7e92de34 (2026-10-19), frinksedge-file-releases @ 7041254 (2026-07-16), frinksedge-health @ e8ef112 (2026-10-15), frinksedge-inferencing-backend @ eddd8e5 (2026-10-19), frinksedge-installer-electron @ b4a5049 (2026-10-12), frinksedge-plc-backend @ 254d08e (2026-10-15), frinksedge-report @ 5fe5390 (2026-10-15), frinksedge-report-frontend @ 9893a19 (2026-10-13), frinksedge-staging-environment @ 4993036 (2026-09-09), frinksvision-backend @ eda944f (2026-10-14), frinksvision-frontend @ 110a23c (2026-10-19), OCR-Evaluation @ c9c413c (2025-07-10), OCR-Training-Detection-ALL @ fc59f48 (2026-10-14), Python-inference-docker @ 62e22bd (2026-05-29), Recommendation-classification @ 0796dbb (2026-08-03), Recommendation-OCR @ ae1e953 (2026-04-30), release-manager-backend @ b8016f7 (2026-09-22), Segmentation-Data-Recommender @ d6f679e (2026-07-22), Segmentation-Evaluation @ 44bb8c6 (2025-08-28), Segmentation-Training @ f749aab (2025-08-22), train-utils @ d3e6378 (2026-09-15), vip-inference-python @ 93451d1 (2026-10-15), workflow-dataprocessor @ d2cd9bd (2026-08-11)
 
 ## Changelog
+- 23 Oct 2026 — Duplicate pass applied: AC3.4 (removed): covered by AC3.3; AC1.5 trimmed (greyed Image Enhancement is AC1.2); AC6.3 reworded to a training check; AC14.6, AC14.4, AC10.2, AC12.3, AC15.1 trimmed; contradictions fixed in AC7.3, AC15.2, AC4.5, AC12.4, AC12.1, AC13.1; AC2.4 adds 0–255. Decisions: Edge-tuned values kept, untuned values from Vision (AC9.8, AC9.10); AC13.5 (removed): moved to AC9.11; two Image Enhancements may share a search area (AC1.4) (Tanay Deo)
 - 23 Oct 2026 — Q3 decided (AC9.8, AC9.9), Q4 dropped (no AC), Q5 decided (AC9.4), Q7 and section 8 measures dropped; any module can sit under the module and picks the normal or enhanced area (AC1.5, AC3.3, AC3.5, AC6.1, AC6.5, AC8.1, AC8.3); models of every type train on enhanced images (US6); analysed images: master and search areas normal, enhanced area enhanced (AC10.1); Image Saving keeps two blocks (AC10.2); Analysed Image Configurations does not list the enhanced area (AC10.3); auto-annotation removed (AC5.3); download-version filter moved to Q2 (AC7.2, AC15.2); drafting limited to instances using the capture (AC4.2, AC4.5, AC4.6, AC12.4); canvas shows only the enhanced image (AC2.6); bold category headings (AC2.1); prototype rebuilt as one interactive workflow (Tanay Deo)
 - 20 Oct 2026 — Draft started as "Image filters for OCR"; scope changed to a standalone module any listed module can sit under (Tanay Deo)
 - 21 Oct 2026 — Prototypes built for all seven screens; ACs aligned with them (download picker wording, Image Saving "—" for captures without the module, no annotation card for the module) (Tanay Deo)

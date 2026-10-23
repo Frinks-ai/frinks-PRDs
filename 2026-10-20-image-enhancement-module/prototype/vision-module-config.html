@@ -152,7 +152,6 @@ p{margin:0}
 h3{margin:0;font-size:inherit}
 .canvas-cover{flex:1 1 7000px}
 .konva-section{position:relative}
-.konva-section.pv-mode{background:#f3f4f6}
 .annot-canvas canvas{display:block}
 
 /* tree (moduleWorkflow/index.tsx Stage + moduleNode.tsx) */
@@ -228,7 +227,7 @@ h3{margin:0;font-size:inherit}
   box-shadow:0 0 0 1px rgb(0 0 0/.05),0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
 .af-col{width:220px;border-left:1px solid #f3f4f6}
 .af-col:first-child{border-left:0}
-.af-grp{padding:6px 12px 2px;font-size:11px;line-height:16px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af}
+.af-grp{padding:8px 12px 4px;font-size:14px;line-height:20px;font-weight:700;color:#000}
 .af-item{padding:6px 16px 6px 12px;color:#111827;cursor:default;user-select:none;white-space:nowrap}
 .af-item:hover{background:#ff4301;color:#fff}
 
@@ -240,12 +239,6 @@ h3{margin:0;font-size:inherit}
 .out-input{padding:4px 6px;font-size:14px;outline:none;border:1px solid #E7E7FF;border-radius:5px;width:190px}
 .out-ico{display:flex;align-items:center;gap:4px}
 .out-ico img,.out-ico svg{cursor:pointer;display:block}
-
-/* preview (masking-step thumbnail area in moduleWorkflow/index.tsx) */
-.pv{height:100%;width:100%;overflow-y:auto;padding:16px;display:flex;align-items:center;justify-content:center;gap:16px}
-.pv-tile{display:flex;flex-direction:column;gap:8px;min-width:0}
-.pv-cap{font-size:14px;line-height:20px;font-weight:500;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pv canvas{display:block;background:#fff}
 
 /* shared/ui/Modal.tsx */
 .ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgb(0 0 0/.5)}
@@ -279,6 +272,7 @@ h3{margin:0;font-size:inherit}
 .proto{z-index:40!important}
 .proto select{font-size:11px;line-height:16px;font-weight:500;color:#57534e;border:1px solid #d6d3d1;border-radius:6px;background:#fff;padding:3px 6px;font-family:inherit}
 .proto select:disabled{opacity:.45}
+html.embedded .proto{display:none!important}
 </style>
 </head>
 <body>
@@ -509,16 +503,18 @@ h3{margin:0;font-size:inherit}
     orientator: ['searchArea', 'masking', 'orientator']
   };
   var LEAF = ['classification', 'colorDetection', 'codeReader', 'ocr', 'shapeExtractor'];
-  var IE_CHILDREN = ['ocr', 'codeReader', 'shapeExtractor', 'searchArea'];
   var TYPE_NAME = { searchArea: 'Search Area Allocator', ocr: 'Optical Character Recognition', imageEnhancement: 'Image Enhancement' };
 
   function pickerRows(parentStore) {
     var after = S.mode === 'after';
     var ap = JSON.parse(JSON.stringify(ALLOWED_PARENTS));
-    if (after) { ap.shapeExtractor.push('imageEnhancement'); ap.imageEnhancement = ['searchArea', 'orientator']; }
+    if (after) {
+      // Under an Image Enhancement, every module that may sit under a Search Area may sit there too.
+      Object.keys(ap).forEach(function (k) { if (ap[k].indexOf('searchArea') >= 0) ap[k].push('imageEnhancement'); });
+      ap.imageEnhancement = ['searchArea', 'orientator'];
+    }
     var rows = STORE.filter(function (m) { return after || !m.afterOnly; }).map(function (m) {
       var dis = !!(ap[m.id] && ap[m.id].indexOf(parentStore) < 0);
-      if (parentStore === 'imageEnhancement' && IE_CHILDREN.indexOf(m.id) < 0) dis = true;
       if (m.id === 'otc' && S.tree.some(function (t) { return t.store === 'otc'; })) dis = true;
       return { m: m, dis: dis };
     });
@@ -561,6 +557,52 @@ h3{margin:0;font-size:inherit}
   }
   function defaultChain() {
     return [mkFilter('localmediannorm', { rows: 15, cols: 15 }), mkFilter('binarize'), mkFilter('open', { rows: 3, cols: 3 })];
+  }
+
+  /* ---------- shared prototype state (localStorage "ie-proto:v1", same shape in every workflow screen) ---------- */
+  var STORE_KEY = 'ie-proto:v1';
+  var DEFAULT_AREA = 'Enhanced Search Area 1';
+  function readShared() {
+    try { var o = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); return o && typeof o === 'object' ? o : null; } catch (e) { return null; }
+  }
+  function writeShared(patch) {
+    try {
+      var o = readShared() || { chain: null, edgeChain: null, areaName: DEFAULT_AREA, moduleName: 'IE_1' };
+      Object.keys(patch).forEach(function (k) { o[k] = patch[k]; });
+      localStorage.setItem(STORE_KEY, JSON.stringify(o));
+    } catch (e) {}
+  }
+  function chainFromShared(list) {
+    if (!Array.isArray(list)) return null;
+    var out = [];
+    list.forEach(function (it) {
+      if (!it || !FILTERS[it.f]) return;
+      var p = {}, def = FILTER_PARAMS[FILTERS[it.f].p];
+      if (def && it.p) def.forEach(function (d) {
+        var v = +it.p[d.k];
+        if (isFinite(v)) { v = clamp(Math.round(v), d.min, d.max); if (d.step === 2 && v % 2 === 0) v = Math.min(d.max, v + 1); p[d.k] = v; }
+      });
+      out.push(mkFilter(it.f, p));
+    });
+    return out.length ? out : null;
+  }
+  function loadChain() { var o = readShared(); return (o && chainFromShared(o.chain)) || defaultChain(); }
+  function loadAreaName() { var o = readShared(); return o && typeof o.areaName === 'string' && o.areaName.trim() ? o.areaName.trim() : DEFAULT_AREA; }
+  function saveChain() {
+    if (!S.chain.length) return;          // an empty chain cannot be saved, so it is never shared
+    writeShared({ chain: S.chain.map(function (f) {
+      return FILTERS[f.id].p ? { f: f.id, p: JSON.parse(JSON.stringify(f.params)) } : { f: f.id };
+    }) });
+  }
+  function chainChanged() { S.changed = true; S.showErr = false; S.sharedChain = true; saveChain(); render(); }
+
+  /* ---------- workflow shell (index.html) navigation ---------- */
+  var EMBEDDED = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
+  if (EMBEDDED) document.documentElement.classList.add('embedded');
+  // Inside the shell, the flow buttons move the shell to the next section; standalone, the screen moves itself.
+  function flow(section, local) {
+    if (EMBEDDED && S.mode === 'after') { try { window.parent.postMessage({ type: 'ie-nav', to: section }, '*'); return; } catch (e) {} }
+    local();
   }
 
   /* ---------- filter code, ported 1:1 from prototypes/print-ocr-src/print-ocr.src.html:1042-1134 ---------- */
@@ -695,20 +737,20 @@ h3{margin:0;font-size:inherit}
     var ieConf = { id: 'ie1', name: 'IE_1', parentId: 'sa1', store: 'imageEnhancement', conf: true, t: 2 };
     var ieNew = { id: 'ie1', name: 'IE_1', parentId: 'sa1', store: 'imageEnhancement', conf: false, t: 2 };
     var ocrUnderIe = { id: 'ocr1', name: 'OCR_1', parentId: 'ie1', store: 'ocr', conf: true, t: 3 };
-    var s = { mode: mode, state: state, tree: [ROOT, SA1, ieConf, ocrUnderIe], selected: null, step: 0, chain: defaultChain(),
-      showErr: false, picker: null, addOpen: false, ocrSelOpen: false, warn: false, outName: 'Enhanced Search Area 1',
+    var s = { mode: mode, state: state, tree: [ROOT, SA1, ieConf, ocrUnderIe], selected: null, step: 0, chain: loadChain(), sharedChain: true,
+      showErr: false, picker: null, addOpen: false, ocrSelOpen: false, warn: false, outName: loadAreaName(), ocrBase: 'enh',
       editingName: false, nameDraft: '', nameErr: '', changed: false };
     if (mode === 'today') { s.tree = [ROOT, SA1, ocrUnderSa]; s.picker = 'sa1'; return s; }
     switch (state) {
       case 'picker': s.tree = [ROOT, SA1, ocrUnderSa]; s.picker = 'sa1'; break;
       case 'picker-under-ie': s.tree = [ROOT, SA1, ieConf]; s.picker = 'ie1'; break;
-      case 'add-filter': s.selected = 'ie1'; s.step = 1; s.addOpen = true; break;
-      case 'inputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 0; s.chain = []; break;
-      case 'empty-chain': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1; s.chain = []; s.showErr = true; break;
+      case 'add-filter': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1; s.addOpen = true; break;
+      case 'inputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 0; break;
+      case 'empty-chain': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1; s.chain = []; s.sharedChain = false; s.showErr = true; break;
       case 'outputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 2; break;
       case 'edit-warning': s.selected = 'ie1'; s.step = 2; s.warn = true; s.changed = true; break;
       case 'ocr-inputs': s.selected = 'ocr1'; s.step = 0; s.ocrSelOpen = true; break;
-      default: s.selected = 'ie1'; s.step = 1;
+      default: s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1;
     }
     return s;
   }
@@ -830,11 +872,14 @@ h3{margin:0;font-size:inherit}
     return '<div class="outs"><div class="out-row"><label class="cbx">' + ICON_FACHECK + '</label>' + nameUI + '</div>' +
       (S.nameErr ? '<div class="err" style="padding:0 10px">' + esc(S.nameErr) + '</div>' : '') + '</div>';
   }
+  function ocrOptions() { return ['Search Area 1', S.outName]; }
+  function ocrBaseName() { return S.ocrBase === 'enh' ? S.outName : 'Search Area 1'; }
   function ocrStepHTML() {
     return '<div class="p25"><label class="lbl"><span class="lbl-in">Base search area ' +
       ICON_INFO.replace('<span class="info-i"', '<span class="info-i" data-tip="The search area whose region this OCR module will read text from."') + '</span></label>' +
-      selectHTML('ocrBaseSel', 'Enhanced Search Area 1', 'Select base search area') + '</div>';
+      selectHTML('ocrBaseSel', ocrBaseName(), 'Select base search area') + '</div>';
   }
+  function pickOcrBase(v) { S.ocrBase = v === 'Search Area 1' ? 'sa' : 'enh'; render(); }
   function panelHTML() {
     var m = mod(S.selected);
     var isIE = m.store === 'imageEnhancement';
@@ -862,7 +907,7 @@ h3{margin:0;font-size:inherit}
   function pickerModalHTML() {
     var parent = mod(S.picker);
     var rows = pickerRows(parent.store).map(function (r) {
-      return '<tr class="' + (r.dis ? 'dis' : 'en') + '"><td class="br"><div><span style="display:inline-flex;align-items:center;gap:4px">' + esc(r.m.name) + '</span></div></td>' +
+      return '<tr class="' + (r.dis ? 'dis' : 'en') + '" data-mod="' + r.m.id + '"><td class="br"><div><span style="display:inline-flex;align-items:center;gap:4px">' + esc(r.m.name) + '</span></div></td>' +
         '<td><div>' + esc(r.m.description || 'No description available') + '</div></td></tr>';
     }).join('');
     return '<div class="ov" id="pickerOv"><div class="mdl large" role="dialog" aria-modal="true">' +
@@ -876,7 +921,7 @@ h3{margin:0;font-size:inherit}
     return '<div class="ov" id="warnOv"><div class="mdl" role="dialog" aria-modal="true">' +
       '<div class="mdl-h"><h3>Save changes</h3><span id="warnClose">' + ICON_IOCLOSE + '</span></div>' +
       '<div class="mdl-b"><div>The models of these modules were trained on the old filters of IE_1 and must be retrained:</div>' +
-      '<ul class="dl">' + below + '</ul><div>All instances of this project will go back to draft. Do you want to continue?</div></div>' +
+      '<ul class="dl">' + below + '</ul><div>The instances that use Capture 1 will go back to draft. Do you want to continue?</div></div>' +
       '<div class="mdl-f"><div>' +
       '<span class="tipwrap" data-tip="Stays on this module so you can keep editing it."><button type="button" class="btn btn-border" id="warnCancel">Cancel</button></span>' +
       '<span class="tipwrap" data-tip="Saves the new filters for IE_1."><button type="button" class="btn btn-primary" id="warnSave">Save</button></span>' +
@@ -891,24 +936,18 @@ h3{margin:0;font-size:inherit}
     var ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingQuality = 'high';
     return ctx;
   }
+  // plain = whole master image; clear = area sharp, master blurred around it (BlurCropRenderer);
+  // clear-enh = the same, with the enhanced image drawn in place of the area.
   function leftView() {
     if (!S.selected) return 'plain';
     var m = mod(S.selected);
-    if (m.store === 'imageEnhancement') return S.step === 0 ? 'clear' : 'preview';
-    return 'clear-enh';
+    if (m.store === 'imageEnhancement') return S.step === 0 ? 'clear' : 'clear-enh';
+    return S.mode === 'after' && S.ocrBase === 'enh' ? 'clear-enh' : 'clear';
   }
   function drawLeft() {
     var ks = document.getElementById('konva');
     if (!ks || !master.complete || !blurred) return;
     var view = leftView();
-    if (view === 'preview') {
-      var W = ks.clientWidth, tileW = Math.floor((W - 32 - 16) / 2), tileH = Math.round(tileW * SA_RECT.h / SA_RECT.w);
-      var a = document.getElementById('pvBefore'), b = document.getElementById('pvAfter');
-      var ca = fitCanvas(a, tileW, tileH); ca.drawImage(beforeCanvas, 0, 0, tileW, tileH);
-      var cb = fitCanvas(b, tileW, tileH); cb.drawImage(enhancedCanvas(S.chain), 0, 0, tileW, tileH);
-      Array.prototype.forEach.call(ks.querySelectorAll('.pv-tile'), function (t) { t.style.width = tileW + 'px'; });
-      return;
-    }
     var cv = document.getElementById('mainCv'), cw = ks.clientWidth, ch = ks.clientHeight;
     var ctx = fitCanvas(cv, cw, ch);
     ctx.fillStyle = '#F0F0F0'; ctx.fillRect(0, 0, cw, ch);
@@ -923,14 +962,7 @@ h3{margin:0;font-size:inherit}
   var tree = null;
   function render() {
     var ms = document.getElementById('moduleSection');
-    var view = leftView(), konva = '';
-    if (view === 'preview') {
-      konva = '<div class="konva-section pv-mode" id="konva"><div class="pv">' +
-        '<div class="pv-tile"><div class="pv-cap">Search Area 1</div><canvas id="pvBefore"></canvas></div>' +
-        '<div class="pv-tile"><div class="pv-cap">' + esc(S.outName) + '</div><canvas id="pvAfter"></canvas></div></div></div>';
-    } else {
-      konva = '<div class="konva-section" id="konva"><div class="annot-canvas"><canvas id="mainCv"></canvas></div></div>';
-    }
+    var konva = '<div class="konva-section" id="konva"><div class="annot-canvas"><canvas id="mainCv"></canvas></div></div>';
     tree = treeHTML();
     ms.innerHTML = konva + '<div class="canvas-cover with-image" id="cover">' + tree.html + '</div>' + (S.selected ? panelHTML() : '');
     var ov = '';
@@ -1016,8 +1048,8 @@ h3{margin:0;font-size:inherit}
     positionFloat(el, anchor, { center: true });
     el.addEventListener('click', function (e) {
       var it = e.target.closest('[data-add]'); if (!it) return;
-      S.chain.push(mkFilter(it.getAttribute('data-add'))); S.changed = true; S.showErr = false;
-      closeFloat(); render();
+      S.chain.push(mkFilter(it.getAttribute('data-add')));
+      closeFloat(); chainChanged();
     });
     floatEl = el;
     S.addOpen = true;
@@ -1026,7 +1058,7 @@ h3{margin:0;font-size:inherit}
     if (S.addOpen) { var b = document.getElementById('addFilterBtn'); if (b) openAddMenu(b); }
     if (S.ocrSelOpen) {
       var o = document.getElementById('ocrBaseSel');
-      if (o) { openList(o, ['Enhanced Search Area 1'], 'Enhanced Search Area 1', function () {}); S.ocrSelOpen = true; }
+      if (o) { openList(o, ocrOptions(), ocrBaseName(), pickOcrBase); S.ocrSelOpen = true; }
     }
   }
 
@@ -1044,35 +1076,53 @@ h3{margin:0;font-size:inherit}
     if (ks) {
       var w = ks.closest('.ksel'), i = +w.getAttribute('data-i'), k = w.getAttribute('data-k');
       if (floatEl && floatEl.classList.contains('sel-list') && floatEl._anchor === ks) { closeFloat(); return; }
-      var l = openList(ks, [1, 3, 5, 7, 9, 11, 13, 15], S.chain[i].params[k], function (v) { S.chain[i].params[k] = +v; S.changed = true; render(); });
+      var l = openList(ks, [1, 3, 5, 7, 9, 11, 13, 15], S.chain[i].params[k], function (v) { S.chain[i].params[k] = +v; chainChanged(); });
       l._anchor = ks; floatEl._anchor = ks;
       return;
     }
-    if (t.closest('#ocrBaseSel')) { if (floatEl) closeFloat(); else openList(t.closest('#ocrBaseSel'), ['Enhanced Search Area 1'], 'Enhanced Search Area 1', function () {}); return; }
+    if (t.closest('#ocrBaseSel')) { if (floatEl) closeFloat(); else openList(t.closest('#ocrBaseSel'), ocrOptions(), ocrBaseName(), pickOcrBase); return; }
     if (t.closest('#ieBaseSel')) { if (floatEl) closeFloat(); else openList(t.closest('#ieBaseSel'), ['Search Area 1'], 'Search Area 1', function () {}); return; }
     var del = t.closest('[data-del]');
-    if (del) { S.chain.splice(+del.getAttribute('data-del'), 1); S.changed = true; render(); return; }
+    if (del) { S.chain.splice(+del.getAttribute('data-del'), 1); chainChanged(); return; }
     if (t.closest('#pNext')) {
       if (t.closest('#pNext').disabled) return;
       var m = mod(S.selected);
-      if (m.store === 'imageEnhancement' && S.step === 1 && !S.chain.length) { S.showErr = true; render(); return; }
-      if (S.step < 2) { S.step++; S.showErr = false; render(); return; }
-      if (m.store === 'imageEnhancement' && m.conf) { S.warn = true; render(); return; }
-      m.conf = true; S.selected = null; render(); return;
+      if (m.store === 'ocr') { flow('vision-annotate', function () { m.conf = true; S.selected = null; render(); }); return; }
+      if (S.step === 1 && !S.chain.length) { S.showErr = true; render(); return; }
+      if (S.step < 2) {
+        flow(S.step === 0 ? 'vision-setup' : 'vision-outputs', function () {
+          S.step++; S.showErr = false; render();
+        });
+        return;
+      }
+      if (m.conf) { S.warn = true; render(); return; }
+      flow('vision-below', function () { m.conf = true; S.selected = null; render(); });
+      return;
     }
-    if (t.closest('#pBack')) { if (S.step === 0) { S.selected = null; } else { S.step--; } render(); return; }
+    if (t.closest('#pBack')) {
+      if (S.step === 0) { S.selected = null; render(); return; }
+      var curIE = mod(S.selected);
+      if (curIE.store === 'imageEnhancement' && !curIE.conf) { flow(S.step === 1 ? 'vision-inputs' : 'vision-setup', function () { S.step--; render(); }); return; }
+      S.step--; render(); return;
+    }
     if (t.closest('#panelClose')) { S.selected = null; render(); return; }
     if (t.closest('#pickerClose') || t.id === 'pickerOv') { S.picker = null; render(); return; }
-    if (t.closest('#pickerOv tr.en')) { S.picker = null; render(); return; }
+    var prow = t.closest('#pickerOv tr.en');
+    if (prow) {
+      var picked = prow.getAttribute('data-mod'), under = mod(S.picker);
+      if (S.mode === 'after' && under.store === 'searchArea' && picked === 'imageEnhancement') { flow('vision-inputs', function () { go('after', 'inputs', true); }); return; }
+      if (S.mode === 'after' && under.store === 'imageEnhancement' && picked === 'ocr') { flow('vision-ocr', function () { go('after', 'ocr-inputs', true); }); return; }
+      S.picker = null; render(); return;
+    }
     if (t.closest('#warnClose') || t.closest('#warnCancel') || t.id === 'warnOv') { S.warn = false; render(); return; }
-    if (t.closest('#warnSave')) { S.warn = false; S.selected = null; S.changed = false; render(); return; }
+    if (t.closest('#warnSave')) { flow('vision-draft', function () { S.warn = false; S.selected = null; S.changed = false; render(); }); return; }
     if (t.closest('#editName')) { S.editingName = true; S.nameDraft = S.outName; S.nameErr = ''; render(); return; }
     if (t.closest('#cancelName')) { S.editingName = false; S.nameErr = ''; render(); return; }
     if (t.closest('#saveName')) {
       var v = (document.getElementById('outNameInput').value || '').trim();
       if (!v) { S.nameErr = 'Name cannot be empty!'; S.nameDraft = ''; render(); return; }
       if (v.toLowerCase() === 'search area 1' || v.toLowerCase() === 'input image') { S.nameErr = 'Search area name "' + v + '" already exists in this camera configuration.'; S.nameDraft = v; render(); return; }
-      S.outName = v; S.editingName = false; S.nameErr = ''; S.changed = true; render(); return;
+      S.outName = v; S.editingName = false; S.nameErr = ''; S.changed = true; writeShared({ areaName: v }); render(); return;
     }
     var plus = t.closest('[data-plus]');
     if (plus && !S.selected) { S.picker = plus.getAttribute('data-plus'); render(); return; }
@@ -1088,7 +1138,7 @@ h3{margin:0;font-size:inherit}
     var i = +inp.getAttribute('data-i'), k = inp.getAttribute('data-k');
     var d = FILTER_PARAMS[FILTERS[S.chain[i].id].p].filter(function (x) { return x.k === k; })[0];
     var v = clamp(Math.round(+inp.value || 0), d.min, d.max);
-    S.chain[i].params[k] = v; S.changed = true; render();
+    S.chain[i].params[k] = v; chainChanged();
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.id === 'outNameInput') document.getElementById('saveName').click();
@@ -1125,7 +1175,7 @@ h3{margin:0;font-size:inherit}
     var item = S.chain.splice(dragFrom, 1)[0];
     if (to > dragFrom) to--;
     S.chain.splice(to, 0, item);
-    dragFrom = -1; S.changed = true; render();
+    dragFrom = -1; chainChanged();
   });
   document.addEventListener('dragend', function () {
     dragFrom = -1;
@@ -1179,6 +1229,13 @@ h3{margin:0;font-size:inherit}
     var b = e.target.closest('button[data-mode]'); if (b) go(b.getAttribute('data-mode'), document.getElementById('stateSel').value, true);
   });
   document.getElementById('stateSel').addEventListener('change', function (e) { go('after', e.target.value, true); });
+  // Another workflow screen changed the shared state: show the latest chain / area name.
+  window.addEventListener('storage', function (e) {
+    if (e.key !== STORE_KEY || !S.mode) return;
+    S.outName = loadAreaName();
+    if (S.sharedChain) S.chain = loadChain();
+    render();
+  });
   window.addEventListener('resize', function () { if (floatEl) { floatEl.remove(); floatEl = null; } placeTree(); drawLeft(); placeMenus(); });
 
   master.onload = function () { prepImages(); var u = readURL(); go(u.mode, u.state, false); };

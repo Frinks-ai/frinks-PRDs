@@ -3,53 +3,168 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Image Enhancement prototypes</title>
+<title>Image Enhancement workflow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --ink:#1e1c1c; --muted:#6b6f72; --line:#e6e6e6; --brand:#ff4301; --bg:#f6f6f6; --card:#fff; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:Outfit, system-ui, sans-serif; }
-  header { padding:32px 24px 8px; max-width:1200px; margin:0 auto; }
-  h1 { margin:0 0 6px; font-size:28px; font-weight:600; }
-  .sub { color:var(--muted); font-size:15px; }
-  h2 { max-width:1200px; margin:28px auto 12px; padding:0 24px; font-size:15px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
-  .grid { max-width:1200px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; }
-  a.card { display:block; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; text-decoration:none; color:inherit; transition:box-shadow .15s, border-color .15s; }
-  a.card:hover { border-color:var(--brand); box-shadow:0 4px 18px rgba(0,0,0,.08); }
-  a.card img { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; object-position:top left; border-bottom:1px solid var(--line); }
-  .body { padding:12px 14px 14px; }
-  .t { font-weight:600; font-size:16px; }
-  .us { color:var(--brand); font-size:13px; font-weight:500; margin-top:2px; }
-  footer { max-width:1200px; margin:32px auto; padding:0 24px; color:var(--muted); font-size:13px; }
-  @media (max-width:420px) { .grid { grid-template-columns:1fr; padding:0 16px; } header, h2, footer { padding-left:16px; padding-right:16px; } }
+  :root { --ink:#1e1c1c; --muted:#6b6f72; --faint:#9a9ea1; --line:#e6e6e6; --chip:#efefef; --brand:#ff4301; --brand-soft:#fff0ea; --bar:#ffffff; --bar-h:44px; color-scheme:light; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; overflow:hidden; display:flex; flex-direction:column; background:#f6f6f6; color:var(--ink); font-family:Outfit, system-ui, sans-serif; font-size:13px; }
+  button { font:inherit; color:inherit; }
+
+  .bar { flex:none; min-height:var(--bar-h); display:flex; align-items:center; gap:12px; padding:0 12px; background:var(--bar); border-bottom:1px solid var(--line); }
+  .nav { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:2px; overflow:hidden; white-space:nowrap; }
+  .grp { flex:none; padding:0 6px 0 2px; font-size:12px; font-weight:600; color:var(--muted); }
+  .sep { flex:none; width:1px; height:20px; background:var(--line); margin:0 8px 0 6px; }
+  .step { flex:none; display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 9px 0 4px; border:0; border-radius:14px; background:transparent; cursor:pointer; color:#3d3f41; }
+  .step:hover { background:var(--chip); }
+  .step .n { width:20px; height:20px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:var(--chip); color:var(--muted); font-size:11px; font-weight:600; }
+  .step:hover .n { background:#e2e2e2; }
+  .step[aria-current="step"] { background:var(--brand-soft); color:var(--brand); font-weight:600; }
+  .step[aria-current="step"] .n { background:var(--brand); color:#fff; }
+  .step.nl .t { display:none; }
+  .step.nl { padding:0 4px; }
+
+  .right { flex:none; display:flex; align-items:center; gap:8px; }
+  .seg { display:inline-flex; border:1px solid #d6d6d6; border-radius:7px; overflow:hidden; }
+  .seg button { border:0; background:#fff; padding:5px 10px; cursor:pointer; color:var(--muted); font-weight:500; }
+  .seg button + button { border-left:1px solid #d6d6d6; }
+  .seg button[aria-pressed="true"] { background:var(--ink); color:#fff; }
+  .nb { display:inline-flex; align-items:center; gap:4px; height:30px; padding:0 11px; border-radius:7px; border:1px solid #d6d6d6; background:#fff; cursor:pointer; font-weight:500; }
+  .nb:hover:not(:disabled) { border-color:#b9b9b9; }
+  .nb.primary { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .nb.primary:hover:not(:disabled) { background:#000; }
+  .nb:disabled { opacity:.4; cursor:default; }
+  .nb svg { display:block; }
+  :focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+
+  .stage { flex:1 1 auto; min-height:0; }
+  .stage iframe { display:block; width:100%; height:100%; border:0; background:#fff; }
+
+  @media (max-width:720px) {
+    .bar { flex-wrap:wrap; gap:6px 8px; padding:6px 8px; }
+    .nav { order:2; flex-basis:100%; overflow-x:auto; }
+    .right { order:1; margin-left:auto; }
+    .grp, .sep { display:none; }
+    .step.nl { padding:0 2px; }
+    .seg button { padding:5px 7px; }
+    .nb .lbl { display:none; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Image Enhancement module</h1>
-  <div class="sub">Prototype · each screen has a Today / After change switch</div>
+<header class="bar">
+  <nav class="nav" id="nav" aria-label="Workflow sections"></nav>
+  <div class="right">
+    <div class="seg" id="modeSeg" role="group" aria-label="Today or after the change">
+      <button type="button" data-mode="today">Today</button>
+      <button type="button" data-mode="after">After change</button>
+    </div>
+    <button type="button" class="nb" id="backBtn" aria-label="Back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><span class="lbl">Back</span>
+    </button>
+    <button type="button" class="nb primary" id="nextBtn" aria-label="Next step">
+      <span class="lbl">Next step</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+  </div>
 </header>
+<main class="stage">
+  <iframe id="frame" title="Prototype screen"></iframe>
+</main>
 
-<h2>Frinks Vision</h2>
-<div class="grid">
-  <a class="card" href="vision-module-config.html?state=picker"><img src="vision-module-config-after-picker.png" alt="Select Module with Image Enhancement"><div class="body"><div class="t">Select Module</div><div class="us">US1</div></div></a>
-  <a class="card" href="vision-module-config.html"><img src="vision-module-config-after.png" alt="Image Enhancement Module Setup"><div class="body"><div class="t">Module Setup: filter chain and preview</div><div class="us">US2</div></div></a>
-  <a class="card" href="vision-module-config.html?state=add-filter"><img src="vision-module-config-after-add-filter.png" alt="Add filter grouped into six categories"><div class="body"><div class="t">Add filter: six categories</div><div class="us">US2</div></div></a>
-  <a class="card" href="vision-module-config.html?state=ocr-inputs"><img src="vision-module-config-after-ocr-inputs.png" alt="OCR Base search area lists the enhanced area"><div class="body"><div class="t">OCR picks the enhanced area</div><div class="us">US3</div></div></a>
-  <a class="card" href="vision-module-config.html?state=edit-warning"><img src="vision-module-config-after-edit-warning.png" alt="Warning when editing a configured chain"><div class="body"><div class="t">Edit warning</div><div class="us">US4</div></div></a>
-  <a class="card" href="vision-annotation.html"><img src="vision-annotation-after.png" alt="Annotation on the enhanced image"><div class="body"><div class="t">Annotation on the enhanced image</div><div class="us">US5</div></div></a>
-  <a class="card" href="vision-instance-download.html"><img src="vision-instance-download-after.png" alt="Download dialog with supported versions only"><div class="body"><div class="t">Instance download: supported versions</div><div class="us">US7</div></div></a>
-</div>
+<script>
+(function () {
+  'use strict';
+  var SECTIONS = [
+    { id: 'vision-add',      group: 'Frinks Vision', label: 'Add module',      file: 'vision-module-config.html?state=picker' },
+    { id: 'vision-inputs',   label: 'Module Inputs',   file: 'vision-module-config.html?state=inputs' },
+    { id: 'vision-setup',    label: 'Module Setup',    file: 'vision-module-config.html' },
+    { id: 'vision-outputs',  label: 'Module Outputs',  file: 'vision-module-config.html?state=outputs' },
+    { id: 'vision-below',    label: 'Add below',       file: 'vision-module-config.html?state=picker-under-ie' },
+    { id: 'vision-ocr',      label: 'OCR input',       file: 'vision-module-config.html?state=ocr-inputs' },
+    { id: 'vision-annotate', label: 'Annotation',      file: 'vision-annotation.html' },
+    { id: 'vision-edit',     label: 'Edit filters',    file: 'vision-module-config.html?state=edit-warning' },
+    { id: 'vision-draft',    label: 'Draft instance',  file: 'vision-instances.html' },
+    { id: 'edge-update',     group: 'Frinks Edge',     label: 'Instance update', file: 'edge-instance-update.html' },
+    { id: 'edge-tune',       label: 'Tune values',     file: 'edge-emc.html' },
+    { id: 'edge-dashboard',  label: 'Dashboard',       file: 'edge-dashboard-builder.html?state=preview' },
+    { id: 'edge-reports',    label: 'Reports',         file: 'edge-reports.html' }
+  ];
+  var INDEX = {};
+  SECTIONS.forEach(function (s, i) { INDEX[s.id] = i; });
 
-<h2>Frinks Edge</h2>
-<div class="grid">
-  <a class="card" href="edge-emc.html"><img src="edge-emc-after.png" alt="Edit Module Configurations for Image Enhancement"><div class="body"><div class="t">Edit Module Configurations</div><div class="us">US9</div></div></a>
-  <a class="card" href="edge-image-saving.html"><img src="edge-image-saving-after.png" alt="Image Saving with Enhanced Image"><div class="body"><div class="t">Image Saving Configurations</div><div class="us">US10</div></div></a>
-  <a class="card" href="edge-dashboard-builder.html"><img src="edge-dashboard-builder-after.png" alt="Dashboard Builder area picker"><div class="body"><div class="t">Dashboard Builder</div><div class="us">US10</div></div></a>
-  <a class="card" href="edge-reports.html"><img src="edge-reports-after.png" alt="Reports View Images"><div class="body"><div class="t">Analytics &amp; Reports: View Images</div><div class="us">US10</div></div></a>
-</div>
+  var nav = document.getElementById('nav'), frame = document.getElementById('frame');
+  var backBtn = document.getElementById('backBtn'), nextBtn = document.getElementById('nextBtn');
+  var current = -1;
+  var mode = new URLSearchParams(location.search).get('mode') === 'today' ? 'today' : 'after';
 
-<footer>Sample data only. Filter reference: Image Filter Guide.</footer>
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+  nav.innerHTML = SECTIONS.map(function (s, i) {
+    var pre = s.group ? (i ? '<span class="sep" aria-hidden="true"></span>' : '') + '<span class="grp">' + esc(s.group) + '</span>' : '';
+    return pre + '<button type="button" class="step" data-id="' + s.id + '" title="' + (i + 1) + '. ' + esc(s.label) + '">' +
+      '<span class="n">' + (i + 1) + '</span><span class="t">' + esc(s.label) + '</span></button>';
+  }).join('');
+
+  // Show as many step names as fit; the names farthest from the current step are hidden first (number + tooltip stay).
+  function fit() {
+    var steps = Array.prototype.slice.call(nav.querySelectorAll('.step'));
+    steps.forEach(function (b) { b.classList.remove('nl'); });
+    var order = steps.map(function (b, i) { return i; }).filter(function (i) { return i !== current; })
+      .sort(function (a, b) { return Math.abs(b - current) - Math.abs(a - current) || b - a; });
+    for (var k = 0; k < order.length && nav.scrollWidth > nav.clientWidth + 1; k++) steps[order[k]].classList.add('nl');
+    if (nav.scrollWidth > nav.clientWidth + 1 && steps[current]) steps[current].classList.add('nl');
+  }
+  function srcFor(s) { return s.file + (s.file.indexOf('?') < 0 ? '?' : '&') + 'mode=' + mode; }
+  function hashId() { var h = decodeURIComponent(location.hash.replace(/^#/, '')); return INDEX.hasOwnProperty(h) ? h : null; }
+
+  function show(id) {
+    current = INDEX[id];
+    var s = SECTIONS[current];
+    Array.prototype.forEach.call(nav.querySelectorAll('.step'), function (b) {
+      if (b.getAttribute('data-id') === id) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === mode));
+    });
+    backBtn.disabled = current === 0;
+    nextBtn.disabled = current === SECTIONS.length - 1;
+    document.title = (current + 1) + '. ' + s.label + ' · Image Enhancement workflow';
+    frame.src = srcFor(s);
+    fit();
+  }
+  function go(id) {
+    if (!INDEX.hasOwnProperty(id)) return;
+    if (hashId() === id) show(id); else location.hash = id;   // hashchange calls show()
+  }
+
+  nav.addEventListener('click', function (e) {
+    var b = e.target.closest('.step'); if (b) go(b.getAttribute('data-id'));
+  });
+  backBtn.addEventListener('click', function () { if (current > 0) go(SECTIONS[current - 1].id); });
+  nextBtn.addEventListener('click', function () { if (current < SECTIONS.length - 1) go(SECTIONS[current + 1].id); });
+  document.getElementById('modeSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-mode]'); if (!b || b.getAttribute('data-mode') === mode) return;
+    mode = b.getAttribute('data-mode');
+    try { history.replaceState(null, '', location.pathname + (mode === 'today' ? '?mode=today' : '') + location.hash); } catch (err) {}
+    show(SECTIONS[current].id);
+  });
+  window.addEventListener('hashchange', function () { var id = hashId(); if (id) show(id); });
+  // A screen asks to move on, e.g. Finish in Vision Module Outputs -> "vision-below".
+  window.addEventListener('message', function (e) {
+    if (e.source !== frame.contentWindow) return;
+    var d = e.data;
+    if (d && d.type === 'ie-nav' && typeof d.to === 'string') go(d.to);
+  });
+  window.addEventListener('resize', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+
+  var first = hashId();
+  if (!first) { first = SECTIONS[0].id; try { history.replaceState(null, '', location.pathname + location.search + '#' + first); } catch (err) {} }
+  show(first);
+})();
+</script>
 </body>
 </html>
