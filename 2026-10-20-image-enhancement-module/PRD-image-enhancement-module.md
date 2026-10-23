@@ -17,7 +17,7 @@ Everything still to be settled. Each row is decided before the tickets are cut.
 |---|---|---|---|---|
 | Q1 | An integrator builds Search Area → Masking (blanks out a logo) → Image Enhancement → OCR and clicks Train. Today the trainers of several model types (OCR reading, object detection, classification) stop with an error whenever a Masking module sits anywhere above the module being trained, so this tree could not be trained. The part's OK/NG is not affected: the enhanced area counts toward the verdict even under Masking. | (a) Allow Image Enhancement under Masking and make those trainers handle Masking in this release. (b) Grey it out under Masking until a separate ticket fixes training under Masking. | Tanay Deo, Smit | Before the ticket breakdown |
 | Q2 | Only the latest Edge version will run Image Enhancement (exact version numbers to come). Today an integrator can still pick an older version in "Select Scripts Bundle Version" when downloading; Vision then leaves the enhancement settings out of the package and that Edge fails to start the deployment. This is handled as a separate task. | (a) Hide older versions in the download dropdown for instances that contain an Image Enhancement. (b) Show them, with a warning. (c) Leave the dropdown as it is. | Tanay Deo | Before that separate task is cut |
-| Q6 | An ML engineer opens the model training results page and needs to see which enhancement each model was trained with (the filters, their order and values), for every model type. How should it be shown? | To be designed with the AI team: for example a line per trained model listing its chain, or a panel with the before/after picture. | Smit, Tanay Deo | Before the ticket breakdown |
+| Q6 | An ML engineer opens the model training results page and needs to see which enhancement each model was trained with (the filters, their order and values), for every model type. With no retrain pop-up (AC4.2, AC9.5 removed), this page is also where someone notices that a model was trained on older filters than the recipe or Edge now has. How should it be shown? | To be designed with the AI team: for example a line per trained model listing its chain, a before/after picture, and a mark when the recipe's current filters differ from the ones the model was trained with. | Smit, Tanay Deo | Before the ticket breakdown |
 
 ## 1. Summary
 - A new module, **Image Enhancement**, can be added to a capture's recipe in Vision, under a Search Area (including the master image's Input Image) or an Orientator.
@@ -25,7 +25,7 @@ Everything still to be settled. Each row is decided before the tickets are cut.
 - The chain has no length limit, the same filter can appear more than once, and filters are picked from 26, grouped under six bold category headings. Once applied, the Vision canvas shows the area enhanced, live.
 - It has no AI model and never makes a part OK or NG by itself; the modules below it still count toward the verdict.
 - Annotators label, and models of every type train, on the enhanced image when their module picked the enhanced area.
-- Any change to an Image Enhancement puts back to draft only the instances that use that capture, and a filter change warns that the models below must be retrained; each drafted instance goes through its five instance steps again.
+- Any change to an Image Enhancement puts back to draft only the instances that use that capture, with no warning pop-up; each drafted instance goes through its five instance steps again.
 - On Edge, Edit Module Configurations lists the module; filters can be added, reordered, removed and tuned there, with a Raw Image / Enhanced Image preview on the master image or an uploaded picture. On an instance update, Vision's changes win: a differing filter list is replaced by Vision's, Edge-tuned values that Vision did not change are kept, and the pop-up shows both for information.
 - The enhanced area is one more analysed image next to the master image and the search areas: it shows the enhanced picture with the boxes, while they keep the normal picture with the boxes. Image Saving keeps its two blocks.
 
@@ -78,7 +78,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Model evaluation (vision-model-evaluation) | Evaluation of those models runs on enhanced images | US6 |
 | Instance creation (vision-instance-creation) | The package carries the chain and values; the instances that use a changed capture go back to draft and through their five steps again | US4, US7, US15 |
 | Instance upload (edge-instance-details) | Edge stores the chain and values on upload; on update, Vision's filter list replaces a differing Edge list and Edge-tuned values that Vision did not change are kept; the pop-up shows both for information | US7, US9, US15 |
-| Edit Module Configurations (edge-emc) | Lists Image Enhancement; filters can be added, reordered, removed and tuned, with Raw Image \| Enhanced Image on the master image or an uploaded picture; warning on save | US9, US11, US13 |
+| Edit Module Configurations (edge-emc) | Lists Image Enhancement; filters can be added, reordered, removed and tuned, with Raw Image \| Enhanced Image on the master image or an uploaded picture | US9, US11, US13 |
 | Inferencing customization (edge-inferencing-customization) | Analysed Image Configurations does not list the enhanced area; its boxes follow the settings of the search area it comes from | US10 |
 | Image saving (edge-storage-image-saving) | With Analysed Image on, the enhanced area's analysed image is saved too, under its own name; the screen keeps its two blocks | US10 |
 | Live Dashboard (edge-live-dashboard) | An image widget pointed at the enhanced area shows its analysed image live | US10 |
@@ -158,7 +158,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC3.6** Saving or editing an Image Enhancement never changes any search area's settings.
 
 ### US4 — Edit or delete a configured Image Enhancement
-*As an integrator, I want to change a configured chain and be warned about trained models, so that no instance runs on images its models were not trained for without me knowing.*
+*As an integrator, I want to change a configured chain, so that I can improve the clean-up after setup, with the instances that use it put back to draft.*
 - **Kind:** Feature
 - **Parts:** vision-recipe-tree, vision-instance-creation
 - **Teams:** SDE
@@ -166,13 +166,13 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Today:** Masking, the closest module, locks once configured; any change to a recipe puts every instance of the project back to draft.
 - **Prototype:** [Workflow, steps 8 and 9](https://vbv-fr.github.io/image-enhancement-prototype/#vision-edit)
 
-![After: warning when saving an edited chain](prototype/vision-module-config-after-edit-warning.png)
+![After: editing a configured chain](prototype/vision-module-config-after-edit.png)
 ![Today: Instances page](prototype/vision-instances-today.png)
 ![After: the instance using the capture is back to draft](prototype/vision-instances-after.png)
 ![After: the drafted instance opens on step 1 of five](prototype/vision-instances-after-wizard.png)
 
 - **AC4.1** A configured Image Enhancement can be opened and its chain and values changed.
-- **AC4.2** Saving such a change shows a confirmation that the models below were trained on the old filters and must be retrained; Confirm saves, Cancel keeps the old chain.
+- **AC4.2** (removed) Retrain confirmation on save: dropped, because finding the affected models takes several calls; the model training results page shows the filters each model was trained with (Q6).
 - **AC4.3** Deleting an Image Enhancement asks for confirmation listing the modules below it, and removes it with everything below it, as deleting any module does today.
 - **AC4.4** Wherever Vision copies a recipe or project today, the Image Enhancement and its chain are copied with it.
 - **AC4.5** Any change to an Image Enhancement (adding or deleting one, changing its chain or values, renaming its enhanced area) puts back to draft only the instances that include its capture; the project's other instances stay as they are.
@@ -252,7 +252,6 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: the chain with Raw Image | Enhanced Image](prototype/edge-emc-after.png)
 ![After: adding and reordering filters on Edge](prototype/edge-emc-after-edit-chain.png)
 ![After: an uploaded picture in the preview](prototype/edge-emc-after-uploaded.png)
-![After: warning on Save](prototype/edge-emc-after-save-warning.png)
 ![After: update pop-up, Edge values kept](prototype/edge-instance-update-after.png)
 ![After: update pop-up, Edge filters replaced by Vision's](prototype/edge-instance-update-after-chain-changed.png)
 
@@ -260,7 +259,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC9.2** Its section shows the chain in its current order, and filters can be added there from the same six-category list as in Vision (AC2.1), without a limit and with the same filter allowed more than once.
 - **AC9.3** Each filter's values can be changed within the same ranges as in Vision (AC2.3, AC2.4), and a filter added on Edge starts with the same default values.
 - **AC9.4** A Raw Image \| Enhanced Image pair shows the capture's master image cut to the area, before and after the chain, and updates within a second of any change.
-- **AC9.5** Saving shows a warning that the models below were trained on the old filters or values; Confirm saves, Cancel keeps the unsaved changes on screen.
+- **AC9.5** (removed) Save warning about the models below: dropped for the same reason as AC4.2; Save saves straight away, as for other modules.
 - **AC9.6** On Edge, setup that draws on the master image (Shape Extractor shape generation, Bead Inspection trace) shows the enhanced picture when the module picked the enhanced area.
 - **AC9.7** Reset returns the chain and every value to the last saved state.
 - **AC9.8** When a newer export of the instance is uploaded and its filter list is the same as Edge's (the same filters in the same order), every value tuned on Edge that the newer export did not also change is kept, and the update pop-up lists each one under Ground Truth Preservation (Module IE_1, Class/Label the filter's step and name, Parameter, Edge (Preserved), Vision).
@@ -403,6 +402,7 @@ Manual checks: every coverage-sheet item maps to exactly one AC; three duplicate
 Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-model-evaluation @ 7a0403a (2025-11-04), assembly-training @ 725f834 (2026-06-02), Assembly-Training-OCR @ 99d0d62 (2025-07-08), Auto-annotation @ d213b71 (2025-10-30), auto-training-backend @ 63ba9a6 (2026-08-04), Classification-Evaluation @ eda0d3b (2025-12-19), classification-training-docker @ 3f7a64e (2025-11-05), Craft-model-evaluation @ 5a95e16 (2025-07-10), frinkschat-backend @ 88e5c91 (2026-07-21), frinksedge-deployment-backend @ 009fc11 (2026-10-19), frinksedge-deployment-frontend @ 7e92de34 (2026-10-19), frinksedge-file-releases @ 7041254 (2026-07-16), frinksedge-health @ e8ef112 (2026-10-15), frinksedge-inferencing-backend @ eddd8e5 (2026-10-19), frinksedge-installer-electron @ b4a5049 (2026-10-12), frinksedge-plc-backend @ 254d08e (2026-10-15), frinksedge-report @ 5fe5390 (2026-10-15), frinksedge-report-frontend @ 9893a19 (2026-10-13), frinksedge-staging-environment @ 4993036 (2026-09-09), frinksvision-backend @ eda944f (2026-10-14), frinksvision-frontend @ 110a23c (2026-10-19), OCR-Evaluation @ c9c413c (2025-07-10), OCR-Training-Detection-ALL @ fc59f48 (2026-10-14), Python-inference-docker @ 62e22bd (2026-05-29), Recommendation-classification @ 0796dbb (2026-08-03), Recommendation-OCR @ ae1e953 (2026-04-30), release-manager-backend @ b8016f7 (2026-09-22), Segmentation-Data-Recommender @ d6f679e (2026-07-22), Segmentation-Evaluation @ 44bb8c6 (2025-08-28), Segmentation-Training @ f749aab (2025-08-22), train-utils @ d3e6378 (2026-09-15), vip-inference-python @ 93451d1 (2026-10-15), workflow-dataprocessor @ d2cd9bd (2026-08-11)
 
 ## Changelog
+- 23 Oct 2026 — Retrain warning pop-ups dropped in Vision and on Edge: AC4.2 (removed), AC9.5 (removed); instances still go back to draft (AC4.5); Q6 now also covers spotting models trained on older filters (Tanay Deo)
 - 23 Oct 2026 — No choice in the update pop-up: Vision's filter list replaces a differing Edge list and the pop-up only informs (AC9.9); AC9.16 (removed); Vision changes also win over Edge-tuned values (AC9.8, AC9.10) (Tanay Deo)
 - 23 Oct 2026 — Third duplicate pass (no duplicates): out-of-scope line about Edge chain edits removed; gaps closed in AC9.2, AC9.3, AC9.5, AC9.8, AC9.9, AC10.3, AC10.5, AC11.3; new AC8.6 (filter failure on a frame), AC9.17 (upload size and type), AC10.7 (search area cut from an enhanced area), AC10.8 (boxes on the areas above) (Tanay Deo)
 - 23 Oct 2026 — Edge can now add, reorder and remove filters, reversing the 23 Oct "values only" decision (AC9.2, AC9.12, AC9.13); preview labelled Raw Image / Enhanced Image (AC9.4) with Upload image, preview only (AC9.14, AC9.15); warning covers filters or values (AC9.5); differing Edge and Vision filter lists are now a choice in the update pop-up, Vision preselected (AC9.9, AC9.16), replacing "Vision's list wins"; default chain Binarize → Invert (AC2.9); Reports order Input Image, search areas, enhanced areas (AC10.5); AC10.6 split from AC10.5 (Tanay Deo)
