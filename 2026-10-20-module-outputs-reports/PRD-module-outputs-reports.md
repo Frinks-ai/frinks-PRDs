@@ -1,6 +1,6 @@
 # PRD: Module Outputs in Reports & Analytics
 
-**Prototype:** [Reports & Analytics, Today vs After change](https://vbv-fr.github.io/module-outputs-prototype/)
+**Prototype:** [Interactive workflow: Reports & Analytics, Today vs After change](https://vbv-fr.github.io/module-outputs-prototype/)
 **Product:** Frinks Edge
 **Status:** In review
 **Date:** 20 October 2026
@@ -9,6 +9,14 @@
 **Code checked:** 20 October 2026 — 34 repos at their latest default-branch commit (list in Appendix B)
 
 ---
+
+## Discussion points
+Everything still to be settled.
+
+| # | Point to settle | Options on the table | Owner | Needed by |
+|---|---|---|---|---|
+| Q1 | After release, how will we judge success? For example, a plant admin sets up Module Outputs once, and support stops opening View JSON for customers. What numbers should we aim for in section 8? | A share of upgraded Edge boxes with Module Outputs set up within a set time; a drop in support requests that need View JSON; no open customer requests for module values | Tanay Deo | Before approval |
+| Q2 | For a segmentation module, a quality engineer sees "Detected classes: Scratch" (every class with at least one region found). It is built from region counts, not a winning class. Keep it? | Keep it (closest to the original "detected segment class" ask); drop it and show only "<Class> regions" | Tanay Deo | Before approval |
 
 ## 1. Summary
 - Reports & Analytics gets a **Module Outputs** button. It opens a setup window for the selected instance, listing every capture (grouped by variant) and every value its modules report.
@@ -80,7 +88,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C2, C5, C10, C13
 - **Today:** Reports has Edit Table, Download, Filter and Refresh buttons. Module values can only be read in View JSON, as raw ids, one cycle at a time.
-- **Prototype:** [Setup window](https://vbv-fr.github.io/module-outputs-prototype/reports.html?mode=after&state=setup-empty)
+- **Prototype:** [Step 2: Open Module Outputs](https://vbv-fr.github.io/module-outputs-prototype/#setup)
 
 ![Today: no way to choose module values](prototype/reports-today.png)
 ![After: the Module Outputs window, first time, nothing ticked](prototype/setup-empty.png)
@@ -99,7 +107,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C2, C3, C4, C5, C13
 - **Today:** Nothing to choose or name.
-- **Prototype:** [Setup with a renamed value](https://vbv-fr.github.io/module-outputs-prototype/reports.html?mode=after&state=setup)
+- **Prototype:** [Step 3: Choose & rename](https://vbv-fr.github.io/module-outputs-prototype/#choose)
 
 ![After: three values ticked, Detected text renamed to Serial No.](prototype/setup.png)
 
@@ -119,7 +127,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C2, C12
 - **Today:** These values sit inside each cycle's stored result, keyed by ids, and are visible only in View JSON. Class Count shows object counts only.
-- **Prototype:** [Other module types](https://vbv-fr.github.io/module-outputs-prototype/reports.html?mode=after&state=setup-more)
+- **Prototype:** [Step 4: Other module types](https://vbv-fr.github.io/module-outputs-prototype/#more-modules)
 
 ![After: bead and colour values offered for a capture](prototype/setup-more.png)
 ![After: shape, dimension and tilt values for the same capture](prototype/setup-more-end.png)
@@ -144,11 +152,13 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C5, C6, C12, C16
 - **Today:** Each capture row shows only Camera Position, Camera Configuration and Config Result (Pass or Fail). Class Name and Class Count show object counts only.
-- **Prototype:** [Table with Module Outputs](https://vbv-fr.github.io/module-outputs-prototype/reports.html?mode=after)
+- **Prototype:** [Step 5: Module Outputs column](https://vbv-fr.github.io/module-outputs-prototype/#column), [Step 6: Edit Table](https://vbv-fr.github.io/module-outputs-prototype/#edit-table), [Step 7: Search](https://vbv-fr.github.io/module-outputs-prototype/#search)
 
 ![Today: capture rows show only Pass or Fail](prototype/reports-today.png)
 ![After: the Module Outputs column with each capture's values](prototype/reports-after.png)
 ![After: Module Outputs in Edit Table, after Config Result](prototype/edit-table-after.png)
+![Today: searching a serial number finds nothing](prototype/search-today.png)
+![After: searching a serial number finds its cycle](prototype/search-after.png)
 
 - **AC4.1** After the first save, a "Module Outputs" column appears as the last per-capture column, after Config Result, and Camera Position and Camera Configuration are turned on with it.
 - **AC4.2** Each capture row shows its ticked values, one per line, as "Name: value", in the order of the setup (module order, then value order).
@@ -166,6 +176,10 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C8, C12, C16
 - **Today:** The Excel has Class Name and Class Count columns only. Image classification rows come out blank, and read text and codes are never exported.
+- **Prototype:** [Step 8: Excel export](https://vbv-fr.github.io/module-outputs-prototype/#excel)
+
+![Today: the Excel has no module values](prototype/excel-today.png)
+![After: the Excel has a Module Outputs column](prototype/excel-after.png)
 
 - **AC5.1** When the column is visible, "Report (Excel Sheet)" gets a "Module Outputs" column after Config Result, with one cell per capture row holding the same "Name: value" lines as the screen, separated by line breaks.
 - **AC5.2** When the column is hidden in Edit Table, it is not exported, as with every other column today.
@@ -191,6 +205,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Parts:** edge-access-audit, edge-reports-analytics
 - **Teams:** SDE
 - **Covers:** C1, C16
+- **Prototype:** [Step 9: Without Update permission](https://vbv-fr.github.io/module-outputs-prototype/#no-permission)
+
+![After: the Module Outputs button is disabled without Update permission](prototype/no-permission-after.png)
 
 - **AC7.1** No role or permission changes. Saving the setup needs the existing Update level on Analytics & Reports, the same as Mark and Comment. Administrator always can.
 - **AC7.2** Without Update, the Module Outputs button is disabled, with the hover text "Needs Update permission on Analytics & Reports". The column is still shown to everyone who can view Reports.
@@ -209,7 +226,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC8.1** Every existing column, including Class Name, Class Count, Config Result and the Additional Info columns, shows the same values as before.
 - **AC8.2** View Images, View Raw Images, View JSON, Mark (Reverse Judgement) and Comment work as before.
 - **AC8.3** Write to DB rules that copy module values into Additional Info columns keep working alongside Module Outputs.
-- **AC8.4** The Minute-wise tab and Fast Mode deployments are unchanged. Module Outputs is not offered there, because Fast Mode stores no per-capture results.
+- **AC8.4** The Minute-wise tab shows the same per-minute rows and totals as before for Fast Mode deployments.
 - **AC8.5** Filters, the Download popup ("Report (Excel Sheet)" and "Images Only") and its size checks work as before.
 - **AC8.6** Storage cleanup keeps deleting the oldest results as today. Module Outputs stores no extra data per cycle, so nothing new needs cleaning up.
 
@@ -245,9 +262,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C6, C7, C15
 
-- **AC11.1** Existing data: after the upgrade every instance starts with no setup and no column. Once set up, cycles stored before the upgrade show their values. No stored result is changed or moved.
+- **AC11.1** Existing data: after the upgrade every instance starts with no setup and no column. No stored result is changed or moved.
 - **AC11.2** The saved setup survives restarts and every later Edge upgrade. The database update replayed at each upgrade must not erase or reset it.
-- **AC11.3** An older Edge with a new instance: nothing changes, because the instance package is not touched. The new Edge with an older instance: Module Outputs works, and values missing from older stored results show "—".
+- **AC11.3** An older Edge with a new instance: nothing changes, because the instance package is not touched. The new Edge with an older instance: Module Outputs offers that instance's values like any other.
 - **AC11.4** Edge boxes in the field get it as a normal release with no data migration. It works offline, and timestamps are unchanged.
 
 ## 7. Out of scope
@@ -259,12 +276,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - Copying a setup from one variant or instance to another.
 - Module Outputs on the Live Dashboard, PLC or Minute-wise reports.
 
-## 8. Open questions
-| # | Question | Owner | Needed by |
-|---|---|---|---|
-| Q1 | Success targets for section 9 (how many boxes set it up, how far View JSON use should drop). | Tanay Deo | Before approval |
-
-## 9. How we'll know it worked
+## 8. How we'll know it worked
 | Measure | Target |
 |---|---|
 | Edge boxes on this release with Module Outputs set up for at least one instance (from the audit log) | Q1 |
@@ -279,7 +291,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 **Result:** PASS, 1 warning
 
-- 11 user stories (6 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 67 ACs, 23 touched parts, 1 open question.
+- 11 user stories (6 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 67 ACs, 23 touched parts, 2 discussion points.
 - Checklist: 17 items covered by stories, 1 N/A, 0 open.
 - Warning kept on purpose: AC8.4 contains "Fast", which is the product name "Fast Mode", not a vague word.
 - Every punchlist item I1–I67 in notes.md maps to exactly one AC.
@@ -299,6 +311,9 @@ For the ticket skill and developers. Paths are relative to each repo.
 Repos checked: frinksedge-report @ 5fe5390 (15 Oct 2026), frinksedge-report-frontend @ 9893a19 (13 Oct 2026), frinksedge-inferencing-backend @ eddd8e5 (19 Oct 2026), frinksedge-deployment-backend @ 009fc11 (19 Oct 2026), frinksedge-deployment-frontend @ 7e92de34 (19 Oct 2026), frinksedge-health @ e8ef112 (15 Oct 2026), vip-inference-python @ 93451d1 (15 Oct 2026), frinksvision-backend @ eda944f (14 Oct 2026), frinksvision-frontend @ 110a23c (19 Oct 2026), Python-inference-docker @ 62e22bd (29 May 2026), release-manager-backend @ b8016f7 (22 Sep 2026), and the other 23 repos in the skill's list, all up to date on 20 Oct 2026.
 
 ## Changelog
+- 23 October 2026 — Duplicate pass: AC8.4, AC11.1 and AC11.3 no longer restate AC1.1, AC4.3 and AC4.5 (Tanay Deo)
+- 23 October 2026 — Moved to the current template: open questions now sit in Discussion points at the top; added Q2 (segmentation "Detected classes"); Word copy dropped, the PRD repo is the only published copy (Tanay Deo)
+- 23 October 2026 — Prototype rebuilt as one interactive workflow with a step navigator; stories link to their step (Tanay Deo)
 - 20 October 2026 — Draft started (Tanay Deo)
 - 20 October 2026 — Prototype live on GitHub Pages; sent to the PM for review (Tanay Deo)
 - 20 October 2026 — First full draft: 11 user stories after two decision rounds (setup in Reports, all module types, Update permission, one Excel column, past cycles shown, output values only, Tracker out, latest attempt) (Tanay Deo)
