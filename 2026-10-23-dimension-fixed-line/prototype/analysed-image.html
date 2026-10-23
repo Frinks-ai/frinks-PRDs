@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FRINKS.AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+<style>
+  /* preflight subset */
+  *, *::before, *::after { box-sizing: border-box; border: 0 solid #e5e7eb; margin: 0; padding: 0; }
+  html, body { font-size: 16px; height: 100vh; width: 100vw; overflow-y: hidden; color: black; }
+  :root {
+    font-family: 'Outfit', sans-serif; font-optical-sizing: auto; line-height: 1.5; font-weight: 400;
+    color-scheme: light; font-synthesis: none; text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  body { font-family: 'Outfit', sans-serif; line-height: inherit; background: #fff; overflow: auto; }
+  button, input { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; color: inherit; background: transparent; }
+  button { cursor: pointer; }
+  img, svg { display: block; vertical-align: middle; }
+  img { max-width: 100%; height: auto; }
+  ul { list-style: none; }
+  a { color: inherit; text-decoration: inherit; }
+  table { text-indent: 0; border-color: inherit; border-collapse: collapse; }
+  @media (max-width: 1281px) { * { font-size: 96%; } }
+
+  /* sidebar (collapsed) */
+  .sb { position: fixed; left: 0; top: 0; height: 100vh; width: 114px; display: flex; flex-direction: column; align-items: center;
+        border-right: 1px solid #d1d5db; background: #1e1c1c; padding: 24px 8px; overflow: hidden; white-space: nowrap;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1); z-index: 100; }
+  .sb-logo { margin-top: 12px; margin-bottom: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .sb-menu { margin-top: 32px; display: flex; width: 100%; flex: 1; flex-direction: column; gap: 8px; }
+  .sb-item { display: flex; align-items: center; border-radius: 6px; padding: 8px 36px; color: #fff; overflow: hidden; }
+  .sb-item:hover { background: rgba(255,255,255,.2); }
+  .sb-ic { display: flex; width: 24px; flex-shrink: 0; align-items: center; justify-content: center; }
+  .sb-title { font-size: 18px; line-height: 28px; width: 0; opacity: 0; }
+  .sb-bottom { display: flex; width: 100%; flex-direction: column; gap: 8px; }
+  .sb-toggle { display: flex; width: 100%; align-items: center; justify-content: center; border-radius: 6px; padding: 8px 0; color: #fff; }
+
+  /* main */
+  .main { position: relative; height: 100%; min-height: 100vh; margin-left: 114px; width: calc(100% - 114px); overflow-x: auto; background: #fff; }
+  .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+  .heading { display: flex; align-items: baseline; margin-top: 4px; gap: 8px; height: 60px; padding: 16px 20px; background: #fff; }
+  .heading-title { font-size: 30px; line-height: 36px; font-weight: 500; }
+  .topright { margin-right: 20px; margin-top: 8px; display: flex; align-items: center; gap: 12px; }
+  .seg { display: flex; height: 36px; align-items: center; border-radius: 8px; background: #f3f4f6; padding: 4px; }
+  .seg-btn { display: flex; align-items: center; gap: 4px; height: 36px; border-radius: 6px; border: 1px solid transparent; padding: 0 16px; font-size: 14px; line-height: 20px; font-weight: 600; color: #6b7280; }
+  .seg-btn.on { background: #ff4301; color: #fff; }
+  .seg-btn + .seg-btn { margin-left: 4px; }
+  .seg-info { display: flex; height: 16px; width: 16px; align-items: center; justify-content: center; }
+  .search { position: relative; display: flex; align-items: center; }
+  .search svg { position: absolute; left: 12px; color: #9ca3af; }
+  .search input { height: 36px; width: 256px; border-radius: 8px; border: 1px solid #e5e7eb; padding: 0 40px; font-size: 14px; line-height: 20px; outline: none; }
+  .search input::placeholder { color: #9ca3af; }
+
+  .content { display: flex; height: calc(100vh - 64px); min-height: 0; min-width: 0; flex: 1; flex-direction: column; background: #fff; }
+  .toolbar { position: relative; border-bottom: 1px solid #e5e7eb; padding: 16px 20px 12px; }
+  .toolrow { display: flex; align-items: flex-start; gap: 12px; }
+  .filters { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .chip { display: flex; height: 38px; align-items: center; justify-content: space-between; gap: 6px; white-space: nowrap; border-radius: 8px; background: #fff; padding: 0 12px; font-size: 13px; font-weight: 500; color: #374151; }
+  .chip:hover { background: #f9fafb; }
+  .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip svg { flex-shrink: 0; color: #6b7280; }
+  .tip { position: relative; display: inline-block; }
+  .obtn { display: flex; align-items: center; justify-content: center; height: 32px; width: 38px; border-radius: 6px; background: #ff4301; color: #fff; font-weight: 600; border: 1px solid transparent; }
+  .obtn:hover { background: rgba(255,67,1,.9); }
+  .actions { display: flex; flex-shrink: 0; align-items: flex-start; gap: 8px; }
+
+  .summary { display: flex; border-bottom: 1px solid #e5e7eb; background: #fff; }
+  .sum { display: flex; flex-grow: 1; align-items: center; border-right: 1px solid #e5e7eb; padding: 10px 20px; }
+  .sum:last-child { border-right: 0; }
+  .sum .l { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .sum .v { margin-left: auto; font-size: 14px; line-height: 20px; font-weight: 600; }
+
+  .tablewrap { position: relative; display: flex; min-height: 0; min-width: 0; flex: 1; overflow: hidden; }
+  .tablecol { margin-top: 12px; display: flex; min-width: 0; flex: 1; flex-direction: column; }
+  .tablepad { display: flex; min-height: 0; min-width: 0; flex: 1; flex-direction: column; overflow: hidden; padding: 0 20px 20px; }
+  .rt { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; height: 100%; }
+  .rt-scroll { overflow: auto; flex: 1; min-height: 0; min-width: 0; }
+  table.res { width: 100%; min-width: 100%; }
+  table.res > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid #d1d5db; }
+  .res th { position: sticky; top: 0; z-index: 11; padding: 16px 8px; text-align: center; font-size: 16px; line-height: 24px; font-weight: 500; color: #fff; background: #ff4301; }
+  .res th .rh { position: absolute; top: 10px; right: 0; bottom: 10px; width: 2px; border-radius: 16px; background: #fff; cursor: col-resize; }
+  .res th:last-child .rh { display: none; }
+  .res tbody { background: #fff; }
+  .res tbody > tr ~ tr { border-top: 1px solid #e5e7eb; }
+  .res td { padding: 8px; color: #000; }
+  .res td > div { display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; text-align: center; }
+  .pass-t { font-weight: 600; font-size: 14px; line-height: 20px; color: #16a34a; }
+  .fail-t { font-weight: 600; font-size: 14px; line-height: 20px; color: #ef4444; }
+  .lnk { display: flex; align-items: center; gap: 6px; color: #3b82f6; font-weight: 500; }
+  .lnk:hover { color: #3730a3; }
+  .pager { display: flex; align-items: center; justify-content: flex-end; gap: 16px; border-top: 1px solid #e5e7eb; padding: 8px 16px; }
+  .pager span { font-size: 14px; line-height: 20px; color: #6b7280; }
+  .pager button { border-radius: 4px; padding: 4px; }
+  .pager button:disabled { opacity: .3; cursor: default; }
+
+  /* image viewer */
+  .iv { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .iv[hidden] { display: none; }
+  .iv-inner { position: relative; display: flex; height: 100%; width: 100%; flex-direction: column; padding: 24px; }
+  .iv-head { margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; color: #fff; }
+  .iv-left { display: flex; flex-direction: column; gap: 4px; }
+  .iv-title { font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -0.025em; }
+  .iv-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 500; color: #d1d5db; }
+  .iv-chip { border-radius: 4px; padding: 2px 8px; font-size: 14px; line-height: 20px; font-weight: 600; }
+  .iv-chip.p { background: rgba(34,197,94,.2); color: #4ade80; }
+  .iv-chip.f { background: rgba(239,68,68,.2); color: #f87171; }
+  .iv-count { color: #6b7280; }
+  .iv-right { display: flex; align-items: center; gap: 8px; }
+  .iv-zoom { display: flex; align-items: center; gap: 4px; border-radius: 9999px; background: rgba(255,255,255,.1); padding: 4px; }
+  .iv-zb { border-radius: 9999px; padding: 8px; transition: background-color .15s; }
+  .iv-zb:hover { background: rgba(255,255,255,.15); }
+  .iv-zb:disabled { cursor: not-allowed; opacity: .3; }
+  .iv-reset { display: flex; min-width: 72px; align-items: center; justify-content: center; gap: 4px; border-radius: 9999px; padding: 6px 8px; font-size: 14px; line-height: 20px; font-weight: 600; transition: background-color .15s; }
+  .iv-reset:hover { background: rgba(255,255,255,.15); }
+  .iv-close { border-radius: 9999px; background: rgba(255,255,255,.1); padding: 10px; color: #fff; transition: all .15s; }
+  .iv-close:hover { transform: scale(1.1); background: rgba(255,255,255,.2); }
+  .iv-view { position: relative; display: flex; flex: 1; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; background: rgba(0,0,0,.4); }
+  .iv-nav { position: absolute; z-index: 10; border-radius: 9999px; background: rgba(0,0,0,.6); padding: 16px; color: #fff;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); transition: all .15s; }
+  .iv-nav:hover { background: #fff; color: #000; }
+  .iv-nav.l { left: 24px; } .iv-nav.r { right: 24px; }
+  .iv-stage { position: relative; display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; padding: 16px; cursor: default; }
+  .iv-stage.grab { cursor: grab; } .iv-stage.grabbing { cursor: grabbing; }
+  .iv-img { max-height: 100%; max-width: 100%; user-select: none; object-fit: contain; box-shadow: 0 0 50px rgba(0,0,0,.5); transition: transform .2s ease-out; }
+  .iv-img.nodrag { transition: none; }
+  .iv-thumbs { margin-top: 32px; display: flex; justify-content: center; gap: 12px; overflow-x: auto; padding: 0 16px 8px; }
+  .iv-thumbs > div { display: flex; gap: 12px; }
+  .iv-tb { position: relative; height: 80px; width: 128px; flex-shrink: 0; overflow: hidden; border-radius: 8px; border: 2px solid rgba(255,255,255,.1); opacity: .4; transition: all .2s; }
+  .iv-tb:hover { opacity: 1; border-color: rgba(255,255,255,.3); transform: scale(1.05); }
+  .iv-tb.on { border-color: #ff4301; opacity: 1; box-shadow: 0 0 0 4px rgba(255,67,1,.3); }
+  .iv-tb img { height: 100%; width: 100%; object-fit: cover; }
+  .iv-badge { position: absolute; bottom: 4px; left: 4px; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 700; line-height: 1; color: #fff; }
+  .iv-badge.p { background: rgba(22,163,74,.9); } .iv-badge.f { background: rgba(220,38,38,.9); }
+  .iv-tint { position: absolute; inset: 0; background: rgba(255,67,1,.1); }
+
+  /* Today | After change */
+  .ms { position: fixed; left: 24px; bottom: 16px; z-index: 1100; display: flex; height: 32px; align-items: center; border-radius: 8px; background: #f3f4f6; padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .ms button { height: 26px; border-radius: 6px; padding: 0 12px; font-size: 12px; line-height: 16px; font-weight: 600; color: #6b7280; }
+  .ms button + button { margin-left: 2px; }
+  .ms button.on { background: #ff4301; color: #fff; }
+  .ms[hidden] { display: none; }
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <a class="sb-logo" href="#">
+    <svg width="60" height="60" viewBox="0 0 230 52" preserveAspectRatio="xMinYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:60px;height:60px">
+      <g clip-path="url(#clip0_84_12245)">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.3373 23.3047C19.4945 23.3047 19.6219 23.4253 19.6219 23.5742L19.6219 30.8503C19.6219 30.9991 19.4945 31.1197 19.3373 31.1197C19.1801 31.1197 19.0527 30.9991 19.0527 30.8503L19.0527 23.5742C19.0527 23.4253 19.1801 23.3047 19.3373 23.3047Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.7337 24.7076C25.7015 24.8533 25.5507 24.9467 25.3968 24.9162L19.2783 23.7035C19.1244 23.673 19.0258 23.5302 19.058 23.3845C19.0902 23.2389 19.241 23.1455 19.3949 23.176L25.5134 24.3886C25.6673 24.4191 25.7659 24.5619 25.7337 24.7076Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M20.9018 23.5742C21.0589 23.5742 21.1864 23.6949 21.1864 23.8437V32.3325C21.1864 32.4813 21.0589 32.602 20.9018 32.602C20.7446 32.602 20.6172 32.4813 20.6172 32.3325V23.8437C20.6172 23.6949 20.7446 23.5742 20.9018 23.5742Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M22.4672 23.8437C22.6244 23.8437 22.7518 23.9644 22.7518 24.1132L22.7518 33.8147C22.7518 33.9635 22.6244 34.0842 22.4672 34.0842C22.31 34.0842 22.1826 33.9635 22.1826 33.8147L22.1826 24.1132C22.1826 23.9644 22.31 23.8437 22.4672 23.8437Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M24.0326 24.1128C24.1898 24.1128 24.3172 24.2334 24.3172 24.3823V35.2964C24.3172 35.4452 24.1898 35.5659 24.0326 35.5659C23.8755 35.5659 23.748 35.4452 23.748 35.2964V24.3823C23.748 24.2334 23.8755 24.1128 24.0326 24.1128Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.4555 24.3828C25.6127 24.3828 25.7401 24.5035 25.7401 24.6523V36.6444C25.7401 36.7932 25.6127 36.9138 25.4555 36.9138C25.2983 36.9138 25.1709 36.7932 25.1709 36.6444V24.6523C25.1709 24.5035 25.2983 24.3828 25.4555 24.3828Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0527 7H39.9697C40.1269 7 40.2543 7.12065 40.2543 7.26948C40.2543 7.41832 40.1269 7.53897 39.9697 7.53897H19.6219V16.0529L25.6487 15.2193H35.7721C35.9293 15.2193 36.0567 15.3399 36.0567 15.4888C36.0567 15.6376 35.9293 15.7583 35.7721 15.7583H25.69L19.0527 16.6763V7Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M20.6885 8.48193H37.7636C37.9207 8.48193 38.0481 8.60259 38.0481 8.75142C38.0481 8.90025 37.9207 9.0209 37.7636 9.0209H21.2576V16.0949C21.2576 16.2437 21.1302 16.3644 20.9731 16.3644C20.8159 16.3644 20.6885 16.2437 20.6885 16.0949V8.48193Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M22.2539 9.96387H36.412C36.5692 9.96387 36.6966 10.0845 36.6966 10.2334C36.6966 10.3822 36.5692 10.5028 36.412 10.5028H22.8231V15.8925C22.8231 16.0414 22.6957 16.162 22.5385 16.162C22.3813 16.162 22.2539 16.0414 22.2539 15.8925V9.96387Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M23.8193 11.4463H34.0644C34.2216 11.4463 34.349 11.5669 34.349 11.7158C34.349 11.8646 34.2216 11.9853 34.0644 11.9853H24.3885V15.6907C24.3885 15.8395 24.2611 15.9602 24.1039 15.9602C23.9467 15.9602 23.8193 15.8395 23.8193 15.6907V11.4463Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.3135 12.7939H32.9261C33.0833 12.7939 33.2107 12.9146 33.2107 13.0634C33.2107 13.2123 33.0833 13.3329 32.9261 13.3329H25.8826V15.4888C25.8826 15.6376 25.7552 15.7583 25.5981 15.7583C25.4409 15.7583 25.3135 15.6376 25.3135 15.4888V12.7939Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.865 16.8354L33.998 16.944C34.1552 16.9463 34.2805 17.0689 34.278 17.2177C34.2755 17.3665 34.146 17.4852 33.9889 17.4829L26.8798 17.3747L19.3567 17.8614C19.1999 17.8715 19.0641 17.7594 19.0534 17.6109C19.0427 17.4624 19.1611 17.3338 19.3179 17.3237L26.865 16.8354Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.8698 18.1353L32.7569 18.2437C32.9141 18.2466 33.039 18.3696 33.0359 18.5184C33.0329 18.6672 32.903 18.7855 32.7459 18.7826L26.875 18.6744L19.3481 18.9449C19.1911 18.9506 19.0589 18.8346 19.0529 18.6859C19.047 18.5371 19.1695 18.412 19.3265 18.4064L26.8698 18.1353Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0528 19.7007C19.055 19.5518 19.1843 19.4329 19.3414 19.4351L31.265 19.5976C31.4222 19.5997 31.5478 19.7221 31.5455 19.8709C31.5432 20.0197 31.414 20.1386 31.2568 20.1365L19.3332 19.974C19.1761 19.9719 19.0505 19.8495 19.0528 19.7007Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0531 20.7743C19.0611 20.6257 19.1948 20.5113 19.3518 20.5189L27.2108 20.8977H29.8533C30.0105 20.8977 30.1379 21.0183 30.1379 21.1672C30.1379 21.316 30.0105 21.4367 29.8533 21.4367H27.1964L19.3229 21.0572C19.1659 21.0496 19.0451 20.923 19.0531 20.7743Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0539 21.9558C19.068 21.8075 19.2063 21.6982 19.3629 21.7116L26.968 22.3604H28.4457C28.6028 22.3604 28.7302 22.4811 28.7302 22.6299C28.7302 22.7787 28.6028 22.8994 28.4457 22.8994H26.9424L19.3118 22.2483C19.1553 22.235 19.0398 22.104 19.0539 21.9558Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path d="M9.48544 14.0082H7.28711V-0.0317383H21.3271V2.16659H9.48544V14.0082Z" fill="#f8fafa" />
+<path d="M21.3271 44.1406H7.28711V30.1006H9.48544V41.9422H21.3271V44.1406Z" fill="#f8fafa" />
+<path d="M50.4033 14.0082H48.2049V2.16659H36.3633V-0.0317383H50.4033V14.0082Z" fill="#f8fafa" />
+      </g>
+      <defs><clipPath id="clip0_84_12245"><rect width="230" height="51.427" fill="white" /></clipPath></defs>
+    </svg>
+  </a>
+  <ul class="sb-menu">
+    <li>
+      <a class="sb-item active" href="#">
+        <div class="sb-ic">
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="none"><path d="M13 17V7M7 17V1M1 17V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="sb-title">Analytics &amp; Reports</span>
+      </a>
+    </li>
+  </ul>
+  <div class="sb-bottom">
+    <button class="sb-toggle" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 18 8 13 3 8"></polyline><line x1="11" y1="9" x2="11" y2="17"></line><line x1="14" y1="9" x2="14" y2="17"></line></svg>
+    </button>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="heading"><div class="heading-title">Analytics &amp; Reports</div><div></div></div>
+    <div class="topright">
+      <div class="seg">
+        <button class="seg-btn on" type="button">Cycle-wise</button>
+        <button class="seg-btn" type="button"><span>Minute-wise</span>
+          <span class="tip"><span class="seg-info"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span></span>
+        </button>
+      </div>
+      <div class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search" />
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="toolbar">
+      <div class="toolrow">
+        <div class="filters">
+          <button class="chip" type="button"><span>24/10/2026 00:00 → 24/10/2026 23:59</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="chip" type="button" style="max-width:131px"><span>Sample Instance</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="chip" type="button" style="max-width:240px"><span>Variant</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="chip" type="button" style="width:100px"><span>Outcome</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        </div>
+        <div class="tip"><button class="obtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button></div>
+        <div class="tip"><button class="obtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></div>
+        <div class="actions">
+          <div class="tip"><button class="obtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></button></div>
+          <div class="tip"><button class="obtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="sum"><span class="l" style="color:#4b5563">Total</span><span class="v">128</span></div>
+      <div class="sum" style="background:#f0fdf4"><span class="l" style="color:#15803d">Pass</span><span class="v" style="color:#15803d" id="sumPass">121</span></div>
+      <div class="sum" style="background:#fef2f2"><span class="l" style="color:#dc2626">Fail</span><span class="v" style="color:#dc2626" id="sumFail">7</span></div>
+      <div class="sum" style="background:#fff7ed"><span class="l" style="color:#ea580c">Defect %</span><span class="v" style="color:#ea580c" id="sumDef">5.469%</span></div>
+      <div class="sum" style="background:#eff6ff"><span class="l" style="color:#2563eb">Reverse Judgement</span><span class="v">0</span></div>
+    </div>
+
+    <div class="tablewrap">
+      <div class="tablecol">
+        <div class="tablepad">
+          <div class="rt">
+            <div class="rt-scroll">
+              <table class="res">
+                <colgroup id="cols"></colgroup>
+                <thead><tr id="thead"></tr></thead>
+                <tbody id="tbody"></tbody>
+              </table>
+            </div>
+            <div class="pager">
+              <span>1–10 of 128</span>
+              <button type="button" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <button type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="iv" id="iv">
+  <div class="iv-inner">
+    <div class="iv-head">
+      <div class="iv-left">
+        <h3 class="iv-title" id="ivTitle">Top Camera</h3>
+        <div class="iv-sub">
+          <span id="ivName">Search Area 1</span>
+          <span class="iv-chip p" id="ivChip">Pass</span>
+          <span class="iv-count" id="ivCount">· Image 1 of 2</span>
+        </div>
+      </div>
+      <div class="iv-right">
+        <div class="iv-zoom">
+          <button class="iv-zb" id="zOut" type="button" title="Zoom out (-)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
+          <button class="iv-reset" id="zReset" type="button" title="Reset zoom (0)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span id="zPct">100%</span></button>
+          <button class="iv-zb" id="zIn" type="button" title="Zoom in (+)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
+        </div>
+        <button class="iv-close" id="ivClose" type="button" title="Close (Esc)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="iv-view" id="ivView">
+      <button class="iv-nav l" id="ivPrev" type="button" title="Previous (Left Arrow)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="iv-nav r" id="ivNext" type="button" title="Next (Right Arrow)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <div class="iv-stage" id="ivStage">
+        <img class="iv-img" id="ivImg" alt="" draggable="false" />
+      </div>
+    </div>
+    <div class="iv-thumbs" id="ivThumbsWrap"><div id="ivThumbs"></div></div>
+  </div>
+</div>
+
+<div class="ms" id="ms">
+  <button type="button" data-mode="today">Today</button>
+  <button type="button" data-mode="after">After change</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ───────────────────────── params + shared state ─────────────────────────
+  var W = 1920, H = 1080;
+  var qs = new URLSearchParams(location.search);
+  var MODE = qs.get('mode') === 'today' ? 'today' : 'after';
+  var STATE = ['ok', 'ng', 'angle', 'cross'].indexOf(qs.get('state')) >= 0 ? qs.get('state') : 'ok';
+  var KEY = 'fixedline-proto-v1';
+  var DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30,
+    name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000' };
+  var ANGLE_DEFAULTS = { lineMode: 'tilted', y: 540, x: 960, cx: 960, cy: 540, angle: 30,
+    name: 'Angle_edge_to_ref', min: 25, max: 35, unit: 'degrees' };
+  var HEX = /^#[0-9a-fA-F]{6}$/;
+
+  function readStored() {
+    var raw = null;
+    try { raw = JSON.parse(window.localStorage.getItem(KEY)); } catch (e) { raw = null; }
+    return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : null;
+  }
+  function num(v, d) { var n = Number(v); return (v === '' || v === null || v === undefined || !isFinite(n)) ? d : n; }
+  function readConfig() {
+    var raw = readStored() || {};
+    var c = {};
+    Object.keys(DEFAULTS).forEach(function (k) { c[k] = (raw[k] === undefined || raw[k] === null || raw[k] === '') ? DEFAULTS[k] : raw[k]; });
+    ['y', 'x', 'cx', 'cy', 'angle', 'min', 'max', 'ratio'].forEach(function (k) { c[k] = num(c[k], DEFAULTS[k]); });
+    if (['horizontal', 'vertical', 'tilted'].indexOf(c.lineMode) < 0) c.lineMode = DEFAULTS.lineMode;
+    if (!HEX.test(String(c.okColor))) c.okColor = DEFAULTS.okColor;
+    if (!HEX.test(String(c.ngColor))) c.ngColor = DEFAULTS.ngColor;
+    if (!(c.ratio > 0)) c.ratio = DEFAULTS.ratio;
+    if (c.min > c.max) { var t = c.min; c.min = c.max; c.max = t; }
+    c.unit = String(c.unit || DEFAULTS.unit);
+    c.name = String(c.name || DEFAULTS.name);
+    return c;
+  }
+  // Distance view of the stored config: an angle-typed config keeps its line and colours, not its angle GT.
+  function distanceConfig() {
+    var c = readConfig();
+    if (c.dimType === 'angle') { c.name = DEFAULTS.name; c.min = DEFAULTS.min; c.max = DEFAULTS.max; c.unit = DEFAULTS.unit; }
+    return c;
+  }
+  function angleConfig() {
+    var c = readConfig();
+    if (c.dimType !== 'angle') Object.keys(ANGLE_DEFAULTS).forEach(function (k) { c[k] = ANGLE_DEFAULTS[k]; });
+    return c;
+  }
+
+  // ───────────────────────── Hershey simplex (cv2.FONT_HERSHEY_SIMPLEX) ─────────────────────────
+  var HG = {
+    ' ': 'JZ', '-': 'E_IR[R', '.': 'MWRYQZR[SZRY', ':': 'MWRMQNROSNRM RRYQZR[SZRY', '_': 'JZJ]Z]',
+    '(': 'KYVBTDRGPKOPOTPYR]T`Vb', ')': 'KYNBPDRGTKUPUTTYR]P`Nb',
+    '0': 'H\\QFNGLJKOKRLWNZQ[S[VZXWYRYOXJVGSFQF', '1': 'H\\NJPISFS[', '2': 'H\\LKLJMHNGPFTFVGWHXJXLWNUQK[Y[',
+    '3': 'H\\MFXFRNUNWOXPYSYUXXVZS[P[MZLYKW', '4': 'H\\UFKTZT RUFU[', '5': 'H\\WFMFLOMNPMSMVNXPYSYUXXVZS[P[MZLYKW',
+    '6': 'H\\XIWGTFRFOGMJLOLTMXOZR[S[VZXXYUYTXQVOSNRNOOMQLT', '7': 'H\\YFO[ RKFYF',
+    '8': 'H\\PFMGLILKMMONSOVPXRYTYWXYWZT[P[MZLYKWKTLRNPQOUNWMXKXIWGTFPF', '9': 'H\\XMWPURRSQSNRLPKMKLLINGQFRFUGWIXLXQWVUYR[P[MZLX',
+    'A': 'I[RFJ[ RRFZ[ RMTWT', 'C': 'H]ZKYIWGUFQFOGMILKKNKSLVMXOZQ[U[WZYXZV', 'D': 'G\\KFK[ RKFRFUGWIXKYNYSXVWXUZR[K[',
+    'E': 'H[LFL[ RLFYF RLPTP RL[Y[', 'F': 'HZLFL[ RLFYF RLPTP', 'G': 'H]ZKYIWGUFQFOGMILKKNKSLVMXOZQ[U[WZYXZVZS RUSZS',
+    'I': 'NVRFR[', 'L': 'HYLFL[ RL[X[', 'N': 'G]KFK[ RKFY[ RYFY[', 'P': 'G\\KFK[ RKFTFWGXHYJYMXOWPTQKQ',
+    'S': 'H\\YIWGTFPFMGKIKKLMMNOOUQWRXSYUYXWZT[P[MZKX', 'T': 'JZRFR[ RKFYF', 'X': 'H\\KFY[ RYFK[',
+    'a': 'I\\XMX[ RXPVNTMQMONMPLSLUMXOZQ[T[VZXX', 'b': 'H[LFL[ RLPNNPMSMUNWPXSXUWXUZS[P[NZLX',
+    'c': 'I[XPVNTMQMONMPLSLUMXOZQ[T[VZXX', 'd': 'I\\XFX[ RXPVNTMQMONMPLSLUMXOZQ[T[VZXX',
+    'e': 'I[LSXSXQWOVNTMQMONMPLSLUMXOZQ[T[VZXX', 'f': 'MYWFUFSGRJR[ ROMVM',
+    'g': 'I\\XMX]W`VaTbQbOa RXPVNTMQMONMPLSLUMXOZQ[T[VZXX', 'm': 'CaGMG[ RGQJNLMOMQNRQR[ RRQUNWMZM\\N]Q][',
+    'p': 'H[LMLb RLPNNPMSMUNWPXSXUWXUZS[P[NZLX', 'x': 'J[MMX[ RXMM['
+  };
+  var glyphCache = {};
+  function glyph(ch) {
+    if (glyphCache[ch]) return glyphCache[ch];
+    var s = HG[ch] || HG[' '];
+    var g = { L: s.charCodeAt(0) - 82, R: s.charCodeAt(1) - 82, strokes: [] };
+    var cur = [];
+    for (var i = 2; i + 1 < s.length; i += 2) {
+      if (s[i] === ' ' && s[i + 1] === 'R') { if (cur.length) g.strokes.push(cur); cur = []; continue; }
+      cur.push([s.charCodeAt(i) - 82, s.charCodeAt(i + 1) - 82]);
+    }
+    if (cur.length) g.strokes.push(cur);
+    glyphCache[ch] = g;
+    return g;
+  }
+  // cv2.getTextSize for FONT_HERSHEY_SIMPLEX (cap_line 12, base_line 9)
+  function textSize(text, scale, thickness) {
+    var w = 0;
+    for (var i = 0; i < text.length; i++) { var g = glyph(text[i]); w += (g.R - g.L) * scale; }
+    return { w: Math.round(w + thickness), h: Math.round(21 * scale + Math.floor((thickness + 1) / 2)), b: Math.round(9 * scale + thickness * 0.5) };
+  }
+  function strokeText(ctx, text, x, yBase, scale) {
+    var vx = x;
+    ctx.beginPath();
+    for (var i = 0; i < text.length; i++) {
+      var g = glyph(text[i]);
+      vx -= g.L * scale;
+      g.strokes.forEach(function (st) {
+        st.forEach(function (p, k) {
+          var px = vx + p[0] * scale, py = yBase + (p[1] - 9) * scale;
+          if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        });
+      });
+      vx += g.R * scale;
+    }
+    ctx.stroke();
+  }
+  // Visualisor.write_name for a point, fontScale 0.6, with_background
+  function writeName(ctx, text, pt, color) {
+    var s = 0.6, th = Math.max(1, Math.floor(2 * s));
+    var first = textSize(text, s, 2);
+    var tx = pt[0], ty = pt[1] + first.h;
+    var f = textSize(text, s, th);
+    var margin = th + 2;
+    tx = Math.trunc(Math.max(margin, Math.min(tx, W - f.w - margin)));
+    ty = Math.trunc(Math.max(f.h + margin, Math.min(ty, H - f.b - margin)));
+    ctx.save();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(tx - 2, ty - f.h - 2, f.w + 4, f.h + 2 + f.b);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = th + 2; strokeText(ctx, text, tx, ty, s);
+    ctx.strokeStyle = color; ctx.lineWidth = 1.25; strokeText(ctx, text, tx, ty, s);
+    ctx.restore();
+  }
+
+  // ───────────────────────── cv2-style primitives ─────────────────────────
+  function ip(p) { return [Math.trunc(p[0]), Math.trunc(p[1])]; }
+  function cvLine(ctx, a, b, color, th) {
+    a = ip(a); b = ip(b);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = th || 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.restore();
+  }
+  function cvPolyline(ctx, pts, color, th) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = th || 2; ctx.lineJoin = 'miter'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    pts.forEach(function (p, i) { p = ip(p); if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); });
+    ctx.stroke(); ctx.restore();
+  }
+  // Visualisor._draw_dashed_polyline (dash_length 10, equal gap)
+  function cvDashed(ctx, pts, color, th) {
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p1 = pts[i], p2 = pts[i + 1];
+      var dx = p2[0] - p1[0], dy = p2[1] - p1[1], dist = Math.hypot(dx, dy);
+      if (!(dist > 0)) continue;
+      var vx = dx / dist, vy = dy / dist, cur = 0, draw = true;
+      while (cur < dist) {
+        var nx = Math.min(cur + 10, dist);
+        if (draw) cvLine(ctx, [p1[0] + vx * cur, p1[1] + vy * cur], [p1[0] + vx * nx, p1[1] + vy * nx], color, th || 2);
+        cur = nx; draw = !draw;
+      }
+    }
+  }
+  function cvDot(ctx, p, color, r) {
+    p = ip(p);
+    ctx.save(); ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p[0], p[1], r || 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  // cv2.ellipse arc: image-space degrees (clockwise on screen), from a1 to a2
+  function cvArc(ctx, c, r, a1, a2, color) {
+    c = ip(c);
+    var lo = Math.min(a1, a2), hi = Math.max(a1, a2);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.arc(c[0], c[1], r, lo * Math.PI / 180, hi * Math.PI / 180, false); ctx.stroke(); ctx.restore();
+  }
+  // _right_angle_tick_reqs: legs along the edge and the connector, size 15
+  function tick(ctx, vertex, e1, e2, other, color) {
+    var ex = e2[0] - e1[0], ey = e2[1] - e1[1], el = Math.hypot(ex, ey);
+    var cx = other[0] - vertex[0], cy = other[1] - vertex[1], cl = Math.hypot(cx, cy);
+    if (el < 1e-6 || cl < 1e-6) return;
+    ex /= el; ey /= el; cx /= cl; cy /= cl;
+    var c1 = [vertex[0] + ex * 15, vertex[1] + ey * 15];
+    var c2 = [c1[0] + cx * 15, c1[1] + cy * 15];
+    var c3 = [vertex[0] + cx * 15, vertex[1] + cy * 15];
+    cvPolyline(ctx, [c1, c2, c3], color, 2);
+  }
+
+  // ───────────────────────── geometry ─────────────────────────
+  var HOLE = [1240, 420], HOLE_R = 62;
+  var ALPHA = 4 * Math.PI / 180;                       // part sits 4° counter-clockwise on screen
+  var U = [Math.cos(ALPHA), -Math.sin(ALPHA)];          // Line_edge direction (left → right)
+  var NRM = [Math.sin(ALPHA), Math.cos(ALPHA)];         // towards the lower face
+  var PC = [960, 560], PW = 700, PH = 380;
+  var S1 = -420, S2 = 130;                              // fitted (caliper) span of Line_edge
+  var EDGE_OK = 120, EDGE_NG = 180;                     // hole centre → edge, px
+  var holeLocal = (function () { var dx = HOLE[0] - PC[0], dy = HOLE[1] - PC[1]; return { s: dx * U[0] + dy * U[1], m: dx * NRM[0] + dy * NRM[1] }; })();
+  function edgePt(s, D) { var m = holeLocal.m + D; return [PC[0] + U[0] * s + NRM[0] * m, PC[1] + U[1] * s + NRM[1] * m]; }
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+  function norm(a) { var l = Math.hypot(a[0], a[1]); return l > 0 ? [a[0] / l, a[1] / l] : [0, 0]; }
+  function deg(r) { return r * 180 / Math.PI; }
+  function within(v, c) { return v >= c.min && v <= c.max; }
+  function round3(v) { return Math.round(v * 1000) / 1000; }
+
+  // A fixed line from the shared config: a point on it and its direction (counter-clockwise on screen, 0° = horizontal).
+  function fixedLine(c) {
+    if (c.lineMode === 'vertical') return { q: [c.x, H / 2], v: [0, -1] };
+    if (c.lineMode === 'tilted') { var a = c.angle * Math.PI / 180; return { q: [c.cx, c.cy], v: [Math.cos(a), -Math.sin(a)] }; }
+    return { q: [W / 2, c.y], v: [1, 0] };
+  }
+  // Clip the infinite line to the image rectangle (whole width / height, never a short segment).
+  function clipLine(L) {
+    var t0 = -Infinity, t1 = Infinity, q = L.q, v = L.v;
+    var lims = [[q[0], v[0], 0, W], [q[1], v[1], 0, H]];
+    for (var i = 0; i < 2; i++) {
+      var p = lims[i][0], d = lims[i][1], lo = lims[i][2], hi = lims[i][3];
+      if (Math.abs(d) < 1e-12) { if (p < lo || p > hi) return null; continue; }
+      var a = (lo - p) / d, b = (hi - p) / d;
+      t0 = Math.max(t0, Math.min(a, b)); t1 = Math.min(t1, Math.max(a, b));
+    }
+    if (!(t1 > t0)) return null;
+    return [[q[0] + v[0] * t0, q[1] + v[1] * t0], [q[0] + v[0] * t1, q[1] + v[1] * t1]];
+  }
+  function footOn(L, p) { var t = dot(sub(p, L.q), L.v); return [L.q[0] + L.v[0] * t, L.q[1] + L.v[1] * t]; }
+  function lineIntersection(a1, a2, b1, b2) {
+    var x1 = a1[0], y1 = a1[1], x2 = a2[0], y2 = a2[1], x3 = b1[0], y3 = b1[1], x4 = b2[0], y4 = b2[1];
+    var den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    if (Math.abs(den) < 1e-10) return null;
+    var t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
+    return [x1 + t * (x2 - x1), y1 + t * (y2 - y1)];
+  }
+  function acuteAngle(s1, s2) {
+    var v1 = norm(sub(s1[1], s1[0])), v2 = norm(sub(s2[1], s2[0]));
+    return Math.abs(deg(Math.atan2(v1[0] * v2[1] - v1[1] * v2[0], dot(v1, v2))));
+  }
+  function angleSuffix(unit) { return (unit === 'degrees' || unit === 'deg' || unit === '°') ? ' deg' : ' ' + unit; }
+
+  // ───────────────────────── synthetic camera images ─────────────────────────
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  var noiseTile = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 160;
+    var x = c.getContext('2d'), id = x.createImageData(160, 160), r = rng(7);
+    for (var i = 0; i < id.data.length; i += 4) { var v = r() < 0.5 ? 0 : 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = Math.floor(r() * 16); }
+    x.putImageData(id, 0, 0); return c;
+  })();
+  function newCanvas(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function background(ctx) {
+    var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1f2224'); g.addColorStop(1, '#151719');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.globalAlpha = 0.35; ctx.strokeStyle = '#2a2e31'; ctx.lineWidth = 2;
+    for (var x = 40; x < W; x += 96) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    ctx.restore();
+  }
+  function grain(ctx, w, h) { ctx.save(); ctx.fillStyle = ctx.createPattern(noiseTile, 'repeat'); ctx.fillRect(0, 0, w, h); ctx.restore(); }
+  function brushed(ctx, x0, y0, w, h, seed, n) {
+    var r = rng(seed); ctx.save(); ctx.lineWidth = 1;
+    for (var i = 0; i < n; i++) {
+      var y = y0 + r() * h, xs = x0 + r() * w, len = 120 + r() * 700;
+      ctx.strokeStyle = r() < 0.5 ? 'rgba(255,255,255,' + (0.03 + r() * 0.06).toFixed(3) + ')' : 'rgba(0,0,0,' + (0.03 + r() * 0.05).toFixed(3) + ')';
+      ctx.beginPath(); ctx.moveTo(xs, y); ctx.lineTo(xs + len, y + (r() - 0.5) * 1.5); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function bore(ctx, x, y, r) {
+    var cg = ctx.createRadialGradient(x, y, r, x, y, r + 10);
+    cg.addColorStop(0, '#e6e8ea'); cg.addColorStop(0.5, '#c3c7cb'); cg.addColorStop(1, 'rgba(150,155,160,0)');
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(x, y, r + 10, 0, Math.PI * 2); ctx.fill();
+    var bg = ctx.createRadialGradient(x - r * 0.2, y - r * 0.25, r * 0.1, x, y, r);
+    bg.addColorStop(0, '#08090a'); bg.addColorStop(0.7, '#141618'); bg.addColorStop(1, '#2c3034');
+    ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = 'rgba(160,166,172,0.28)'; ctx.beginPath(); ctx.ellipse(x + r * 0.08, y + r * 0.62, r * 0.82, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#0b0c0d'; ctx.beginPath(); ctx.arc(x - r * 0.04, y - r * 0.06, r * 0.74, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = '#25282b'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+  }
+  function renderTop(D) {
+    var cv = newCanvas(W, H), ctx = cv.getContext('2d');
+    background(ctx);
+    ctx.save(); ctx.translate(PC[0], PC[1]); ctx.rotate(-ALPHA);
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = 46; ctx.shadowOffsetY = 20;
+    ctx.fillStyle = '#7b8085'; ctx.fillRect(-PW, -PH, PW * 2, PH * 2); ctx.restore();
+    var mS = holeLocal.m + D;
+    var g1 = ctx.createLinearGradient(0, -PH, 0, mS); g1.addColorStop(0, '#b9bdc1'); g1.addColorStop(1, '#a0a5a9');
+    ctx.fillStyle = g1; ctx.fillRect(-PW, -PH, PW * 2, mS + PH);
+    var g2 = ctx.createLinearGradient(0, mS, 0, PH); g2.addColorStop(0, '#80858a'); g2.addColorStop(1, '#6a6f74');
+    ctx.fillStyle = g2; ctx.fillRect(-PW, mS, PW * 2, PH - mS);
+    ctx.save(); ctx.beginPath(); ctx.rect(-PW, -PH, PW * 2, PH * 2); ctx.clip();
+    brushed(ctx, -PW - 400, -PH, PW * 2 + 400, PH * 2, 11, 1300);
+    ctx.restore();
+    // step: lit chamfer, then the shadowed vertical face of the shoulder
+    ctx.fillStyle = '#dfe2e4'; ctx.fillRect(-PW, mS - 2, PW * 2, 2);
+    ctx.fillStyle = '#3e4246'; ctx.fillRect(-PW, mS, PW * 2, 7);
+    var sh = ctx.createLinearGradient(0, mS + 7, 0, mS + 26); sh.addColorStop(0, 'rgba(0,0,0,0.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = sh; ctx.fillRect(-PW, mS + 7, PW * 2, 19);
+    // plate bevels
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#d6d9dc'; ctx.beginPath(); ctx.moveTo(-PW, PH); ctx.lineTo(-PW, -PH); ctx.lineTo(PW, -PH); ctx.stroke();
+    ctx.strokeStyle = '#4a4e52'; ctx.beginPath(); ctx.moveTo(PW, -PH); ctx.lineTo(PW, PH); ctx.lineTo(-PW, PH); ctx.stroke();
+    // mounting holes
+    bore(ctx, -600, -280, 24); bore(ctx, -600, 270, 24); bore(ctx, 600, 270, 24);
+    bore(ctx, holeLocal.s, holeLocal.m, HOLE_R);
+    ctx.restore();
+    grain(ctx, W, H);
+    return cv;
+  }
+  var SIDE_HOLE = [700, 570];
+  function renderSide() {
+    var cv = newCanvas(W, H), ctx = cv.getContext('2d');
+    background(ctx);
+    // fixture rail
+    var rg = ctx.createLinearGradient(0, 742, 0, 860); rg.addColorStop(0, '#3a3e42'); rg.addColorStop(1, '#232629');
+    ctx.fillStyle = rg; ctx.fillRect(120, 742, 1680, 118);
+    // plate side face with the shoulder
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 12;
+    ctx.beginPath(); ctx.moveTo(200, 440); ctx.lineTo(1070, 440); ctx.lineTo(1070, 478); ctx.lineTo(1720, 478); ctx.lineTo(1720, 740); ctx.lineTo(200, 740); ctx.closePath();
+    var pg = ctx.createLinearGradient(0, 440, 0, 740); pg.addColorStop(0, '#a9adb1'); pg.addColorStop(0.55, '#8d9297'); pg.addColorStop(1, '#6c7176');
+    ctx.fillStyle = pg; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.moveTo(200, 440); ctx.lineTo(1070, 440); ctx.lineTo(1070, 478); ctx.lineTo(1720, 478); ctx.lineTo(1720, 740); ctx.lineTo(200, 740); ctx.closePath(); ctx.clip();
+    brushed(ctx, -200, 440, 2000, 300, 23, 700); ctx.restore();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#dcdfe1';
+    ctx.beginPath(); ctx.moveTo(200, 441); ctx.lineTo(1070, 441); ctx.moveTo(1070, 479); ctx.lineTo(1720, 479); ctx.stroke();
+    ctx.strokeStyle = '#43474b'; ctx.beginPath(); ctx.moveTo(1070, 440); ctx.lineTo(1070, 478); ctx.moveTo(200, 739); ctx.lineTo(1720, 739); ctx.stroke();
+    // tapped side hole
+    bore(ctx, SIDE_HOLE[0], SIDE_HOLE[1], 38);
+    ctx.strokeStyle = 'rgba(150,156,162,0.35)'; ctx.lineWidth = 1.5;
+    [30, 24, 18].forEach(function (r) { ctx.beginPath(); ctx.arc(SIDE_HOLE[0], SIDE_HOLE[1], r, Math.PI * 0.15, Math.PI * 0.95); ctx.stroke(); });
+    bore(ctx, 1460, 610, 22);
+    grain(ctx, W, H);
+    return cv;
+  }
+
+  // ───────────────────────── dimension overlays ─────────────────────────
+  var IDS = {
+    todayDistance: 'b7e2c4a1-5d3f-4e8a-9c21-6f0d8e3a1b54',
+    afterDistance: '4f9a2d6e-1c8b-4b7f-a3e5-90d2c7e61f38',
+    todayAngle: 'e13c58b2-7a4d-4f06-b9d1-2c6e0a8f4d73',
+    afterAngle: '9d06e7f1-3b2a-4c95-8e4f-d1a7b05c2e69'
+  };
+  function processLabel(ctx, id, type, pass, color) { writeName(ctx, id + ': ' + type + ' - ' + (pass ? 'PASS' : 'FAIL'), [10, 30], color); }
+
+  // Today: perpendicular_to distance, Circle_hole centre → Line_edge (visualization.py _viz_distance_reqs)
+  function drawTodayDistance(ctx, c, D) {
+    var e1 = edgePt(S1, D), e2 = edgePt(S2, D);
+    var foot = [HOLE[0] + NRM[0] * D, HOLE[1] + NRM[1] * D];
+    var value = round3(D * c.ratio), pass = within(value, c), color = pass ? c.okColor : c.ngColor;
+    cvLine(ctx, e1, e2, color, 2);
+    var t = dot(sub(foot, e1), sub(e2, e1)) / dot(sub(e2, e1), sub(e2, e1));
+    if (t < 0) cvDashed(ctx, [e1, foot], color, 2); else if (t > 1) cvDashed(ctx, [e2, foot], color, 2);
+    tick(ctx, foot, e1, e2, HOLE, color);
+    cvDot(ctx, HOLE, color, 5); cvDot(ctx, foot, color, 5);
+    cvLine(ctx, HOLE, foot, color, 2);
+    writeName(ctx, value.toFixed(2) + c.unit, [(HOLE[0] + foot[0]) / 2, (HOLE[1] + foot[1]) / 2], color);
+    processLabel(ctx, IDS.todayDistance, 'DISTANCE', pass, color);
+    return pass;
+  }
+  // After: Circle_hole centre → fixed line drawn dashed across the whole image
+  function drawAfterDistance(ctx, c, forceFail) {
+    var L = fixedLine(c);
+    var foot = footOn(L, HOLE), dpx = Math.hypot(HOLE[0] - foot[0], HOLE[1] - foot[1]);
+    var value = round3(dpx * c.ratio);
+    if (forceFail && within(value, c)) {
+      var target = (c.max + 2) / c.ratio;
+      var w = dpx > 1e-6 ? norm(sub(foot, HOLE)) : [-L.v[1], L.v[0]];
+      L = { q: [HOLE[0] + w[0] * target, HOLE[1] + w[1] * target], v: L.v };
+      foot = footOn(L, HOLE); dpx = Math.hypot(HOLE[0] - foot[0], HOLE[1] - foot[1]); value = round3(dpx * c.ratio);
+    }
+    var pass = within(value, c), color = pass ? c.okColor : c.ngColor;
+    var seg = clipLine(L);
+    if (seg) cvDashed(ctx, seg, color, 2);
+    var tA = [foot[0] - L.v[0], foot[1] - L.v[1]], tB = [foot[0] + L.v[0], foot[1] + L.v[1]];
+    tick(ctx, foot, tA, tB, HOLE, color);
+    cvDot(ctx, HOLE, color, 5); cvDot(ctx, foot, color, 5);
+    cvLine(ctx, HOLE, foot, color, 2);
+    writeName(ctx, value.toFixed(2) + c.unit, [(HOLE[0] + foot[0]) / 2, (HOLE[1] + foot[1]) / 2], color);
+    processLabel(ctx, IDS.afterDistance, 'DISTANCE', pass, color);
+    return pass;
+  }
+  // Today: angle From X axis on Line_edge (angle.py build_axis_segment + _viz_angle_reqs)
+  function drawTodayAngle(ctx, c) {
+    var e1 = edgePt(S1, EDGE_OK), e2 = edgePt(S2, EDGE_OK);
+    var len = Math.hypot(e2[0] - e1[0], e2[1] - e1[1]) || 1, mid = [(e1[0] + e2[0]) / 2, (e1[1] + e2[1]) / 2];
+    var ax = [[mid[0] - len / 2, mid[1]], [mid[0] + len / 2, mid[1]]];
+    var angle = acuteAngle([e1, e2], ax);
+    var gt = { min: 0, max: 5 }, pass = within(Math.round(angle * 1000) / 1000, gt), color = pass ? c.okColor : c.ngColor;
+    cvLine(ctx, e1, e2, color, 2); cvLine(ctx, ax[0], ax[1], color, 2);
+    var near = angle < 2 || angle > 178, v = near ? null : lineIntersection(e1, e2, ax[0], ax[1]), tp;
+    if (v) {
+      var farDir = function (ed) { var a = ed[0], b = ed[1], far = Math.hypot(a[0] - v[0], a[1] - v[1]) > Math.hypot(b[0] - v[0], b[1] - v[1]) ? a : b; return ((deg(Math.atan2(far[1] - v[1], far[0] - v[0])) % 360) + 360) % 360; };
+      var d1 = farDir([e1, e2]), d2 = farDir(ax), cw = ((d2 - d1) % 360 + 360) % 360, start, sweep;
+      if (Math.abs(cw - angle) <= Math.abs((360 - cw) - angle)) { start = d1; sweep = cw; } else { start = d2; sweep = 360 - cw; }
+      cvArc(ctx, v, 30, start, start + sweep, color);
+      var b = (start + sweep / 2) * Math.PI / 180; tp = [v[0] + 40 * Math.cos(b), v[1] + 40 * Math.sin(b)];
+    } else tp = mid;
+    writeName(ctx, angle.toFixed(1) + ' deg', tp, color);
+    processLabel(ctx, IDS.todayAngle, 'ANGLE', pass, color);
+    return pass;
+  }
+  // After: Line_edge → fixed line (whole image), arc at the crossing, value in degrees
+  function drawAfterAngle(ctx, c) {
+    var e1 = edgePt(S1, EDGE_OK), e2 = edgePt(S2, EDGE_OK), u = norm(sub(e2, e1));
+    var L = fixedLine(c), seg = clipLine(L);
+    var angle = Math.abs(deg(Math.atan2(u[0] * L.v[1] - u[1] * L.v[0], dot(u, L.v))));
+    var pass = within(Math.round(angle * 1000) / 1000, c), color = pass ? c.okColor : c.ngColor;
+    cvLine(ctx, e1, e2, color, 2);
+    if (seg) cvDashed(ctx, seg, color, 2);
+    var near = angle < 2 || angle > 178;
+    var v = near ? null : lineIntersection(e1, e2, L.q, [L.q[0] + L.v[0], L.q[1] + L.v[1]]), tp;
+    if (v) {
+      var far = Math.hypot(e1[0] - v[0], e1[1] - v[1]) > Math.hypot(e2[0] - v[0], e2[1] - v[1]) ? e1 : e2;
+      var d1v = norm(sub(far, v)); if (Math.hypot(d1v[0], d1v[1]) === 0) d1v = u;
+      var sgn = dot(d1v, u) >= 0 ? 1 : -1, d2v = [L.v[0] * sgn, L.v[1] * sgn];
+      var a1 = deg(Math.atan2(d1v[1], d1v[0])), a2 = deg(Math.atan2(d2v[1], d2v[0]));
+      var diff = ((a2 - a1 + 540) % 360) - 180, start = diff >= 0 ? a1 : a2, sweep = Math.abs(diff);
+      // keep the value clear of the arc: the label grows rightwards from its anchor
+      if (Math.cos((start + sweep / 2) * Math.PI / 180) < 0) start += 180;
+      cvArc(ctx, v, 30, start, start + sweep, color);
+      var b = (start + sweep / 2) * Math.PI / 180; tp = [v[0] + 40 * Math.cos(b), v[1] + 40 * Math.sin(b)];
+    } else {
+      var m1 = [(e1[0] + e2[0]) / 2, (e1[1] + e2[1]) / 2];
+      var m2 = seg ? [(seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2] : m1;
+      tp = [(m1[0] + m2[0]) / 2, (m1[1] + m2[1]) / 2];
+    }
+    writeName(ctx, angle.toFixed(1) + angleSuffix(c.unit), tp, color);
+    processLabel(ctx, IDS.afterAngle, 'ANGLE', pass, color);
+    return pass;
+  }
+
+  // ───────────────────────── cross-capture result image (cross-capture-renderer.service.ts) ─────────────────────────
+  var CROSS = { name: 'Distance_top_to_side', min: 80, max: 86, okColor: '#39FF14', ngColor: '#FF0000' };
+  function renderCross(topCv, sideCv) {
+    var pxmm = 0.05;
+    var sides = [{ cv: topCv, x: 0, y: 0, color: '#3B82F6' }, { cv: sideCv, x: 110, y: 0, color: '#A855F7' }];
+    var gA = [sides[0].x + HOLE[0] * pxmm, sides[0].y + HOLE[1] * pxmm];
+    var gB = [sides[1].x + SIDE_HOLE[0] * pxmm, sides[1].y + SIDE_HOLE[1] * pxmm];
+    var measured = Math.hypot(gB[0] - gA[0], gB[1] - gA[1]);
+    var pass = measured >= CROSS.min && measured <= CROSS.max;
+    var corners = [];
+    sides.forEach(function (s) { corners.push([s.x, s.y], [s.x + W * pxmm, s.y], [s.x + W * pxmm, s.y + H * pxmm], [s.x, s.y + H * pxmm]); });
+    var xs = corners.map(function (p) { return p[0]; }), ys = corners.map(function (p) { return p[1]; });
+    var span = Math.max(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, ys) - Math.min.apply(null, ys));
+    var pad = Math.max(span * 0.04, 1);
+    var all = corners.concat([gA, gB]);
+    var minX = Math.min.apply(null, all.map(function (p) { return p[0]; })) - pad, maxX = Math.max.apply(null, all.map(function (p) { return p[0]; })) + pad;
+    var minY = Math.min.apply(null, all.map(function (p) { return p[1]; })) - pad, maxY = Math.max.apply(null, all.map(function (p) { return p[1]; })) + pad;
+    var spanX = maxX - minX, spanY = maxY - minY, ppu = 1 / pxmm, maxDim = 2400;
+    if (Math.max(spanX, spanY) * ppu > maxDim) ppu *= maxDim / (Math.max(spanX, spanY) * ppu);
+    var cw = Math.min(maxDim, Math.max(1, Math.ceil(spanX * ppu))), ch = Math.min(maxDim, Math.max(1, Math.ceil(spanY * ppu)));
+    var toC = function (p) { return [(p[0] - minX) * ppu, (p[1] - minY) * ppu]; };
+    var cv = newCanvas(cw, ch), ctx = cv.getContext('2d');
+    ctx.fillStyle = 'rgb(17,24,39)'; ctx.fillRect(0, 0, cw, ch);
+    sides.forEach(function (s) {
+      var w = Math.max(1, Math.round(W * pxmm * ppu)), h = Math.max(1, Math.round(H * pxmm * ppu));
+      var left = Math.min(Math.max(Math.round((s.x - minX) * ppu), 0), Math.max(0, cw - w)), top = Math.min(Math.max(Math.round((s.y - minY) * ppu), 0), Math.max(0, ch - h));
+      ctx.imageSmoothingQuality = 'high'; ctx.drawImage(s.cv, left, top, w, h);
+    });
+    var color = pass ? CROSS.okColor : CROSS.ngColor;
+    var stroke = Math.max(2, Math.max(cw, ch) / 500);
+    var r2 = function (v) { return Math.round(v * 100) / 100; };
+    sides.forEach(function (s) {
+      var cs = [[s.x, s.y], [s.x + W * pxmm, s.y], [s.x + W * pxmm, s.y + H * pxmm], [s.x, s.y + H * pxmm]].map(toC);
+      ctx.save(); ctx.strokeStyle = s.color; ctx.globalAlpha = 0.9; ctx.lineWidth = r2(stroke * 0.8); ctx.lineCap = 'round';
+      ctx.setLineDash([r2(stroke * 4), r2(stroke * 3)]);
+      for (var i = 0; i < 4; i++) { var a = cs[i], b = cs[(i + 1) % 4]; ctx.beginPath(); ctx.moveTo(r2(a[0]), r2(a[1])); ctx.lineTo(r2(b[0]), r2(b[1])); ctx.stroke(); }
+      ctx.restore();
+    });
+    var from = toC(gA), to = toC(gB);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = r2(stroke * 1.6); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(r2(from[0]), r2(from[1])); ctx.lineTo(r2(to[0]), r2(to[1])); ctx.stroke(); ctx.restore();
+    [from, to].forEach(function (p) {
+      ctx.save(); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = color; ctx.lineWidth = r2(stroke);
+      ctx.beginPath(); ctx.arc(r2(p[0]), r2(p[1]), r2(stroke * 2), 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+    });
+    var fs = Math.max(14, ch * 0.028);
+    var text = CROSS.name + ': ' + measured.toFixed(2) + ' mm';
+    var at = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
+    var padX = fs * 0.7, pw = Math.max(fs * 4, text.length * fs * 0.62 + padX * 2), phh = fs * 1.9;
+    ctx.save(); ctx.fillStyle = color; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(r2(at[0] - pw / 2), r2(at[1] - phh / 2), r2(pw), r2(phh), r2(phh / 2)); else ctx.rect(at[0] - pw / 2, at[1] - phh / 2, pw, phh);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold ' + r2(fs) + 'px "DejaVu Sans", Verdana, Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(text, r2(at[0]), r2(at[1] + fs * 0.36)); ctx.restore();
+    return { cv: cv, pass: pass, name: CROSS.name };
+  }
+
+  // ───────────────────────── build the cycle's images ─────────────────────────
+  function buildImages() {
+    var top, pass = true, list;
+    if (STATE === 'cross') {
+      var topPlain = renderTop(EDGE_OK), side = renderSide(), cross = renderCross(topPlain, side);
+      list = [
+        { captureName: 'Top Camera', name: 'Search Area 1', result: true, src: topPlain.toDataURL('image/jpeg', 0.92) },
+        { captureName: 'Side Camera', name: 'Search Area 1', result: true, src: side.toDataURL('image/jpeg', 0.92) },
+        { captureName: 'Cross-capture', name: cross.name, result: cross.pass, src: cross.cv.toDataURL('image/png') }
+      ];
+      return { list: list, start: 2 };
+    }
+    if (STATE === 'angle') {
+      top = renderTop(EDGE_OK);
+      pass = MODE === 'today' ? drawTodayAngle(top.getContext('2d'), readConfig()) : drawAfterAngle(top.getContext('2d'), angleConfig());
+    } else {
+      var c = distanceConfig();
+      if (MODE === 'today') {
+        var D = EDGE_OK;
+        if (STATE === 'ng') { D = EDGE_NG; if (within(round3(D * c.ratio), c)) D = (c.max + 2) / c.ratio; }
+        top = renderTop(D);
+        pass = drawTodayDistance(top.getContext('2d'), c, D);
+      } else {
+        top = renderTop(EDGE_OK);
+        pass = drawAfterDistance(top.getContext('2d'), c, STATE === 'ng');
+      }
+    }
+    list = [
+      { captureName: 'Top Camera', name: 'Search Area 1', result: pass, src: top.toDataURL('image/jpeg', 0.92) },
+      { captureName: 'Side Camera', name: 'Search Area 1', result: true, src: renderSide().toDataURL('image/jpeg', 0.92) }
+    ];
+    return { list: list, start: 0 };
+  }
+
+  // ───────────────────────── page: cycle table ─────────────────────────
+  var COLS = ['S. No.', 'Timestamp', 'Overall Result', 'Variant', 'Result Images (SAs)', 'Raw Images', 'Result JSON'];
+  var thead = document.getElementById('thead'), colsEl = document.getElementById('cols'), tbody = document.getElementById('tbody');
+  COLS.forEach(function (label) {
+    var th = document.createElement('th'); th.scope = 'col'; th.textContent = label;
+    var rh = document.createElement('div'); rh.className = 'rh'; th.appendChild(rh); thead.appendChild(th);
+    var col = document.createElement('col'); colsEl.appendChild(col);
+  });
+  function sizeCols() {
+    var w = colsEl.parentNode.parentNode.offsetWidth || 1286, each = Math.min(w / COLS.length, 300);
+    Array.prototype.forEach.call(colsEl.children, function (c) { c.style.width = each + 'px'; });
+  }
+  function fmtTime(sec) {
+    var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60, ap = h >= 12 ? 'pm' : 'am', h12 = h % 12 || 12;
+    return '24/10/2026, ' + h12 + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + ' ' + ap;
+  }
+  function renderTable(firstPass) {
+    tbody.innerHTML = '';
+    var t0 = 14 * 3600 + 41 * 60 + 7;
+    for (var i = 0; i < 10; i++) {
+      var ok = i === 0 ? firstPass : i !== 5;
+      var tr = document.createElement('tr');
+      var cells = [String(i + 1), fmtTime(t0 - i * 9 - (i * 7) % 5),
+        '<span class="' + (ok ? 'pass-t' : 'fail-t') + '">' + (ok ? 'Pass' : 'Fail') + '</span>', 'Variant A',
+        '<button class="lnk" type="button" data-view="1">View Images </button>',
+        '<button class="lnk" type="button">View Raw Images</button>',
+        '<span class="lnk" style="cursor:pointer">View JSON</span>'];
+      cells.forEach(function (html) { var td = document.createElement('td'); var d = document.createElement('div'); d.innerHTML = html; td.appendChild(d); tr.appendChild(td); });
+      var tr2 = document.createElement('tr');
+      tbody.appendChild(tr); tbody.appendChild(tr2);
+      Array.prototype.forEach.call(tr.children, function (td) { td.rowSpan = 2; });
+    }
+    document.getElementById('sumPass').textContent = firstPass ? '121' : '120';
+    document.getElementById('sumFail').textContent = firstPass ? '7' : '8';
+    document.getElementById('sumDef').textContent = (firstPass ? 7 / 128 * 100 : 8 / 128 * 100).toFixed(3) + '%';
+  }
+
+  // ───────────────────────── viewer (ImageViewer.jsx) ─────────────────────────
+  var MIN_ZOOM = 0.5, MAX_ZOOM = 5, ZOOM_STEP = 0.25, PAN_OVERHEAD = 48;
+  var iv = document.getElementById('iv'), img = document.getElementById('ivImg'), stage = document.getElementById('ivStage'), view = document.getElementById('ivView');
+  var images = [], cur = 0, zoom = 1, pos = { x: 0, y: 0 }, dragging = false, dragStart = null;
+
+  function clampPos(x, y, z) {
+    if (z <= 1) return { x: 0, y: 0 };
+    var vr = view.getBoundingClientRect(), bw = img.offsetWidth, bh = img.offsetHeight;
+    if (!bw || !bh) return { x: x, y: y };
+    var mx = Math.max(0, bw * z - vr.width) / 2 + PAN_OVERHEAD, my = Math.max(0, bh * z - vr.height) / 2 + PAN_OVERHEAD;
+    return { x: Math.min(mx, Math.max(-mx, x)), y: Math.min(my, Math.max(-my, y)) };
+  }
+  function applyTransform() {
+    pos = clampPos(pos.x, pos.y, zoom);
+    img.style.transform = 'translate(' + pos.x + 'px, ' + pos.y + 'px) scale(' + zoom + ')';
+    img.classList.toggle('nodrag', dragging);
+    document.getElementById('zPct').textContent = Math.round(zoom * 100) + '%';
+    document.getElementById('zOut').disabled = zoom <= MIN_ZOOM;
+    document.getElementById('zIn').disabled = zoom >= MAX_ZOOM;
+    stage.classList.toggle('grab', zoom > 1 && !dragging); stage.classList.toggle('grabbing', zoom > 1 && dragging);
+  }
+  function renderViewer() {
+    var im = images[cur];
+    document.getElementById('ivTitle').textContent = im.captureName || 'Unknown';
+    document.getElementById('ivName').textContent = im.name || 'Image';
+    var chip = document.getElementById('ivChip');
+    chip.style.display = typeof im.result === 'boolean' ? '' : 'none';
+    chip.className = 'iv-chip ' + (im.result ? 'p' : 'f'); chip.textContent = im.result ? 'Pass' : 'Fail';
+    document.getElementById('ivCount').textContent = '· Image ' + (cur + 1) + ' of ' + images.length;
+    if (img.getAttribute('src') !== im.src) img.src = im.src;
+    img.alt = im.captureName || im.name;
+    var multi = images.length > 1;
+    document.getElementById('ivPrev').style.display = multi ? '' : 'none';
+    document.getElementById('ivNext').style.display = multi ? '' : 'none';
+    document.getElementById('ivThumbsWrap').style.display = multi ? '' : 'none';
+    var tw = document.getElementById('ivThumbs'); tw.innerHTML = '';
+    images.forEach(function (t, idx) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'iv-tb' + (idx === cur ? ' on' : '');
+      b.title = (t.name || 'Image') + (typeof t.result === 'boolean' ? ' — ' + (t.result ? 'Pass' : 'Fail') : '');
+      var ti = document.createElement('img'); ti.src = t.src; ti.alt = t.name || ''; b.appendChild(ti);
+      if (typeof t.result === 'boolean') { var bd = document.createElement('span'); bd.className = 'iv-badge ' + (t.result ? 'p' : 'f'); bd.textContent = t.result ? 'Pass' : 'Fail'; b.appendChild(bd); }
+      if (idx === cur) { var tn = document.createElement('div'); tn.className = 'iv-tint'; b.appendChild(tn); }
+      b.addEventListener('click', function () { go(idx); });
+      tw.appendChild(b);
+    });
+    applyTransform();
+  }
+  function resetView() { zoom = 1; pos = { x: 0, y: 0 }; applyTransform(); }
+  function go(idx) { cur = (idx + images.length) % images.length; zoom = 1; pos = { x: 0, y: 0 }; renderViewer(); }
+  function zoomIn() { zoom = Math.min(MAX_ZOOM, zoom + ZOOM_STEP); applyTransform(); }
+  function zoomOut() { zoom = Math.max(MIN_ZOOM, zoom - ZOOM_STEP); if (zoom <= 1) pos = { x: 0, y: 0 }; applyTransform(); }
+  function openViewer(start) { iv.hidden = false; go(start == null ? cur : start); }
+  function closeViewer() { iv.hidden = true; }
+
+  document.getElementById('zIn').addEventListener('click', zoomIn);
+  document.getElementById('zOut').addEventListener('click', zoomOut);
+  document.getElementById('zReset').addEventListener('click', resetView);
+  document.getElementById('ivClose').addEventListener('click', closeViewer);
+  document.getElementById('ivPrev').addEventListener('click', function () { go(cur - 1); });
+  document.getElementById('ivNext').addEventListener('click', function () { go(cur + 1); });
+  view.addEventListener('wheel', function (e) { e.preventDefault(); if (e.deltaY < 0) zoomIn(); else zoomOut(); }, { passive: false });
+  stage.addEventListener('mousedown', function (e) {
+    if (zoom <= 1 || e.button !== 0) return; e.preventDefault();
+    dragging = true; dragStart = { x: e.clientX, y: e.clientY, ox: pos.x, oy: pos.y }; applyTransform();
+  });
+  window.addEventListener('mousemove', function (e) { if (!dragging) return; pos = { x: dragStart.ox + e.clientX - dragStart.x, y: dragStart.oy + e.clientY - dragStart.y }; applyTransform(); });
+  window.addEventListener('mouseup', function () { if (dragging) { dragging = false; applyTransform(); } });
+  window.addEventListener('keydown', function (e) {
+    if (iv.hidden) return;
+    if (e.key === 'ArrowLeft') go(cur - 1);
+    if (e.key === 'ArrowRight') go(cur + 1);
+    if (e.key === 'Escape') closeViewer();
+    if (e.key === '+' || e.key === '=') zoomIn();
+    if (e.key === '-') zoomOut();
+    if (e.key === '0') resetView();
+  });
+  tbody.addEventListener('click', function (e) { var b = e.target.closest('[data-view]'); if (b) openViewer(START); });
+
+  // ───────────────────────── Today | After change ─────────────────────────
+  var ms = document.getElementById('ms');
+  var inFrame = true; try { inFrame = window.self !== window.top; } catch (e) { inFrame = true; }
+  if (inFrame) ms.hidden = true;
+  function paintSwitch() { Array.prototype.forEach.call(ms.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute('data-mode') === MODE); }); }
+  ms.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    MODE = b.getAttribute('data-mode');
+    try { var u = new URL(location.href); u.searchParams.set('mode', MODE); history.replaceState(null, '', u.toString()); } catch (err) { /* file:// may refuse */ }
+    paintSwitch(); refresh(true);
+  });
+
+  // ───────────────────────── boot ─────────────────────────
+  var START = 0;
+  function refresh(keepIndex) {
+    var built = buildImages();
+    images = built.list; START = built.start;
+    var allPass = images.every(function (i) { return i.result !== false; });
+    renderTable(allPass);
+    if (!keepIndex) cur = START;
+    if (cur >= images.length) cur = START;
+    if (!iv.hidden) renderViewer();
+  }
+  window.addEventListener('storage', function (e) { if (!e || e.key === null || e.key === KEY) refresh(true); });
+  window.addEventListener('resize', function () { sizeCols(); applyTransform(); });
+  sizeCols();
+  paintSwitch();
+  refresh(false);
+  renderViewer();
+})();
+</script>
+</body>
+</html>
