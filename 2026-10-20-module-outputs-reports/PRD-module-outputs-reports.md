@@ -16,39 +16,41 @@ Everything still to be settled.
 | # | Point to settle | Options on the table | Owner | Needed by |
 |---|---|---|---|---|
 | Q1 | After release, how will we judge success? For example, a plant admin sets up Module Outputs once, and support stops opening View JSON for customers. What numbers should we aim for in section 8? | A share of upgraded Edge boxes with Module Outputs set up within a set time; a drop in support requests that need View JSON; no open customer requests for module values | Tanay Deo | Before approval |
-| Q2 | For a segmentation module, a quality engineer sees "Detected classes: Scratch" (every class with at least one region found). It is built from region counts, not a winning class. Keep it? | Keep it (closest to the original "detected segment class" ask); drop it and show only "<Class> regions" | Tanay Deo | Before approval |
+| Q2 | A quality engineer ticks Screw `count_till_now` or a module's `pass_count`. These are running totals kept live on the box, not saved with each cycle, so every row would show "—". Should such keys be offered at all? | Hide running totals (pass_count, fail_count, count_till_now, avg_inference_time, completion_status) from the list; keep them listed and show "—" (as drafted) | Tanay Deo | Before approval |
+| Q3 | Some values a quality engineer would want have no key today: image classification confidence, OCR text per label, tilt angle, bead incorrect calipers and gap sizes, segmentation region counts (segmentation in normal mode has no keys at all). They are stored with each cycle. Add keys for them? | Add new keys in this release (more Edge work); leave them out of v1 and raise a follow-up | Tanay Deo | Before approval |
 
 ## 1. Summary
-- Reports & Analytics gets a **Module Outputs** button. It opens a setup window for the selected instance, listing every capture (grouped by variant) and every value its modules report.
-- The person ticks the values they want and can rename each one, for example "Detected text" to "Serial No.".
-- After saving, a new **Module Outputs** column shows the ticked values on each capture's row as `Name: value` lines, such as `Screw count: 4` or `Slot 1 class: Good`.
+- Reports & Analytics gets a **Module Outputs** button. It opens a setup window for the selected instance, listing every capture (grouped by variant) and, for each module, its **keys exactly as Edge shows them today** in PLC Write and Dashboard Builder (for example `[cls] Screw > [key-num] current_count`).
+- Ticking a key shows a **Display Name** box. The person types the name the value appears under on the Reports page, for example "Screw count" or "Serial No.".
+- After saving, a new **Module Outputs** column shows the ticked keys on each capture's row as `Display Name: value` lines, such as `Screw count: 4` or `Serial No.: SN-48213`.
 - Values come from the results Edge already stores with every cycle, so **past cycles show them too**. Changing the setup changes what every cycle shows, straight away, with no redeploy.
-- Values are offered for object detection, image classification, OCR, code reader, segmentation, bead inspection, colour detection, shape extractor, single-capture dimensions and orientation & tilt check. Only what each module outputs is shown: no winning class and no default text.
+- Every module type that has keys is covered: object detection, image classification, OCR, code reader, segmentation (single-class mode), bead inspection, colour detection, shape extractor, orientation & tilt check and single-capture dimensions.
 - The column is searchable with the existing Search box and exported to Excel as one "Module Outputs" column.
 - Saving the setup needs the existing **Update** permission on Analytics & Reports. Everyone who can view Reports sees the column.
 
 ## 2. Why we are making this
 - **Today:** Reports & Analytics shows only Pass or Fail for each cycle and each capture. To see why a capture failed (how many screws were found, which class a slot got, what serial number or code was read), someone has to open View JSON. It shows raw ids, one cycle at a time. The Class Name and Class Count columns show object counts only, show nothing for image classification, and never show read text or codes. The only workaround is one Write to DB rule per value. That gives one value per cycle (not per capture), and only for cycles run after the rule was made. Quality engineers, plant admins and support teams are affected.
 - **Evidence:** customer request, and parity with competing inspection systems that show tool results next to each part.
-- **After:** someone sets up once, per instance, which module values to show. A "Module Outputs" column then shows them as readable pairs, such as "Screw count: 4" or "Serial No.: SN-48213", for each capture of every cycle, on screen and in the Excel export.
+- **After:** someone sets up once, per instance, which module keys to show and under what Display Name. A "Module Outputs" column then shows them as readable pairs, such as "Screw count: 4" or "Serial No.: SN-48213", for each capture of every cycle, on screen and in the Excel export.
 
 ## 3. Goals and non-goals
 **Goals**
-- G1. Inside Reports & Analytics, choose which values each capture's modules show, and what each value is called.
+- G1. Inside Reports & Analytics, choose which of each capture's module keys to show, and give each a Display Name.
 - G2. Show the chosen values as name: value pairs in a new "Module Outputs" column, per capture, for every cycle, including cycles stored before the setup.
-- G3. Cover every module type that outputs a value.
+- G3. Cover every module type that has keys on Edge today.
 - G4. The column works with the existing Search box and appears in the Excel export.
 
 **Non-goals**
 - New search or filter controls for module values. The existing Search box is enough.
 - Fast Mode lines (Minute-wise), which store no per-capture results.
 - Values a module does not output today: the winning class of single-class segmentation, the default text of conditional classification, bead width in pixels, per-caliper widths.
+- New keys. Values with no key today stay out (see Q3).
 - Any change to how OK or NG is decided, or to PLC and dashboard keys.
 
 ## 4. Key concepts
-- **Module output:** one value a module reports for a capture, shown as a pair such as "Screw count: 4".
-- **Module Outputs setup:** the per-instance choice of which module outputs show in Reports, and the name each one shows under.
-- **Auto name:** the name a value gets from the module's own names (class, search area, OCR label, bead, colour, shape or dimension name) until someone renames it.
+- **Key:** a named value Edge keeps for an instance, capture, module, class, search area or label, the same keys offered today in PLC Write, Internal Actions and Dashboard Builder (for example `current_count` of class Screw).
+- **Display Name:** the name a ticked key's value appears under on the Reports page and in the Excel, typed by the person setting it up.
+- **Module Outputs setup:** the per-instance choice of which keys show in Reports and their Display Names.
 
 ## 5. Impact map
 The parts this changes. Parts checked and not affected are listed at the very end.
@@ -57,17 +59,17 @@ The parts this changes. Parts checked and not affected are listed at the very en
 |---|---|---|
 | Reports & Analytics (edge-reports-analytics) | New Module Outputs button and setup window; new Module Outputs column on each capture row; new Edit Table option; new Excel column; the column is searchable | US1, US2, US4, US5, US8 |
 | Edge access & audit (edge-access-audit) | Saving the setup needs Update on Analytics & Reports, checked by the report server; every save is written to the audit log | US7 |
-| Object Detection (mod-odc) | Each ticked output class offers its count and result | US3, US9 |
-| Image Classification (mod-classification) | Each search area offers its predicted class, confidence and result | US3, US9 |
-| OCR (mod-ocr) | Offers all detected text in reading order; in Read & Match, each label's text and result | US3, US9 |
-| Code Reader (mod-code-reader) | Offers the decoded code and its result | US3, US9 |
-| Segmentation (mod-segmentation) | Each ticked class offers its region count; also the classes found and the result | US3, US9 |
-| Bead Inspection (mod-bead-inspection) | Offers the bead result, caliper pass %, incorrect calipers, and per-bead result, gaps and width fails | US3, US9 |
-| Colour Detection (mod-color-detection) | Each colour offers its coverage % and result | US3, US9 |
-| Shape Extractor (mod-shape-extractor) | Each shape offers its measurements in px and its fit; each single-capture dimension offers its value, expected range and result | US3, US9 |
-| Orientation & Tilt (mod-orientation) | Offers the tilt angle, allowed range and result | US3, US9 |
-| Tracker (mod-tracker) | Not offered: the tracker produces no result on Edge today | US3 |
-| Matting (mod-matting) | Not offered: its mask count is of little use in a report | US3 |
+| Object Detection (mod-odc) | Offers its module keys and, per output class, `result`, `current_count` and `count_till_now` | US3, US9 |
+| Image Classification (mod-classification) | Offers its module keys, `detected_class (<search area>)` per area and `correct_class` | US3, US9 |
+| OCR (mod-ocr) | Offers `detected_text`; in Read & Match also its module keys and each label's `labelName:<label>_…` keys | US3, US9 |
+| Code Reader (mod-code-reader) | Offers `detected_string`; in Read & Match also its module keys and `gt_string` | US3, US9 |
+| Segmentation (mod-segmentation) | Offers its keys only with single-class output on; in normal mode it has no keys and shows "No keys" | US3, US9 |
+| Bead Inspection (mod-bead-inspection) | Offers its module keys, `caliper_pass_percentage`, `bead_class_name` and per-bead `bead:<bead>_…` keys | US3, US9 |
+| Colour Detection (mod-color-detection) | Offers its module keys and per-colour `colorName:<colour>_…` keys | US3, US9 |
+| Shape Extractor (mod-shape-extractor) | Offers per-shape `shape:<shape>_…` measurement keys; each single-capture dimension offers its five `dim_…` keys | US3, US9 |
+| Orientation & Tilt (mod-orientation) | Offers its module keys (`result`, `pass_count`, `fail_count`) | US3, US9 |
+| Tracker (mod-tracker) | Not offered: it has no keys and produces no result on Edge today | US3 |
+| Matting (mod-matting) | Not offered: it has no keys | US3 |
 | Instance upload on Edge (edge-instance-details) | A re-upload keeps the setup; removed captures, modules and classes drop out of it; deleting the instance deletes it | US6, US11 |
 | Edit Module Configurations (edge-emc) | Edits keep the setup; the values offered follow the current module settings | US6 |
 | Cycles and result storage (edge-inferencing-customization) | No change: Edge keeps storing every module's result for every capture, which is what the column reads | US9 |
@@ -95,55 +97,56 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC1.1** On the Cycle-wise tab, a "Module Outputs" button sits to the left of the Edit Table, Download, Filter and Refresh buttons. It is not shown on the Minute-wise tab.
 - **AC1.2** The button is disabled until an instance is selected, with the hover text "Select an instance first".
-- **AC1.3** Clicking it opens the "Module Outputs" window for the selected instance, with the instance name under the title. On the left, every capture of the instance is listed under its variant as "<capture position> · <capture name>", each with a count of its ticked values. On the right, the selected capture's modules are shown, one card each with the module name and type, listing every value that module offers (US3).
-- **AC1.4** Only modules that offer values are listed. A capture whose modules offer none shows "No module outputs for this capture".
+- **AC1.3** Clicking it opens the "Module Outputs" window for the selected instance, with the instance name under the title. On the left, every capture of the instance is listed under its variant as "<capture position> · <capture name>", each with a count of its ticked values. On the right, the selected capture's modules are shown, one card each with the module name and type, listing every key it has (US3). Each capture's own keys come first, in a card headed by the capture.
+- **AC1.4** A module with no keys (for example segmentation in normal mode) shows its card with "No keys". Modules that never have keys (US3, AC3.11) are not listed.
 - **AC1.5** The setup can be opened and saved whether the instance is deployed, running or stopped. Saved changes show in Reports at once, with no redeploy.
 - **AC1.6** If the setup cannot be loaded, the window shows "Module Outputs could not be loaded (RPT-MOUT-002)", and the table keeps working without the Module Outputs column.
 
 ### US2 — Choose and name the values
-*As a quality engineer, I want to tick the values I care about and give them names my team knows, so that the report reads like our own checklist.*
+*As a quality engineer, I want to tick the keys I care about and give each a Display Name my team knows, so that the report reads like our own checklist.*
 - **Kind:** Feature
 - **Parts:** edge-reports-analytics
 - **Teams:** SDE
 - **Covers:** C2, C3, C4, C5, C13
-- **Today:** Nothing to choose or name.
-- **Prototype:** [Step 3: Choose & rename](https://vbv-fr.github.io/module-outputs-prototype/#choose)
+- **Today:** Keys can only be picked one at a time, in PLC Write, Internal Actions or Dashboard Builder. Nothing puts them in Reports.
+- **Prototype:** [Step 3: Choose keys and Display Names](https://vbv-fr.github.io/module-outputs-prototype/#choose)
 
-![After: three values ticked, Detected text renamed to Serial No.](prototype/setup.png)
+![After: detected_text and detected_string ticked, with Display Names Serial No. and QR code](prototype/setup.png)
 
 - **AC2.1** The first time the setup is opened for an instance, nothing is ticked, and the table has no Module Outputs column.
-- **AC2.2** Each value has a tick box, a name field filled with its auto name, and an example value.
-- **AC2.3** Auto names are built from the module's own names, as listed in US3. While a value has not been renamed, its name follows the current class, search area, label, bead, colour, shape or dimension name on the box.
-- **AC2.4** A name can be edited. Clearing it brings back the auto name. Names are up to 40 characters and must be unique within a capture. A duplicate shows "Name already used in this capture" under the field, and Save stays disabled until it is fixed.
+- **AC2.2** Each key row shows a tick box and the key the way Edge's key picker shows it today: the class, search area or label chip where there is one, then a "key-bool", "key-str" or "key-num" chip and the key name exactly as Edge stores it (for example `[cls] Screw > [key-num] current_count`).
+- **AC2.3** Ticking a key shows a "Display Name" box on that row; unticking hides it. The key's value appears on the Reports page and in the Excel under this name.
+- **AC2.4** A Display Name is required for every ticked key, up to 40 characters, and unique within a capture. An empty box shows "Enter a display name" and a duplicate shows "Name already used in this capture" under the box. Save stays disabled until every error is fixed.
 - **AC2.5** Save stores the setup, closes the window, shows "Module Outputs saved", and the table updates at once. Cancel or the close (×) button discards unsaved changes.
 - **AC2.6** If saving fails, the window stays open with the person's choices and shows "Module Outputs could not be saved (RPT-MOUT-001)". The setup saved earlier is unchanged.
 - **AC2.7** When two people change the setup at the same time, the last save wins.
 - **AC2.8** The setup belongs to the instance and is shared by everyone on the box: anyone who opens Reports for that instance sees the same column. Two instances of the same project keep separate setups.
 
 ### US3 — Values each module offers
-*As a quality engineer, I want each module to offer the values it actually outputs, under clear names, so that I can read why a capture passed or failed.*
+*As a quality engineer, I want to see the same keys Edge already uses for PLC and dashboards, so that what I pick for Reports matches what the line already knows.*
 - **Kind:** Feature
 - **Parts:** mod-odc, mod-classification, mod-ocr, mod-code-reader, mod-segmentation, mod-bead-inspection, mod-color-detection, mod-shape-extractor, mod-orientation, mod-tracker, mod-matting
 - **Teams:** SDE
 - **Covers:** C2, C12
-- **Today:** These values sit inside each cycle's stored result, keyed by ids, and are visible only in View JSON. Class Count shows object counts only.
+- **Today:** These keys are offered in PLC Write, Internal Actions and Dashboard Builder. Their per-cycle values sit inside each cycle's stored result, keyed by ids, visible only in View JSON.
 - **Prototype:** [Step 4: Other module types](https://vbv-fr.github.io/module-outputs-prototype/#more-modules)
 
-![After: bead and colour values offered for a capture](prototype/setup-more.png)
-![After: shape, dimension and tilt values for the same capture](prototype/setup-more-end.png)
+![After: capture, bead and colour keys for one capture](prototype/setup-more.png)
+![After: shape, tilt and dimension keys for the same capture](prototype/setup-more-end.png)
 
-- **AC3.1** Object Detection & Classification offers, for each class ticked in the module's outputs: "<Class> count" (number found) and "<Class> result" (OK or NG). Classes not ticked in the module's outputs are not offered, because they are not judged or stored.
-- **AC3.2** Image Classification offers, for each search area: "<Search area> class" (predicted class name), "<Search area> confidence" (0 to 1) and "<Search area> result" (OK or NG). When no class wins in conditional mode, the class shows "—".
-- **AC3.3** OCR offers "Detected text": all text read, in reading order (top to bottom, then left to right), with a space between pieces. In Read & Match it also offers, for each label, "<Label> text" (the text matched to that label) and "<Label> result" (Matched or Not matched).
-- **AC3.4** Code Reader offers "Detected code" (the decoded text) and "Code result" (OK or NG).
-- **AC3.5** Segmentation offers, for each class ticked in the module's outputs: "<Class> regions" (number of separate regions found). It also offers "Detected classes" (names of the classes with at least one region, comma-separated) and "Segmentation result" (OK or NG). No winning class and no default text are shown.
-- **AC3.6** Bead Inspection offers "Bead result" (OK or NG), "Caliper pass %" and "Incorrect calipers" (for example "47 of 200"). For each bead it offers "<Bead> result" (OK, or NG with "gap" or "width" as the reason), "<Bead> gaps" (count and largest gap in px) and "<Bead> width fails" (number of calipers failing the width check).
-- **AC3.7** Colour Detection offers, for each colour: "<Colour> coverage" (percentage of the region) and "<Colour> result" (OK or NG).
-- **AC3.8** Shape Extractor offers, for each shape, the measurements its shape type gives, in px, named "<Shape> <measurement>" (for example radius, area and perimeter for a circle; length and angle for a line), and "<Shape> fit" (OK or Failed).
-- **AC3.9** Each dimension measured within one capture offers "<Dimension>" (measured value with its unit), "<Dimension> expected" (the rule, for example "12–13 mm") and "<Dimension> result" (OK or NG), under the capture it belongs to.
-- **AC3.10** Orientation & Tilt Check offers "Tilt" (signed degrees with direction, for example "3.2° clockwise"), "Tilt allowed" (the range) and "Tilt result" (OK or NG).
-- **AC3.11** Tracker, Matting, Orientator, Masking, Search Area Allocator, the master image and dimensions measured across captures offer no values and are not listed in the setup.
-- **AC3.12** Numbers show with up to 2 decimals, in the module's own unit (px, mm, %, °). Results show as "OK" or "NG".
+The list is exactly the set of keys Edge creates for the instance today; a key shown in PLC Write for a module is shown here, and no other.
+- **AC3.1** Each capture offers its own keys: `result`, `inference_time`, `avg_inference_time`, `pass_count`, `fail_count` and `completion_status`.
+- **AC3.2** Object Detection & Classification offers `result`, `pass_count` and `fail_count`, and for each output class `result`, `current_count` and `count_till_now`.
+- **AC3.3** Image Classification offers `result`, `pass_count`, `fail_count`, `detected_class (<search area>)` for each search area, and `correct_class`.
+- **AC3.4** OCR offers `detected_text`. In Read & Match it also offers `result`, `pass_count`, `fail_count` and, for each label, `labelName:<label>_gt_text`, `labelName:<label>_result`, `labelName:<label>_pass_count` and `labelName:<label>_fail_count`.
+- **AC3.5** Code Reader offers `detected_string`. In Read & Match it also offers `result`, `pass_count`, `fail_count` and `gt_string`.
+- **AC3.6** Segmentation offers `result`, `pass_count`, `fail_count`, `detected_class` and `correct_class` only when its single-class output is on. In normal mode it has no keys and its card shows "No keys".
+- **AC3.7** Bead Inspection offers `result`, `pass_count`, `fail_count`, `caliper_pass_percentage` and `bead_class_name`, and for each bead `bead:<bead>_result`, `_pass_count`, `_fail_count`, `_bead_width` and `_bead_gap/position`.
+- **AC3.8** Colour Detection offers `result`, `pass_count` and `fail_count`, and for each colour `colorName:<colour>_detected_color`, `_result`, `_pass_count`, `_fail_count` and `_distribution_percentage`.
+- **AC3.9** Shape Extractor offers, for each shape, the `shape:<shape>_…` keys of its shape type: radius, perimeter, area, circularity, convexity, contour_continuity, error_pct, angle, length, major_axis, minor_axis, line_1 to line_4, diagonal_1, diagonal_2 and sector_angle, as Edge registers them.
+- **AC3.10** Orientation & Tilt Check offers `result`, `pass_count` and `fail_count`. Each dimension measured within one capture offers `dim_result`, `dim_predicted_value`, `dim_unit_used`, `dim_process` and `dim_current_gt`, in a card at the end of the capture it belongs to.
+- **AC3.11** Tracker, Matting, Orientator, Masking, Search Area Allocator, the master image and dimensions measured across captures have no keys here and are not listed.
+- **AC3.12** Values show as they would in the key: numbers with up to 2 decimals, `distribution_percentage` as a percentage, true/false keys as "OK" or "NG".
 
 ### US4 — See Module Outputs in the table
 *As a quality engineer, I want each capture's chosen values on its row, so that I can see at a glance why a cycle failed or which part it was.*
@@ -161,10 +164,10 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: searching a serial number finds its cycle](prototype/search-after.png)
 
 - **AC4.1** After the first save, a "Module Outputs" column appears as the last per-capture column, after Config Result, and Camera Position and Camera Configuration are turned on with it.
-- **AC4.2** Each capture row shows its ticked values, one per line, as "Name: value", in the order of the setup (module order, then value order).
+- **AC4.2** Each capture row shows its ticked keys, one per line, as "Display Name: value", in the order of the setup (module order, then key order).
 - **AC4.3** Values are read from the results already stored with each cycle. Cycles stored before the setup, and before this release, show values too. Changing the setup changes what every cycle shows.
 - **AC4.4** For a capture triggered more than once in a cycle, the values come from the latest attempt, the same attempt Config Result shows.
-- **AC4.5** A value with nothing found (no text read, no code decoded) shows "—"; a count of zero shows "0". A module that did not run on that image (its search area was not found) shows "Not run" for its values. A capture with nothing ticked shows "N/A". A stored result that lacks the value (for example one saved by an older Edge version) shows "—", never an error.
+- **AC4.5** A value with nothing found (no text read, no code decoded) shows "—"; a count of zero shows "0". A module that did not run on that image (its search area was not found) shows "Not run" for its values. A capture with nothing ticked shows "N/A". A stored result that lacks the value (for example one saved by an older Edge version) shows "—", never an error. Running totals that are not saved with each cycle (`pass_count`, `fail_count`, `count_till_now`, `avg_inference_time`, `completion_status`) show "—" (see Q2). Keys that hold a module setting (`correct_class`, `gt_string`, `labelName:<label>_gt_text`, `bead_class_name`, `dim_current_gt`, `colorName:<colour>_detected_color`) show the setting saved with that cycle where stored, else the current setting.
 - **AC4.6** Once set up, Edit Table lists "Module Outputs" after Config Result. Unticking it hides the column. While it is ticked, Camera Position and Camera Configuration cannot be turned off, as with Config Result today. Edit Table choices stay shared for the whole box, as today.
 - **AC4.7** The existing Search box also matches text in the Module Outputs column, the same way it matches the other visible columns on the page. No new search or filter controls are added.
 - **AC4.8** Text read from parts (OCR text, codes) is shown exactly as read, as plain text, never as a link or formatted content.
@@ -181,7 +184,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![Today: the Excel has no module values](prototype/excel-today.png)
 ![After: the Excel has a Module Outputs column](prototype/excel-after.png)
 
-- **AC5.1** When the column is visible, "Report (Excel Sheet)" gets a "Module Outputs" column after Config Result, with one cell per capture row holding the same "Name: value" lines as the screen, separated by line breaks.
+- **AC5.1** When the column is visible, "Report (Excel Sheet)" gets a "Module Outputs" column after Config Result, with one cell per capture row holding the same "Display Name: value" lines as the screen, separated by line breaks.
 - **AC5.2** When the column is hidden in Edit Table, it is not exported, as with every other column today.
 - **AC5.3** Values are written as text. A value that starts with =, +, - or @ is never treated as a formula.
 - **AC5.4** Export limits and filters are unchanged: up to 100,000 cycles still export with the column on, and the time, instance, variant, outcome, class and additional-info filters apply.
@@ -194,9 +197,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Covers:** C3, C11
 - **Today:** No setup exists.
 
-- **AC6.1** Re-uploading the instance from Vision keeps the setup, including renamed values.
-- **AC6.2** Captures, modules, classes, search areas or labels removed by a re-upload drop out of the setup, and their values stop showing. New ones appear unticked.
-- **AC6.3** Saving changes in Edit Module Configurations (for example switching OCR between Read and Read & Match, or changing ground truth or thresholds) keeps the setup. The values offered follow the current module settings, and a ticked value that is no longer offered (for example a label's values after switching to Read) drops out.
+- **AC6.1** Re-uploading the instance from Vision keeps the setup, including Display Names.
+- **AC6.2** Captures, modules, classes, search areas or labels removed by a re-upload drop out of the setup, and their keys stop showing. New ones appear unticked.
+- **AC6.3** Saving changes in Edit Module Configurations (for example switching OCR between Read and Read & Match, or changing ground truth or thresholds) keeps the setup. The values offered follow the current module settings, and a ticked key that no longer exists (for example a label's keys after switching to Read) drops out with its Display Name.
 - **AC6.4** Deleting the instance deletes its setup.
 
 ### US7 — Who can do this
@@ -253,7 +256,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC10.3** Scripts bundle: changes. It carries the Reports app (screen and server) and the Edge database addition that holds the setup.
 - **AC10.4** Installer: no change. Database additions already run on every install and update.
 - **AC10.5** New error codes: RPT-MOUT-001 "Module Outputs could not be saved" and RPT-MOUT-002 "Module Outputs could not be loaded". The report server logs them and the window shows them. They are not added to the Health page.
-- **AC10.6** The Edge manual's Analytics & Reports section describes the Module Outputs button, the setup window, the column and the Excel column, with new screenshots. Release note: "Reports & Analytics can now show chosen module values, such as counts, classes, read text and codes, in a new Module Outputs column, for past and new cycles."
+- **AC10.6** The Edge manual's Analytics & Reports section describes the Module Outputs button, the setup window, the column and the Excel column, with new screenshots. Release note: "Reports & Analytics can now show chosen module keys, such as counts, classes, read text and codes, under your own Display Names in a new Module Outputs column, for past and new cycles."
 
 ### US11 — Migration requirements
 *As a Frinks support engineer, I want upgrades to keep every box's data and setup, so that no plant loses its reports or has to set them up again.*
@@ -269,7 +272,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 ## 7. Out of scope
 - New search or filter controls for module values.
-- Values modules do not output today: the single-class segmentation winner, conditional classification default text, bead width in px, per-caliper widths.
+- Values that have no key today, such as image classification confidence, OCR text per label, tilt angle, bead incorrect calipers and gap sizes, and segmentation region counts (see Q3).
 - Dimensions measured across captures. They are never saved with the cycle today, so a follow-up must store them first.
 - Tracker counts. The tracker produces no result on Edge today, so it needs its own fix first.
 - Matting mask counts.
@@ -289,11 +292,11 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 **Coverage check:**
 
-**Result:** PASS, 1 warning
+**Result:** PASS, 2 warnings
 
-- 11 user stories (6 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 67 ACs, 23 touched parts, 2 discussion points.
+- 11 user stories (6 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 67 ACs, 23 touched parts, 3 discussion points.
 - Checklist: 17 items covered by stories, 1 N/A, 0 open.
-- Warning kept on purpose: AC8.4 contains "Fast", which is the product name "Fast Mode", not a vague word.
+- Warnings kept on purpose: AC8.4 contains "Fast", the product name "Fast Mode"; US3 names keys such as `current_count`, which are the names users see in Edge's key picker, not code.
 - Every punchlist item I1–I67 in notes.md maps to exactly one AC.
 
 ## Appendix B — Code references
@@ -311,6 +314,7 @@ For the ticket skill and developers. Paths are relative to each repo.
 Repos checked: frinksedge-report @ 5fe5390 (15 Oct 2026), frinksedge-report-frontend @ 9893a19 (13 Oct 2026), frinksedge-inferencing-backend @ eddd8e5 (19 Oct 2026), frinksedge-deployment-backend @ 009fc11 (19 Oct 2026), frinksedge-deployment-frontend @ 7e92de34 (19 Oct 2026), frinksedge-health @ e8ef112 (15 Oct 2026), vip-inference-python @ 93451d1 (15 Oct 2026), frinksvision-backend @ eda944f (14 Oct 2026), frinksvision-frontend @ 110a23c (19 Oct 2026), Python-inference-docker @ 62e22bd (29 May 2026), release-manager-backend @ b8016f7 (22 Sep 2026), and the other 23 repos in the skill's list, all up to date on 20 Oct 2026.
 
 ## Changelog
+- 23 October 2026 — Setup lists each module's real Edge keys as the key picker shows them; ticking a key asks for a Display Name used on the Reports page. US2 and US3 rewritten; old Q2 (segmentation "Detected classes") dropped as segmentation offers only its keys; new Q2 (running totals) and Q3 (values with no key) (Tanay Deo)
 - 23 October 2026 — Duplicate pass: AC8.4, AC11.1 and AC11.3 no longer restate AC1.1, AC4.3 and AC4.5 (Tanay Deo)
 - 23 October 2026 — Moved to the current template: open questions now sit in Discussion points at the top; added Q2 (segmentation "Detected classes"); Word copy dropped, the PRD repo is the only published copy (Tanay Deo)
 - 23 October 2026 — Prototype rebuilt as one interactive workflow with a step navigator; stories link to their step (Tanay Deo)
