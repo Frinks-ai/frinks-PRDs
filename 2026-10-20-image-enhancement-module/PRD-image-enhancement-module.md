@@ -237,6 +237,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC8.3** The modules below an Image Enhancement count toward the capture's OK/NG exactly as they would under a search area, whichever area they picked; the Image Enhancement adds no OK/NG of its own.
 - **AC8.4** When the parent area has no image on a frame, the enhanced area has none either, and the modules below report a missing area as they do today.
 - **AC8.5** Each Image Enhancement's time per image is written to the engine's time log like any module's, and counts in the capture's inference time.
+- **AC8.6** When a filter fails on a frame, MOD_IE_002 is logged and the frame is handled as any module failure today: no result is sent and the cycle ends NG at its timeout.
 
 ### US9 — Tune the filters on Edge
 *As a quality engineer, I want to change the filters and their values on Edge with a preview, so that I can react to print changes without going back to Vision.*
@@ -256,19 +257,20 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: update pop-up asks which filter list to use](prototype/edge-instance-update-after-chain-changed.png)
 
 - **AC9.1** The Module list in Edit Module Configurations lists each Image Enhancement (IE_1 …).
-- **AC9.2** Its section shows the chain in its current order, and filters can be added there from the same six-category list as in Vision (AC2.1).
-- **AC9.3** Each filter's values can be changed within the same ranges as in Vision (AC2.3, AC2.4).
+- **AC9.2** Its section shows the chain in its current order, and filters can be added there from the same six-category list as in Vision (AC2.1), without a limit and with the same filter allowed more than once.
+- **AC9.3** Each filter's values can be changed within the same ranges as in Vision (AC2.3, AC2.4), and a filter added on Edge starts with the same default values.
 - **AC9.4** A Raw Image \| Enhanced Image pair shows the capture's master image cut to the area, before and after the chain, and updates within a second of any change.
-- **AC9.5** Saving shows a warning that the models below were trained on the old filters or values.
+- **AC9.5** Saving shows a warning that the models below were trained on the old filters or values; Confirm saves, Cancel keeps the unsaved changes on screen.
 - **AC9.6** On Edge, setup that draws on the master image (Shape Extractor shape generation, Bead Inspection trace) shows the enhanced picture when the module picked the enhanced area.
 - **AC9.7** Reset returns the chain and every value to the last saved state.
-- **AC9.8** When a newer export of the instance is uploaded and its filter list is the same as Edge's, every value tuned on Edge is kept, and the update pop-up lists each one under Ground Truth Preservation (Module IE_1, Class/Label the filter's step and name, Parameter, Edge (Preserved), Vision).
-- **AC9.9** When the filter list on Edge and in the newer export differ (changed on Edge, in Vision or both), the update pop-up shows both lists for that module under a heading of its own and asks the user to keep the Edge filters or use the Vision filters, with Vision's preselected.
+- **AC9.8** When a newer export of the instance is uploaded and its filter list is the same as Edge's (the same filters in the same order), every value tuned on Edge is kept, and the update pop-up lists each one under Ground Truth Preservation (Module IE_1, Class/Label the filter's step and name, Parameter, Edge (Preserved), Vision).
+- **AC9.9** When the filter list on Edge and in the newer export differ (changed on Edge, in Vision or both), the update pop-up shows both lists for that module under a heading of its own and asks the user to keep the Edge filters or use the Vision filters (a different order counts as a different list; the module's values follow the chosen list and are not listed separately), with Vision's preselected.
 - **AC9.10** When a newer export is uploaded and its filter list is the same as Edge's, every value not tuned on Edge takes Vision's value, so a value changed in Vision for a retrained model reaches the line.
 - **AC9.11** Edit Module Configurations changes to these filters and values reach the line on the next deployment, as other changes there do today.
 - **AC9.12** Filters can be dragged to a new position or removed there.
 - **AC9.13** Saving an empty chain there is refused with the message "Add at least one filter".
 - **AC9.14** "Upload image" lets the engineer pick a PNG or JPEG that replaces the master image in Raw Image and Enhanced Image, cut to the area the same way.
+- **AC9.17** A picture of a different size from the master image is refused with the message "Pick a picture the same size as the master image", and only PNG and JPEG files can be picked.
 - **AC9.15** The uploaded picture is only for the preview: it is not saved, and Reset or leaving the page brings back the master image.
 - **AC9.16** Upload applies the choice of AC9.9: Keep Edge filters keeps Edge's list and values; Use Vision filters takes Vision's list and values.
 
@@ -288,10 +290,12 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC10.1** The enhanced area has its own analysed image next to the master image and the search areas: the enhanced picture, scaled by the Image Saving resolution, with the boxes of the modules under it.
 - **AC10.2** Image Saving keeps only its Analysed Image and Raw Image blocks; with Analysed Image on, the enhanced area's analysed image is saved too, in a folder named after the enhanced area, by the same OK / NG choice and quality.
-- **AC10.3** Analysed Image Configurations does not list the enhanced area; the boxes and labels on its analysed image follow the settings of the search area it comes from.
+- **AC10.3** Analysed Image Configurations does not list the enhanced area; the boxes and labels on its analysed image follow the settings of the area it comes from (a search area or an Orientator's area).
 - **AC10.4** The Dashboard Builder image widget's "Select Search Area" list includes each enhanced area by name; a widget pointed at it shows the enhanced area's analysed image in the dashboard preview and live on the Live Dashboard (on the builder canvas it shows the named placeholder every image widget shows today).
-- **AC10.5** Reports → View Images lists the analysed images in this order: Input Image, then the search areas, then the enhanced areas, each under its name, never a raw id.
+- **AC10.5** Reports → View Images lists the analysed images in this order: Input Image, then the search areas, then the enhanced areas (several of one kind in name order), each under its name, never a raw id.
 - **AC10.6** Excel export and Reverse Judgement carry the enhanced area's image like other area images.
+- **AC10.7** A Search Area placed under an Image Enhancement that cut its area out of the enhanced area shows that enhanced picture in its analysed image, and is listed with the search areas.
+- **AC10.8** The boxes of the modules under an Image Enhancement also appear on the analysed images of the areas above it (its search area and Input Image), as boxes do today.
 
 ### US11 — Rules: who can set it up and tune it
 *As an Org Admin, I want the existing permissions to cover this module, so that no new role setup is needed.*
@@ -302,7 +306,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC11.1** No role or permission changes in Vision or on Edge.
 - **AC11.2** In Vision, adding, editing and deleting an Image Enhancement needs the same rights as any other module in Recipe Management; users without them see it the same way they see other modules today.
-- **AC11.3** On Edge, changing its values needs the existing Edit Module Configurations update permission (in the Supervisor and Quality Engineer templates today); others see the section read-only, as they see other sections.
+- **AC11.3** On Edge, adding, reordering or removing its filters and changing its values needs the existing Edit Module Configurations update permission (in the Supervisor and Quality Engineer templates today); others see the section read-only, as they see other sections, and can still use Upload image, which saves nothing.
 - **AC11.4** (removed) Covered by AC11.1.
 
 ### US12 — Keeps working: recipes without Image Enhancement
@@ -363,7 +367,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ## 7. Out of scope
 - Image Enhancement under Masking until Q1 is decided.
 - Which Edge versions the download dropdown offers (Q2, a separate task).
-- Colour output, chain edits on Edge, automatic filter suggestions.
+- Colour output, automatic filter suggestions.
 - Auto-annotation on enhanced images: auto-annotation does not work today.
 - Fixing how modules directly under Masking are judged, training under Masking, and channel-order differences between camera paths (raised separately).
 
@@ -378,10 +382,10 @@ Not part of this PRD (PM, 23 Oct 2026). The module is used on print reading firs
 **Coverage check:** coverage checker, 23 Oct 2026
 **Result:** PASS
 
-- 15 user stories (10 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 85 ACs, 31 touched parts, 3 discussion points.
+- 15 user stories (10 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 96 ACs, 31 touched parts, 3 discussion points.
 - Checklist: 16 items covered by stories, 2 N/A, 0 open.
 
-Manual checks: every coverage-sheet item maps to exactly one AC; two duplicate and contradiction passes run (23 Oct), all findings applied; code back-check of the impact map done (the shared image-cutting library also serves the switched-off recommender: see Checked, not affected); every goal is delivered (G1: US2, US3, US8; G2: US2; G3: US5, US6); departures from today's code are stated (US4 departs from Masking's lock and from drafting every project instance; AC10.5 changes today's raw-id labels).
+Manual checks: every coverage-sheet item maps to exactly one AC; three duplicate and contradiction passes run (23 Oct), all findings applied; code back-check of the impact map done (the shared image-cutting library also serves the switched-off recommender: see Checked, not affected); every goal is delivered (G1: US2, US3, US8; G2: US2; G3: US5, US6); departures from today's code are stated (US4 departs from Masking's lock and from drafting every project instance; AC10.5 changes today's raw-id labels).
 
 ## Appendix B — Code references
 - **Recipe tree (new module type):** `frinksvision-backend`: module catalogue seed `src/config/populate.ts:150-256`; settings-table switch `src/dao/module.ts:686-736` (unknown types fall back to the search-area table at 731-733); outputs `:748-848`; parent rules `src/service/module.ts:28-95`. `frinksvision-frontend`: Select Module, leaf and parent rules `src/modules/project/module-configuration/components/moduleWorkflow/index.tsx:48-64, 160-165, 1063-1125`; panel registry `selectedModule.tsx:1292` (Masking at 2537-2655); edit-after-configure list `configuredModuleEditState.ts:12-21`; two-step captures `frinksvision-backend src/utils/module.ts:20-32`.
@@ -399,6 +403,7 @@ Manual checks: every coverage-sheet item maps to exactly one AC; two duplicate a
 Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-model-evaluation @ 7a0403a (2025-11-04), assembly-training @ 725f834 (2026-06-02), Assembly-Training-OCR @ 99d0d62 (2025-07-08), Auto-annotation @ d213b71 (2025-10-30), auto-training-backend @ 63ba9a6 (2026-08-04), Classification-Evaluation @ eda0d3b (2025-12-19), classification-training-docker @ 3f7a64e (2025-11-05), Craft-model-evaluation @ 5a95e16 (2025-07-10), frinkschat-backend @ 88e5c91 (2026-07-21), frinksedge-deployment-backend @ 009fc11 (2026-10-19), frinksedge-deployment-frontend @ 7e92de34 (2026-10-19), frinksedge-file-releases @ 7041254 (2026-07-16), frinksedge-health @ e8ef112 (2026-10-15), frinksedge-inferencing-backend @ eddd8e5 (2026-10-19), frinksedge-installer-electron @ b4a5049 (2026-10-12), frinksedge-plc-backend @ 254d08e (2026-10-15), frinksedge-report @ 5fe5390 (2026-10-15), frinksedge-report-frontend @ 9893a19 (2026-10-13), frinksedge-staging-environment @ 4993036 (2026-09-09), frinksvision-backend @ eda944f (2026-10-14), frinksvision-frontend @ 110a23c (2026-10-19), OCR-Evaluation @ c9c413c (2025-07-10), OCR-Training-Detection-ALL @ fc59f48 (2026-10-14), Python-inference-docker @ 62e22bd (2026-05-29), Recommendation-classification @ 0796dbb (2026-08-03), Recommendation-OCR @ ae1e953 (2026-04-30), release-manager-backend @ b8016f7 (2026-09-22), Segmentation-Data-Recommender @ d6f679e (2026-07-22), Segmentation-Evaluation @ 44bb8c6 (2025-08-28), Segmentation-Training @ f749aab (2025-08-22), train-utils @ d3e6378 (2026-09-15), vip-inference-python @ 93451d1 (2026-10-15), workflow-dataprocessor @ d2cd9bd (2026-08-11)
 
 ## Changelog
+- 23 Oct 2026 — Third duplicate pass (no duplicates): out-of-scope line about Edge chain edits removed; gaps closed in AC9.2, AC9.3, AC9.5, AC9.8, AC9.9, AC10.3, AC10.5, AC11.3; new AC8.6 (filter failure on a frame), AC9.17 (upload size and type), AC10.7 (search area cut from an enhanced area), AC10.8 (boxes on the areas above) (Tanay Deo)
 - 23 Oct 2026 — Edge can now add, reorder and remove filters, reversing the 23 Oct "values only" decision (AC9.2, AC9.12, AC9.13); preview labelled Raw Image / Enhanced Image (AC9.4) with Upload image, preview only (AC9.14, AC9.15); warning covers filters or values (AC9.5); differing Edge and Vision filter lists are now a choice in the update pop-up, Vision preselected (AC9.9, AC9.16), replacing "Vision's list wins"; default chain Binarize → Invert (AC2.9); Reports order Input Image, search areas, enhanced areas (AC10.5); AC10.6 split from AC10.5 (Tanay Deo)
 - 23 Oct 2026 — Second duplicate pass: AC11.4 (removed): covered by AC11.1; AC2.6 and AC13.4 trimmed; AC12.2 scoped to recipes with or without the module. Decision: adding, deleting or renaming an Image Enhancement also drafts only the instances using its capture (AC4.5) (Tanay Deo)
 - 23 Oct 2026 — Duplicate pass applied: AC3.4 (removed): covered by AC3.3; AC1.5 trimmed (greyed Image Enhancement is AC1.2); AC6.3 reworded to a training check; AC14.6, AC14.4, AC10.2, AC12.3, AC15.1 trimmed; contradictions fixed in AC7.3, AC15.2, AC4.5, AC12.4, AC12.1, AC13.1; AC2.4 adds 0–255. Decisions: Edge-tuned values kept, untuned values from Vision (AC9.8, AC9.10); AC13.5 (removed): moved to AC9.11; two Image Enhancements may share a search area (AC1.4) (Tanay Deo)
