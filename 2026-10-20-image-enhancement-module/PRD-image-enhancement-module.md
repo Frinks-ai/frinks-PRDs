@@ -25,7 +25,7 @@ Everything still to be settled. Each row is decided before the tickets are cut.
 - The chain has no length limit, the same filter can appear more than once, and filters are picked from 26, grouped under six bold category headings. Once applied, the Vision canvas shows the area enhanced, live.
 - It has no AI model and never makes a part OK or NG by itself; the modules below it still count toward the verdict.
 - Annotators label, and models of every type train, on the enhanced image when their module picked the enhanced area.
-- Changing the filters warns that the models below must be retrained and puts back to draft only the instances that use that capture; each must go through its five instance steps again.
+- Any change to an Image Enhancement puts back to draft only the instances that use that capture, and a filter change warns that the models below must be retrained; each drafted instance goes through its five instance steps again.
 - On Edge, Edit Module Configurations lists the module; its filter values can be tuned there with a preview on the master image, but the chain itself is fixed in Vision. The instance-update pop-up shows Edge-tuned values as preserved, or as replaced when Vision's chain changed.
 - The enhanced area is one more analysed image next to the master image and the search areas: it shows the enhanced picture with the boxes, while they keep the normal picture with the boxes. Image Saving keeps its two blocks.
 
@@ -133,7 +133,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC2.3** Each filter shows only its own values with these ranges and defaults: kernel filters (Low Pass, Local Median, Sharpen, High Pass, Erode, Dilate, Open, Close, Top Hat, Bot Hat, Max, Local Median Normalization) take Rows and Columns, odd numbers 1–15, default 5 × 5; Clip takes Low and High 0–255, default 40 and 200; Threshold Range takes Low and High 0–255, default 0 and 110; Greyscale Distance takes Grey level 0–255, default 128; the other filters, Binarize included, have no values (Binarize picks its threshold itself).
 - **AC2.4** A Low above its High is refused at the field with the message "Low must not be above High"; an even or out-of-range kernel size, or a grey value outside 0–255, cannot be entered.
 - **AC2.5** Saving with an empty chain is refused with the message "Add at least one filter".
-- **AC2.6** Once the module is applied, the canvas shows the area enhanced, in place of the original (the master image around it as today), and updates within a second of any add, remove, reorder or value change; the original and enhanced pictures are never shown side by side.
+- **AC2.6** Once the module is applied, the canvas shows the area enhanced, in place of the original (the master image around it as today), and updates within a second of any add, remove, reorder or value change.
 - **AC2.7** On a fixed set of reference images, the Vision canvas gives exactly the same pixels as the line does for every filter and every allowed value (golden-image test run on every release).
 - **AC2.8** The enhanced image is greyscale; filters whose results go beyond black and white (Optical Density, the Gradients, Edge Magnitude, High Pass) are scaled into the 0–255 range, as the guide pictures show.
 
@@ -175,7 +175,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC4.2** Saving such a change shows a confirmation that the models below were trained on the old filters and must be retrained; Confirm saves, Cancel keeps the old chain.
 - **AC4.3** Deleting an Image Enhancement asks for confirmation listing the modules below it, and removes it with everything below it, as deleting any module does today.
 - **AC4.4** Wherever Vision copies a recipe or project today, the Image Enhancement and its chain are copied with it.
-- **AC4.5** Saving a changed chain or changed values puts back to draft only the instances that include this capture; the project's other instances stay as they are.
+- **AC4.5** Any change to an Image Enhancement (adding or deleting one, changing its chain or values, renaming its enhanced area) puts back to draft only the instances that include its capture; the project's other instances stay as they are.
 - **AC4.6** A drafted instance must go through its five instance steps and Finish again before it is saved and can be downloaded.
 
 ### US5 — Annotate on the enhanced image
@@ -295,7 +295,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC11.1** No role or permission changes in Vision or on Edge.
 - **AC11.2** In Vision, adding, editing and deleting an Image Enhancement needs the same rights as any other module in Recipe Management; users without them see it the same way they see other modules today.
 - **AC11.3** On Edge, changing its values needs the existing Edit Module Configurations update permission (in the Supervisor and Quality Engineer templates today); others see the section read-only, as they see other sections.
-- **AC11.4** Image Saving, Dashboard Builder and Reports keep their current permissions.
+- **AC11.4** (removed) Covered by AC11.1.
 
 ### US12 — Keeps working: recipes without Image Enhancement
 *As an integrator, I want recipes without the module to behave exactly as today, so that nothing on running lines changes.*
@@ -306,7 +306,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Covers:** C6
 
 - **AC12.1** A recipe without an Image Enhancement shows, saves, trains, exports and runs exactly as before, apart from the new "Image Enhancement" row in Select Module (AC1.1).
-- **AC12.2** Placement rules between the other modules stay as they are.
+- **AC12.2** In a recipe with or without an Image Enhancement, placement rules between the other modules stay as they are.
 - **AC12.3** In a recipe that contains an Image Enhancement, models whose module is not under it train on the same images as before.
 - **AC12.4** Recipe changes other than changes to an Image Enhancement still put every instance of the project back to draft, as today.
 
@@ -320,7 +320,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC13.1** A module under an Image Enhancement keeps its Edit Module Configurations section (apart from the picture shown in setup, AC9.6), its keys, its actions (for OCR, the Change Ground Truth action) and its PLC writes unchanged.
 - **AC13.2** Result groups that include a module under an Image Enhancement work as today.
 - **AC13.3** A frame on which a module fails is handled as today: no result is sent and the cycle ends NG at its timeout.
-- **AC13.4** Masking keeps today's behaviour; nothing in this release changes how modules under Masking are judged.
+- **AC13.4** Nothing in this release changes how modules under Masking are judged.
 - **AC13.5** (removed) Moved to AC9.11: it states a result for this module's values.
 
 ### US14 — Platform
@@ -368,7 +368,12 @@ Not part of this PRD (PM, 23 Oct 2026). The module is used on print reading firs
 - **C16** — N/A: the settings travel inside the instance package like other module settings; no new data leaves the plant.
 
 **Coverage check:** coverage checker, 23 Oct 2026
-PENDING
+**Result:** PASS
+
+- 15 user stories (10 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 85 ACs, 31 touched parts, 3 discussion points.
+- Checklist: 16 items covered by stories, 2 N/A, 0 open.
+
+Manual checks: every coverage-sheet item maps to exactly one AC; two duplicate and contradiction passes run (23 Oct), all findings applied; code back-check of the impact map done (the shared image-cutting library also serves the switched-off recommender: see Checked, not affected); every goal is delivered (G1: US2, US3, US8; G2: US2; G3: US5, US6); departures from today's code are stated (US4 departs from Masking's lock and from drafting every project instance; AC10.5 changes today's raw-id labels).
 
 ## Appendix B — Code references
 - **Recipe tree (new module type):** `frinksvision-backend`: module catalogue seed `src/config/populate.ts:150-256`; settings-table switch `src/dao/module.ts:686-736` (unknown types fall back to the search-area table at 731-733); outputs `:748-848`; parent rules `src/service/module.ts:28-95`. `frinksvision-frontend`: Select Module, leaf and parent rules `src/modules/project/module-configuration/components/moduleWorkflow/index.tsx:48-64, 160-165, 1063-1125`; panel registry `selectedModule.tsx:1292` (Masking at 2537-2655); edit-after-configure list `configuredModuleEditState.ts:12-21`; two-step captures `frinksvision-backend src/utils/module.ts:20-32`.
@@ -386,6 +391,7 @@ PENDING
 Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-model-evaluation @ 7a0403a (2025-11-04), assembly-training @ 725f834 (2026-06-02), Assembly-Training-OCR @ 99d0d62 (2025-07-08), Auto-annotation @ d213b71 (2025-10-30), auto-training-backend @ 63ba9a6 (2026-08-04), Classification-Evaluation @ eda0d3b (2025-12-19), classification-training-docker @ 3f7a64e (2025-11-05), Craft-model-evaluation @ 5a95e16 (2025-07-10), frinkschat-backend @ 88e5c91 (2026-07-21), frinksedge-deployment-backend @ 009fc11 (2026-10-19), frinksedge-deployment-frontend @ 7e92de34 (2026-10-19), frinksedge-file-releases @ 7041254 (2026-07-16), frinksedge-health @ e8ef112 (2026-10-15), frinksedge-inferencing-backend @ eddd8e5 (2026-10-19), frinksedge-installer-electron @ b4a5049 (2026-10-12), frinksedge-plc-backend @ 254d08e (2026-10-15), frinksedge-report @ 5fe5390 (2026-10-15), frinksedge-report-frontend @ 9893a19 (2026-10-13), frinksedge-staging-environment @ 4993036 (2026-09-09), frinksvision-backend @ eda944f (2026-10-14), frinksvision-frontend @ 110a23c (2026-10-19), OCR-Evaluation @ c9c413c (2025-07-10), OCR-Training-Detection-ALL @ fc59f48 (2026-10-14), Python-inference-docker @ 62e22bd (2026-05-29), Recommendation-classification @ 0796dbb (2026-08-03), Recommendation-OCR @ ae1e953 (2026-04-30), release-manager-backend @ b8016f7 (2026-09-22), Segmentation-Data-Recommender @ d6f679e (2026-07-22), Segmentation-Evaluation @ 44bb8c6 (2025-08-28), Segmentation-Training @ f749aab (2025-08-22), train-utils @ d3e6378 (2026-09-15), vip-inference-python @ 93451d1 (2026-10-15), workflow-dataprocessor @ d2cd9bd (2026-08-11)
 
 ## Changelog
+- 23 Oct 2026 — Second duplicate pass: AC11.4 (removed): covered by AC11.1; AC2.6 and AC13.4 trimmed; AC12.2 scoped to recipes with or without the module. Decision: adding, deleting or renaming an Image Enhancement also drafts only the instances using its capture (AC4.5) (Tanay Deo)
 - 23 Oct 2026 — Duplicate pass applied: AC3.4 (removed): covered by AC3.3; AC1.5 trimmed (greyed Image Enhancement is AC1.2); AC6.3 reworded to a training check; AC14.6, AC14.4, AC10.2, AC12.3, AC15.1 trimmed; contradictions fixed in AC7.3, AC15.2, AC4.5, AC12.4, AC12.1, AC13.1; AC2.4 adds 0–255. Decisions: Edge-tuned values kept, untuned values from Vision (AC9.8, AC9.10); AC13.5 (removed): moved to AC9.11; two Image Enhancements may share a search area (AC1.4) (Tanay Deo)
 - 23 Oct 2026 — Q3 decided (AC9.8, AC9.9), Q4 dropped (no AC), Q5 decided (AC9.4), Q7 and section 8 measures dropped; any module can sit under the module and picks the normal or enhanced area (AC1.5, AC3.3, AC3.5, AC6.1, AC6.5, AC8.1, AC8.3); models of every type train on enhanced images (US6); analysed images: master and search areas normal, enhanced area enhanced (AC10.1); Image Saving keeps two blocks (AC10.2); Analysed Image Configurations does not list the enhanced area (AC10.3); auto-annotation removed (AC5.3); download-version filter moved to Q2 (AC7.2, AC15.2); drafting limited to instances using the capture (AC4.2, AC4.5, AC4.6, AC12.4); canvas shows only the enhanced image (AC2.6); bold category headings (AC2.1); prototype rebuilt as one interactive workflow (Tanay Deo)
 - 20 Oct 2026 — Draft started as "Image filters for OCR"; scope changed to a standalone module any listed module can sit under (Tanay Deo)
