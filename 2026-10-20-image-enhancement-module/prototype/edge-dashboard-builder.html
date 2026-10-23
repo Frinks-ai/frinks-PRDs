@@ -562,10 +562,10 @@ body.in-shell .pctl{display:none!important}
     }
   }
 
-  // IE_1's chain as this Edge runs it: Vision's filter list ("chain" in localStorage["ie-proto:v1"]) with the values
-  // tuned on Edge ("edgeChain") while the list is the same. Default: Local Median Normalization 15 x 15 -> Binarize -> Open 3 x 3.
+  // IE_1's chain as this Edge runs it: the filters and values saved on Edge ("edgeChain" in localStorage["ie-proto:v1"]),
+  // or Vision's chain ("chain") while Edge has no changes (edgeChain = null). Default: Binarize -> Invert.
   var KEY = 'ie-proto:v1';
-  var DEFAULT_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'open', p: { rows: 3, cols: 3 } }];
+  var DEFAULT_CHAIN = [{ f: 'binarize' }, { f: 'invert' }];
   var KERNEL = ['bothat', 'close', 'dilate', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
   var PLAIN = ['binarize', 'edgemag', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
   function defaultP(f) { return KERNEL.indexOf(f) >= 0 ? { rows: 5, cols: 5 } : f === 'clip' ? { low: 40, high: 200 } : f === 'thresholdrange' ? { low: 0, high: 110 } : f === 'greydist' ? { grey: 128 } : {}; }
@@ -574,9 +574,7 @@ body.in-shell .pctl{display:none!important}
   function runningChain() {
     var st = {};
     try { st = JSON.parse(localStorage.getItem(KEY) || 'null') || {}; } catch (e) { /* storage may be blocked */ }
-    var vision = validChain(st.chain) ? st.chain : DEFAULT_CHAIN;
-    var same = validChain(st.edgeChain) && st.edgeChain.length === vision.length && st.edgeChain.every(function (x, i) { return x.f === vision[i].f; });
-    return same ? st.edgeChain : vision;
+    return validChain(st.edgeChain) ? st.edgeChain : validChain(st.chain) ? st.chain : DEFAULT_CHAIN;
   }
 
   function canvas(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }

@@ -555,8 +555,9 @@ html.embedded .proto{display:none!important}
     if (params) Object.keys(params).forEach(function (k) { p[k] = params[k]; });
     return { uid: 'f' + (++uidN), id: id, params: p };
   }
+  // A new Image Enhancement starts with Binarize -> Invert (PM, 23 Oct).
   function defaultChain() {
-    return [mkFilter('localmediannorm', { rows: 15, cols: 15 }), mkFilter('binarize'), mkFilter('open', { rows: 3, cols: 3 })];
+    return [mkFilter('binarize'), mkFilter('invert')];
   }
 
   /* ---------- shared prototype state (localStorage "ie-proto:v1", same shape in every workflow screen) ---------- */
@@ -588,12 +589,15 @@ html.embedded .proto{display:none!important}
   }
   function loadChain() { var o = readShared(); return (o && chainFromShared(o.chain)) || defaultChain(); }
   function loadAreaName() { var o = readShared(); return o && typeof o.areaName === 'string' && o.areaName.trim() ? o.areaName.trim() : DEFAULT_AREA; }
+  function chainToShared(chain) {
+    return chain.map(function (f) { return FILTERS[f.id].p ? { f: f.id, p: JSON.parse(JSON.stringify(f.params)) } : { f: f.id }; });
+  }
   function saveChain() {
     if (!S.chain.length) return;          // an empty chain cannot be saved, so it is never shared
-    writeShared({ chain: S.chain.map(function (f) {
-      return FILTERS[f.id].p ? { f: f.id, p: JSON.parse(JSON.stringify(f.params)) } : { f: f.id };
-    }) });
+    writeShared({ chain: chainToShared(S.chain) });
   }
+  // Adding Image Enhancement from Select Module creates a NEW IE_1: default filters, default area name, nothing tuned on Edge yet.
+  function resetSharedForNewModule() { writeShared({ chain: chainToShared(defaultChain()), edgeChain: null, areaName: DEFAULT_AREA }); }
   function chainChanged() { S.changed = true; S.showErr = false; S.sharedChain = true; saveChain(); render(); }
 
   /* ---------- workflow shell (index.html) navigation ---------- */
@@ -1110,7 +1114,7 @@ html.embedded .proto{display:none!important}
     var prow = t.closest('#pickerOv tr.en');
     if (prow) {
       var picked = prow.getAttribute('data-mod'), under = mod(S.picker);
-      if (S.mode === 'after' && under.store === 'searchArea' && picked === 'imageEnhancement') { flow('vision-inputs', function () { go('after', 'inputs', true); }); return; }
+      if (S.mode === 'after' && under.store === 'searchArea' && picked === 'imageEnhancement') { resetSharedForNewModule(); flow('vision-inputs', function () { go('after', 'inputs', true); }); return; }
       if (S.mode === 'after' && under.store === 'imageEnhancement' && picked === 'ocr') { flow('vision-ocr', function () { go('after', 'ocr-inputs', true); }); return; }
       S.picker = null; render(); return;
     }

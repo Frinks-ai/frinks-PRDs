@@ -366,10 +366,10 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
       default: return g;
     }
   }
-  // IE_1's chain as this Edge runs it: Vision's filter list ("chain" in localStorage["ie-proto:v1"]) with the values
-  // tuned on Edge ("edgeChain") while the list is the same. Default: Local Median Normalization 15 x 15 -> Binarize -> Open 3 x 3.
+  // IE_1's chain as this Edge runs it: the filters and values saved on Edge ("edgeChain" in localStorage["ie-proto:v1"]),
+  // or Vision's chain ("chain") while Edge has no changes (edgeChain = null). Default: Binarize -> Invert.
   const KEY = 'ie-proto:v1';
-  const DEFAULT_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'open', p: { rows: 3, cols: 3 } }];
+  const DEFAULT_CHAIN = [{ f: 'binarize' }, { f: 'invert' }];
   const KERNEL = ['bothat', 'close', 'dilate', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
   const PLAIN = ['binarize', 'edgemag', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
   const DEFAULT_P = (f) => (KERNEL.includes(f) ? { rows: 5, cols: 5 } : f === 'clip' ? { low: 40, high: 200 } : f === 'thresholdrange' ? { low: 0, high: 110 } : f === 'greydist' ? { grey: 128 } : {});
@@ -378,9 +378,7 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
   function runningChain() {
     let st = {};
     try { st = JSON.parse(localStorage.getItem(KEY) || 'null') || {}; } catch (e) { /* storage may be blocked */ }
-    const vision = validChain(st.chain) ? st.chain : DEFAULT_CHAIN;
-    const same = validChain(st.edgeChain) && st.edgeChain.length === vision.length && st.edgeChain.every((x, i) => x.f === vision[i].f);
-    return same ? st.edgeChain : vision;
+    return validChain(st.edgeChain) ? st.edgeChain : validChain(st.chain) ? st.chain : DEFAULT_CHAIN;
   }
   function enhance(src) {
     const w = src.width, h = src.height, ctx = src.getContext('2d'), id = ctx.getImageData(0, 0, w, h), d = id.data, n = w * h;
@@ -467,7 +465,10 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
   ];
 
   // ResultTable.jsx:110-140 — every analysed area image of every capture, sorted by sequence then name.
+  // After change: within a sequence the Input Image comes first, then the search areas (SA_1 ...), then the
+  // enhanced areas (Enhanced Search Area 1 ...), each group by name.
   // Names come from frinksedge-report analysis.service.ts:445-447 (name: saConfigs[k] || k).
+  const KIND = (im) => (im.name === 'Input Image' ? 0 : im.enhanced ? 2 : 1);
   function resultImages(c) {
     const all = [];
     c.caps.forEach((cap) => {
@@ -475,9 +476,9 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
         { name: 'Input Image', src: IMG['input_' + k] },
         { name: 'SA_1', src: IMG['sa1_' + k] },
       ];
-      if (mode === 'after') imgs.push({ name: 'Enhanced Search Area 1', src: IMG['enh_' + k] });
-      imgs.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-        .forEach((img) => all.push({ ...img, captureName: cap.name, result: cap.result, sequence: 0 }));
+      if (mode === 'after') imgs.push({ name: 'Enhanced Search Area 1', src: IMG['enh_' + k], enhanced: true });
+      imgs.sort((a, b) => (mode === 'after' && KIND(a) !== KIND(b) ? KIND(a) - KIND(b) : a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+        .forEach(({ enhanced, ...img }) => all.push({ ...img, captureName: cap.name, result: cap.result, sequence: 0 }));
     });
     return all;
   }

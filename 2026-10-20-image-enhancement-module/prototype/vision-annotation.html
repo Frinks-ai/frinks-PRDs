@@ -319,9 +319,8 @@ a{color:inherit;text-decoration:inherit}
   // written by Vision Module Setup; falls back to the default chain when nothing is stored.
   var STORE_KEY = 'ie-proto:v1';
   var DEFAULT_CHAIN = [
-    { f: 'localmediannorm', p: { rows: 15, cols: 15 } },
     { f: 'binarize' },
-    { f: 'open', p: { rows: 3, cols: 3 } }
+    { f: 'invert' }
   ];
   function readChain() {
     var chain = null;
