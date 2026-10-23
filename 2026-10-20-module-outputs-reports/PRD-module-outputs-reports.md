@@ -22,7 +22,9 @@ Everything still to be settled.
 ## 1. Summary
 - Reports & Analytics gets a **Module Outputs** button. It opens a setup window for the selected instance, listing every capture (grouped by variant) and, for each module, its **keys exactly as Edge shows them today** in PLC Write and Dashboard Builder (for example `[cls] Screw > [key-num] current_count`).
 - Ticking a key shows a **Display Name** box. The person types the name the value appears under on the Reports page, for example "Screw count" or "Serial No.".
-- After saving, a new **Module Outputs** column shows the ticked keys on each capture's row as `Display Name: value` lines, such as `Screw count: 4` or `Serial No.: SN-48213`.
+- The window opens on the instance shown in the Reports table, with an **Instance** dropdown to set up any other instance on the box.
+- Two options at the top, **Show in same column** and **Show in separate columns**, decide the layout. In the same column, the ticked keys share one Module Outputs column. In separate columns, each ticked key gets its own column, headed by its Display Name.
+- After saving, a new **Module Outputs** column (or one column per key) shows the ticked keys on each capture's row as `Display Name: value` lines, such as `Screw count: 4` or `Serial No.: SN-48213`.
 - Values come from the results Edge already stores with every cycle, so **past cycles show them too**. Changing the setup changes what every cycle shows, straight away, with no redeploy.
 - Every module type that has keys is covered: object detection, image classification, OCR, code reader, segmentation (single-class mode), bead inspection, colour detection, shape extractor, orientation & tilt check and single-capture dimensions.
 - The column is searchable with the existing Search box and exported to Excel as one "Module Outputs" column.
@@ -50,7 +52,8 @@ Everything still to be settled.
 ## 4. Key concepts
 - **Key:** a named value Edge keeps for an instance, capture, module, class, search area or label, the same keys offered today in PLC Write, Internal Actions and Dashboard Builder (for example `current_count` of class Screw).
 - **Display Name:** the name a ticked key's value appears under on the Reports page and in the Excel, typed by the person setting it up.
-- **Module Outputs setup:** the per-instance choice of which keys show in Reports and their Display Names.
+- **Module Outputs setup:** the per-instance choice of which keys show in Reports, their Display Names, and whether they share one column or get one column each.
+- **Show in same column / Show in separate columns:** the per-instance layout. Same column puts every ticked key in one Module Outputs column as `Display Name: value` lines. Separate columns gives each ticked key its own column, headed by its Display Name.
 
 ## 5. Impact map
 The parts this changes. Parts checked and not affected are listed at the very end.
@@ -94,13 +97,15 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 ![Today: no way to choose module values](prototype/reports-today.png)
 ![After: the Module Outputs window, first time, nothing ticked](prototype/setup-empty.png)
+![After: the Instance dropdown in the window's top pane](prototype/setup-instance.png)
 
 - **AC1.1** On the Cycle-wise tab, a "Module Outputs" button sits to the left of the Edit Table, Download, Filter and Refresh buttons. It is not shown on the Minute-wise tab.
-- **AC1.2** The button is disabled until an instance is selected, with the hover text "Select an instance first".
-- **AC1.3** Clicking it opens the "Module Outputs" window for the selected instance, with the instance name under the title. On the left, every capture of the instance is listed under its variant as "<capture position> · <capture name>", each with a count of its ticked values. On the right, the selected capture's modules are shown, one card each with the module name and type, listing every key it has (US3). Each capture's own keys come first, in a card headed by the capture.
+- **AC1.2** The button is enabled whether or not an instance is selected in the Reports filter bar.
+- **AC1.3** Clicking it opens the "Module Outputs" window. Its top pane holds an "Instance" dropdown, set to the instance selected in the Reports filter bar, and the two layout options (US2). On the left, every capture of the instance is listed under its variant as "<capture position> · <capture name>", each with a count of its ticked values. On the right, the selected capture's modules are shown, one card each with the module name and type, listing every key it has (US3). Each capture's own keys come first, in a card headed by the capture.
 - **AC1.4** A module with no keys (for example segmentation in normal mode) shows its card with "No keys". Modules that never have keys (US3, AC3.11) are not listed.
 - **AC1.5** The setup can be opened and saved whether the instance is deployed, running or stopped. Saved changes show in Reports at once, with no redeploy.
 - **AC1.6** If the setup cannot be loaded, the window shows "Module Outputs could not be loaded (RPT-MOUT-002)", and the table keeps working without the Module Outputs column.
+- **AC1.7** The Instance dropdown lists every instance on the box. Choosing another instance shows its captures, keys and saved setup. Unsaved changes on each instance are kept while switching, until Save or Cancel. Save stores every instance changed in the window. If no instance is selected in the Reports filter bar, the dropdown shows "Select an instance" and the panes stay empty until one is chosen.
 
 ### US2 — Choose and name the values
 *As a quality engineer, I want to tick the keys I care about and give each a Display Name my team knows, so that the report reads like our own checklist.*
@@ -112,6 +117,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Prototype:** [Step 3: Choose keys and Display Names](https://vbv-fr.github.io/module-outputs-prototype/#choose)
 
 ![After: detected_text and detected_string ticked, with Display Names Serial No. and QR code](prototype/setup.png)
+![After: Show in separate columns selected](prototype/setup-separate.png)
 
 - **AC2.1** The first time the setup is opened for an instance, nothing is ticked, and the table has no Module Outputs column.
 - **AC2.2** Each key row shows a tick box and the key the way Edge's key picker shows it today: the class, search area or label chip where there is one, then a "key-bool", "key-str" or "key-num" chip and the key name exactly as Edge stores it (for example `[cls] Screw > [key-num] current_count`).
@@ -120,7 +126,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC2.5** Save stores the setup, closes the window, shows "Module Outputs saved", and the table updates at once. Cancel or the close (×) button discards unsaved changes.
 - **AC2.6** If saving fails, the window stays open with the person's choices and shows "Module Outputs could not be saved (RPT-MOUT-001)". The setup saved earlier is unchanged.
 - **AC2.7** When two people change the setup at the same time, the last save wins.
-- **AC2.8** The setup belongs to the instance and is shared by everyone on the box: anyone who opens Reports for that instance sees the same column. Two instances of the same project keep separate setups.
+- **AC2.8** The setup belongs to the instance and is shared by everyone on the box: anyone who opens Reports for that instance sees the same columns. Two instances of the same project keep separate setups.
+- **AC2.9** The top pane has two radio buttons, "Show in same column" (selected by default) and "Show in separate columns". The choice is saved per instance with the setup and applies to the table, Edit Table, Search and the Excel (US4, US5).
 
 ### US3 — Values each module offers
 *As a quality engineer, I want to see the same keys Edge already uses for PLC and dashboards, so that what I pick for Reports matches what the line already knows.*
@@ -155,22 +162,26 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 - **Teams:** SDE
 - **Covers:** C5, C6, C12, C16
 - **Today:** Each capture row shows only Camera Position, Camera Configuration and Config Result (Pass or Fail). Class Name and Class Count show object counts only.
-- **Prototype:** [Step 5: Module Outputs column](https://vbv-fr.github.io/module-outputs-prototype/#column), [Step 6: Edit Table](https://vbv-fr.github.io/module-outputs-prototype/#edit-table), [Step 7: Search](https://vbv-fr.github.io/module-outputs-prototype/#search)
+- **Prototype:** [Step 5: Module Outputs column](https://vbv-fr.github.io/module-outputs-prototype/#column), [Step 6: Separate columns](https://vbv-fr.github.io/module-outputs-prototype/#separate), [Step 7: Edit Table](https://vbv-fr.github.io/module-outputs-prototype/#edit-table), [Step 8: Search](https://vbv-fr.github.io/module-outputs-prototype/#search)
 
 ![Today: capture rows show only Pass or Fail](prototype/reports-today.png)
 ![After: the Module Outputs column with each capture's values](prototype/reports-after.png)
+![After: Show in separate columns, one column per key headed by its Display Name](prototype/separate-after.png)
 ![After: Module Outputs in Edit Table, after Config Result](prototype/edit-table-after.png)
+![After: in separate columns, Edit Table lists each key column](prototype/edit-table-separate.png)
 ![Today: searching a serial number finds nothing](prototype/search-today.png)
 ![After: searching a serial number finds its cycle](prototype/search-after.png)
 
-- **AC4.1** After the first save, a "Module Outputs" column appears as the last per-capture column, after Config Result, and Camera Position and Camera Configuration are turned on with it.
-- **AC4.2** Each capture row shows its ticked keys, one per line, as "Display Name: value", in the order of the setup (module order, then key order).
+- **AC4.1** After the first save, the ticked keys appear after Config Result, as the last per-capture column or columns, and Camera Position and Camera Configuration are turned on with them.
+- **AC4.2** With "Show in same column", one "Module Outputs" column shows each capture's ticked keys, one per line, as "Display Name: value", in the order of the setup (module order, then key order).
 - **AC4.3** Values are read from the results already stored with each cycle. Cycles stored before the setup, and before this release, show values too. Changing the setup changes what every cycle shows.
 - **AC4.4** For a capture triggered more than once in a cycle, the values come from the latest attempt, the same attempt Config Result shows.
 - **AC4.5** A value with nothing found (no text read, no code decoded) shows "—"; a count of zero shows "0". A module that did not run on that image (its search area was not found) shows "Not run" for its values. A capture with nothing ticked shows "N/A". A stored result that lacks the value (for example one saved by an older Edge version) shows "—", never an error. Running totals that are not saved with each cycle (`pass_count`, `fail_count`, `count_till_now`, `avg_inference_time`, `completion_status`) show "—" (see Q2). Keys that hold a module setting (`correct_class`, `gt_string`, `labelName:<label>_gt_text`, `bead_class_name`, `dim_current_gt`, `colorName:<colour>_detected_color`) show the setting saved with that cycle where stored, else the current setting.
-- **AC4.6** Once set up, Edit Table lists "Module Outputs" after Config Result. Unticking it hides the column. While it is ticked, Camera Position and Camera Configuration cannot be turned off, as with Config Result today. Edit Table choices stay shared for the whole box, as today.
-- **AC4.7** The existing Search box also matches text in the Module Outputs column, the same way it matches the other visible columns on the page. No new search or filter controls are added.
+- **AC4.6** Once set up, Edit Table lists "Module Outputs" after Config Result, or, with "Show in separate columns", each key column by its Display Name. Unticking one hides it. While any of them is ticked, Camera Position and Camera Configuration cannot be turned off, as with Config Result today. Edit Table choices stay shared for the whole box, as today.
+- **AC4.7** The existing Search box also matches text in the Module Outputs column or the key columns, the same way it matches the other visible columns on the page. No new search or filter controls are added.
 - **AC4.8** Text read from parts (OCR text, codes) is shown exactly as read, as plain text, never as a link or formatted content.
+- **AC4.9** With "Show in separate columns", there is no Module Outputs column. Each ticked key gets its own column after Config Result, headed by its Display Name, in setup order (capture order, then module, then key). A cell holds only the value. A capture row fills only its own keys' columns; the others stay blank. Keys from different captures with the same Display Name share one column, each capture row filling its own value.
+- **AC4.10** When the key columns don't fit the page width, the table scrolls sideways, keeping today's header style.
 
 ### US5 — Module Outputs in the Excel export
 *As a quality engineer, I want the same values in the Excel, so that I can share and analyse them outside Edge.*
@@ -179,13 +190,15 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 - **Teams:** SDE
 - **Covers:** C8, C12, C16
 - **Today:** The Excel has Class Name and Class Count columns only. Image classification rows come out blank, and read text and codes are never exported.
-- **Prototype:** [Step 8: Excel export](https://vbv-fr.github.io/module-outputs-prototype/#excel)
+- **Prototype:** [Step 9: Excel export](https://vbv-fr.github.io/module-outputs-prototype/#excel)
 
 ![Today: the Excel has no module values](prototype/excel-today.png)
 ![After: the Excel has a Module Outputs column](prototype/excel-after.png)
+![After: with separate columns, the Excel has one column per key](prototype/excel-separate.png)
 
-- **AC5.1** When the column is visible, "Report (Excel Sheet)" gets a "Module Outputs" column after Config Result, with one cell per capture row holding the same "Display Name: value" lines as the screen, separated by line breaks.
+- **AC5.1** With "Show in same column" and the column visible, "Report (Excel Sheet)" gets a "Module Outputs" column after Config Result, with one cell per capture row holding the same "Display Name: value" lines as the screen, separated by line breaks.
 - **AC5.2** When the column is hidden in Edit Table, it is not exported, as with every other column today.
+- **AC5.5** With "Show in separate columns", the Excel gets one column per visible key column instead, after Config Result, headed by its Display Name, in the same order and with the same value-only cells as the screen.
 - **AC5.3** Values are written as text. A value that starts with =, +, - or @ is never treated as a formula.
 - **AC5.4** Export limits and filters are unchanged: up to 100,000 cycles still export with the column on, and the time, instance, variant, outcome, class and additional-info filters apply.
 
@@ -208,7 +221,7 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 - **Parts:** edge-access-audit, edge-reports-analytics
 - **Teams:** SDE
 - **Covers:** C1, C16
-- **Prototype:** [Step 9: Without Update permission](https://vbv-fr.github.io/module-outputs-prototype/#no-permission)
+- **Prototype:** [Step 10: Without Update permission](https://vbv-fr.github.io/module-outputs-prototype/#no-permission)
 
 ![After: the Module Outputs button is disabled without Update permission](prototype/no-permission-after.png)
 
@@ -294,10 +307,10 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 
 **Result:** PASS, 2 warnings
 
-- 11 user stories (6 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 67 ACs, 23 touched parts, 3 discussion points.
+- 11 user stories (6 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 72 ACs, 23 touched parts, 3 discussion points.
 - Checklist: 17 items covered by stories, 1 N/A, 0 open.
 - Warnings kept on purpose: AC8.4 contains "Fast", the product name "Fast Mode"; US3 names keys such as `current_count`, which are the names users see in Edge's key picker, not code.
-- Every punchlist item I1–I67 in notes.md maps to exactly one AC.
+- Every punchlist item I1–I72 in notes.md maps to exactly one AC.
 
 ## Appendix B — Code references
 For the ticket skill and developers. Paths are relative to each repo.
@@ -314,6 +327,7 @@ For the ticket skill and developers. Paths are relative to each repo.
 Repos checked: frinksedge-report @ 5fe5390 (15 Oct 2026), frinksedge-report-frontend @ 9893a19 (13 Oct 2026), frinksedge-inferencing-backend @ eddd8e5 (19 Oct 2026), frinksedge-deployment-backend @ 009fc11 (19 Oct 2026), frinksedge-deployment-frontend @ 7e92de34 (19 Oct 2026), frinksedge-health @ e8ef112 (15 Oct 2026), vip-inference-python @ 93451d1 (15 Oct 2026), frinksvision-backend @ eda944f (14 Oct 2026), frinksvision-frontend @ 110a23c (19 Oct 2026), Python-inference-docker @ 62e22bd (29 May 2026), release-manager-backend @ b8016f7 (22 Sep 2026), and the other 23 repos in the skill's list, all up to date on 20 Oct 2026.
 
 ## Changelog
+- 24 October 2026 — Instance dropdown at the top of the setup window, defaulting to the instance in the Reports table (AC1.2 changed, AC1.7 added); "Show in same column / Show in separate columns" layout per instance (AC2.9, AC4.9, AC4.10, AC5.5 added; AC2.8, AC4.1, AC4.2, AC4.6, AC4.7, AC5.1 changed) (Tanay Deo)
 - 23 October 2026 — Setup lists each module's real Edge keys as the key picker shows them; ticking a key asks for a Display Name used on the Reports page. US2 and US3 rewritten; old Q2 (segmentation "Detected classes") dropped as segmentation offers only its keys; new Q2 (running totals) and Q3 (values with no key) (Tanay Deo)
 - 23 October 2026 — Duplicate pass: AC8.4, AC11.1 and AC11.3 no longer restate AC1.1, AC4.3 and AC4.5 (Tanay Deo)
 - 23 October 2026 — Moved to the current template: open questions now sit in Discussion points at the top; added Q2 (segmentation "Detected classes"); Word copy dropped, the PRD repo is the only published copy (Tanay Deo)
