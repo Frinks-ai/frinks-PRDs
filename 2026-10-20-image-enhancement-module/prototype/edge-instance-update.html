@@ -138,15 +138,6 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .iw-sec td{padding:12px 0!important;color:#374151;text-align:center}
 .iw-f{margin-left:auto;display:flex;align-items:center;gap:12px;padding-top:8px}
 
-/* Keep Edge filters / Use Vision filters: shared/ui/Radio.jsx in the FilePaths.jsx:175-196 layout */
-.ch{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-.ch-o{display:flex;align-items:center;gap:8px;cursor:pointer}
-.ch-o span{font-size:14px;line-height:20px;color:#000;white-space:nowrap}
-.rd{width:24px;height:24px;flex-shrink:0;border-radius:9999px;display:flex;align-items:center;justify-content:center;border:1px solid #ccc;cursor:pointer;
-  color:#fff;filter:drop-shadow(0 1px 2px rgb(0 0 0/.1)) drop-shadow(0 1px 1px rgb(0 0 0/.06))}
-.rd:hover{filter:drop-shadow(0 20px 13px rgb(0 0 0/.03)) drop-shadow(0 8px 5px rgb(0 0 0/.08))}
-.rd.on{background:#ff4301}
-.rd i{width:8px;height:8px;background:#fff;border-radius:9999px}
 .iw-sec td.fl{padding:12px 8px!important}
 
 /* ProjectCreateLoader (shared/ui/ProjectCreateLoader.jsx + shared/styles/loader.css) */
@@ -370,13 +361,15 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   // null = no Edge changes (the Edge runs Vision's chain).
   var KEY = 'ie-proto:v1';
   var DEFAULT_CHAIN = [{ f: 'binarize' }, { f: 'invert' }];
+  // "ieBase" (written by this page on Upload) = the Vision values this Edge received at its last update, so a value
+  // counts as tuned on Edge when it differs from that base, and as changed in Vision when Vision's differs from it.
   // Standalone samples (nothing stored by the flow).
-  // Values only: Binarize and Invert have no values, so this update's IE_1 also has an Open step added in Vision (3 x 3),
-  // which this Edge tuned to 5 x 5.
+  // Values only: Binarize and Invert have no values, so this update's IE_1 also has an Open step (3 x 3 in Vision,
+  // unchanged since the last update), which this Edge tuned to 5 x 5.
   var SAMPLE_VISION = DEFAULT_CHAIN.concat([{ f: 'open', p: { rows: 3, cols: 3 } }]);
-  // ?state=chain-changed: the filters were changed on this Edge (Local Median Normalization 15 x 15 added and moved to
-  // step 1, as in edge-emc.html?state=edit-chain); Vision still has the default chain.
-  var EDGE_EDITED = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'invert' }];
+  // ?state=chain-changed: Vision added Equalize and Stretch after Open; Vision's list replaces this Edge's.
+  var CC_EDGE = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'open', p: { rows: 3, cols: 3 } }];
+  var CC_VISION = CC_EDGE.concat([{ f: 'equalize' }, { f: 'stretch' }]);
 
   function readStore() { try { return JSON.parse(localStorage.getItem(KEY) || 'null') || {}; } catch (e) { return {}; } }
   function validChain(c) { return Array.isArray(c) && c.length > 0 && c.every(function (s) { return s && FILTERS[s.f]; }); }
@@ -392,14 +385,14 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     });
   }
 
-  var visionChain, edgeChain, chainChanged, choice = 'vision';
+  var visionChain, edgeChain, baseChain, chainChanged;
   function computeChains() {
     var st = readStore(), stored = validChain(st.chain);
     var hasEdge = validChain(st.edgeChain);
     if (state === 'chain-changed') {
-      visionChain = stored ? st.chain : DEFAULT_CHAIN;
+      visionChain = stored ? st.chain : CC_VISION;
       edgeChain = hasEdge && !sameList(st.edgeChain, visionChain) ? st.edgeChain
-        : !sameList(EDGE_EDITED, visionChain) ? EDGE_EDITED : DEFAULT_CHAIN;
+        : !sameList(CC_EDGE, visionChain) ? CC_EDGE : DEFAULT_CHAIN;
     } else if (stored) {
       // In the flow: compare what is really stored. edgeChain = null means no Edge changes (values-only, nothing tuned).
       visionChain = st.chain;
@@ -409,6 +402,25 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       edgeChain = tuned(SAMPLE_VISION);
     }
     chainChanged = !sameList(edgeChain, visionChain);
+    // Without a recorded base (or a different list) the Edge is taken to have received Vision's current values.
+    baseChain = validChain(st.ieBase) && sameList(st.ieBase, edgeChain) ? st.ieBase : visionChain;
+  }
+  // Same list: a value tuned on Edge is kept unless Vision changed it too (Vision's changes win); every other value
+  // takes Vision's. Returns the merged chain and the kept values.
+  function mergeValues() {
+    var kept = [];
+    var merged = edgeChain.map(function (s, i) {
+      var defs = PARAMS[FILTERS[s.f].p], o = clone(visionChain[i]);
+      if (!defs) return o;
+      o.p = {};
+      defs.forEach(function (d) {
+        var e = val(s, d), v = val(visionChain[i], d), b = val(baseChain[i], d);
+        if (e !== b && v === b) { o.p[d.k] = e; if (e !== v) kept.push({ i: i, f: s.f, d: d, e: e, v: v }); }
+        else o.p[d.k] = v;
+      });
+      return o;
+    });
+    return { chain: merged, kept: kept };
   }
 
   // ---------- Upload validation result (frinksedge-deployment-backend service/uploadValidation.ts) ----------
@@ -425,26 +437,13 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   function gtDiffs() {
     var rows = [OCR_DIFF];
     if (mode === 'after' && !chainChanged) {
-      edgeChain.forEach(function (s, i) {
-        var defs = PARAMS[FILTERS[s.f].p];
-        if (!defs) return;
-        defs.forEach(function (d) {
-          var e = val(s, d), v = val(visionChain[i], d);
-          if (e !== v) rows.push({ variantName: 'Variant A', captureName: 'Capture 1', moduleName: 'IE_1', className: 'Step ' + (i + 1) + ' · ' + FILTERS[s.f].name, parameter: d.label, existingValue: e, incomingValue: v });
-        });
+      mergeValues().kept.forEach(function (k) {
+        rows.push({ variantName: 'Variant A', captureName: 'Capture 1', moduleName: 'IE_1', className: 'Step ' + (k.i + 1) + ' · ' + FILTERS[k.f].name, parameter: k.d.label, existingValue: k.e, incomingValue: k.v });
       });
     }
     return rows;
   }
-  // One filter list as text, with its values: "Local Median Normalization (15 × 15) → Binarize → Invert".
-  function listText(c) {
-    return c.map(function (s) {
-      var F = FILTERS[s.f], defs = PARAMS[F.p];
-      if (!defs) return F.name;
-      var v = defs.map(function (d) { return val(s, d); });
-      return F.name + ' (' + (F.p === 'kernel' ? v.join(' × ') : v.join('–')) + ')';
-    }).join(' → ');
-  }
+  function listText(c) { return c.map(function (s) { return FILTERS[s.f].name; }).join(' → '); }
 
   // ---------- Table (shared/ui/Table.jsx) ----------
   var INFO = function (tip) {
@@ -556,19 +555,12 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       '</div>';
 
     if (mode === 'after' && chainChanged) {
-      h += '<div class="iw-sec"><h3>Image Enhancement Filters</h3>' +
-        '<p>The following Image Enhancement filters on this Edge device differ from the filters in Vision. Choose the filters to use in the updated instance.</p>' +
-        tableHTML(['Variant', 'Capture', 'Module', 'Edge Filters', 'Vision Filters', 'Choice'],
+      h += '<div class="iw-sec"><h3>Image Enhancement Replacement</h3>' +
+        '<p>The following Image Enhancement filters configured on this Edge device will be replaced by the filters from Vision.</p>' +
+        tableHTML(['Variant', 'Capture', 'Module', 'Edge (Replaced)', 'Vision'],
           '<tr class="odd">' + ['Variant A', 'Capture 1', 'IE_1'].map(function (c) { return '<td><div class="td-in">' + esc(c) + '</div></td>'; }).join('') +
           '<td class="fl"><div class="td-in">' + esc(listText(edgeChain)) + '</div></td>' +
-          '<td class="fl"><div class="td-in">' + esc(listText(visionChain)) + '</div></td>' +
-          '<td><div class="td-in"><div class="ch" role="radiogroup" aria-label="IE_1 filters">' +
-            [['edge', 'Keep Edge filters'], ['vision', 'Use Vision filters']].map(function (o) {
-              var on = choice === o[0];
-              return '<div class="ch-o" data-choice="' + o[0] + '" role="radio" aria-checked="' + on + '" tabindex="0">' +
-                '<label class="rd' + (on ? ' on' : '') + '"><i></i></label><span>' + o[1] + '</span></div>';
-            }).join('') +
-          '</div></div></td></tr>', true) +
+          '<td class="fl"><div class="td-in">' + esc(listText(visionChain)) + '</div></td></tr>', true) +
         '</div>';
     }
 
@@ -582,28 +574,19 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   function closeWarning() { document.getElementById('modalRoot').innerHTML = ''; }
 
   document.getElementById('modalRoot').addEventListener('click', function (e) {
-    var o = e.target.closest('[data-choice]');
-    if (o) {
-      choice = o.getAttribute('data-choice');
-      document.querySelectorAll('#modalRoot [data-choice]').forEach(function (x) {
-        var on = x.getAttribute('data-choice') === choice;
-        x.setAttribute('aria-checked', String(on));
-        x.querySelector('.rd').classList.toggle('on', on);
-      });
-      return;
-    }
     var b = e.target.closest('[data-w]');
     if (!b) return;
     closeWarning();
     if (b.getAttribute('data-w') !== 'upload') return;
-    // Upload. Same filter list: values tuned on Edge are kept, the others take Vision's.
-    // Different lists: Keep Edge filters keeps Edge's list and values; Use Vision filters takes Vision's (no Edge changes).
+    // Upload. Same filter list: values tuned on Edge are kept unless Vision changed them too; the others take Vision's.
+    // Different lists: Vision's list and values replace Edge's (no Edge changes left).
     if (mode === 'after') {
       try {
         var st = readStore();
         st.chain = visionChain;
-        if (chainChanged) st.edgeChain = choice === 'edge' ? edgeChain : null;
-        else st.edgeChain = JSON.stringify(edgeChain) === JSON.stringify(visionChain) ? null : edgeChain;
+        st.ieBase = visionChain;
+        if (chainChanged) st.edgeChain = null;
+        else { var merged = mergeValues().chain; st.edgeChain = JSON.stringify(merged) === JSON.stringify(visionChain) ? null : merged; }
         if (!st.areaName) st.areaName = 'Enhanced Search Area 1';
         if (!st.moduleName) st.moduleName = 'IE_1';
         localStorage.setItem(KEY, JSON.stringify(st));
@@ -619,10 +602,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   window.addEventListener('storage', function (e) {
     if ((e.key === null || e.key === KEY) && document.querySelector('#modalRoot .iw')) openWarning();
   });
-  document.getElementById('modalRoot').addEventListener('keydown', function (e) {
-    var o = e.target.closest('[data-choice]');
-    if (o && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); o.click(); }
-  });
+
   window.addEventListener('resize', sizeColumns);
 
   // ---------- Prototype switcher (hidden inside the workflow shell, whose own toggle passes ?mode=) ----------
