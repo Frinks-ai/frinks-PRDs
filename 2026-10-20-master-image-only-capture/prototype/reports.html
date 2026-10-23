@@ -326,24 +326,7 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
       return s + screws([[340, 215], [940, 215], [340, 750], [940, 750]]);
     },
   };
-  // Search-area overlay, as vip-inference-python draws it (resultModule.py viz loop -> Visualisor.draw_polygon +
-  // write_name): border #008000 pass / #FF0000 fail, borderWidth 10, labelSize 2, text TL "outside", Hershey-style
-  // label in the border colour with a black outline, fitted to the box and clamped inside the image.
-  function saLayer(sa) {
-    const W = 1280, H = 960, c = sa.pass === false ? '#FF0000' : '#008000';
-    const bw = sa.x2 - sa.x1, bh = sa.y2 - sa.y1, big = bw > 400;
-    const tw1 = sa.name.length * 19, th1 = 22; // Hershey simplex size at fontScale 1
-    let fs = 2;
-    if (tw1 * fs > bw * (big ? 0.5 : 0.9)) fs = (bw * (big ? 0.5 : 0.9)) / tw1;
-    if (th1 * fs > bh * (big ? 0.3 : 0.4)) fs = (bh * (big ? 0.3 : 0.4)) / th1;
-    fs = Math.max(0.5, fs);
-    const t = Math.max(1, Math.floor(2 * fs)), m = t + 2, tw = tw1 * fs, th = th1 * fs;
-    const x = Math.max(m, Math.min(sa.x1 + 3, W - tw - m)), y = Math.max(th + m, Math.min(sa.y1 - 3, H - m));
-    return `<rect x="${sa.x1}" y="${sa.y1}" width="${bw}" height="${bh}" fill="none" stroke="${c}" stroke-width="10"/>` +
-      `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="Helvetica,Arial,sans-serif" font-size="${(th / 0.72).toFixed(1)}" textLength="${tw.toFixed(1)}" ` +
-      `lengthAdjust="spacingAndGlyphs" fill="${c}" stroke="#000" stroke-width="2" paint-order="stroke" stroke-linejoin="round">${sa.name}</text>`;
-  }
-  function frame(kind, draws, defect, sa) {
+  function frame(kind, draws, defect) {
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 960" width="1280" height="960"><defs>' +
       '<radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#2a2d33"/><stop offset="1" stop-color="#0d0e11"/></radialGradient>' +
       '<linearGradient id="m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9aeb5"/><stop offset=".5" stop-color="#7d828a"/><stop offset="1" stop-color="#5a5f66"/></linearGradient>' +
@@ -355,7 +338,6 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
         `<rect x="${d.x - 2.5}" y="${d.y - 44}" width="${tw}" height="44" fill="${c}"/>` +
         `<text x="${d.x + 10}" y="${d.y - 12}" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="${d.ok ? '#052e14' : '#fff'}">${d.label}</text>`;
     });
-    if (sa) s += saLayer(sa);
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s + '</svg>');
   }
 
@@ -363,20 +345,18 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
   const BOLT = (conf) => ({ x: 322, y: 352, w: 196, h: 196, label: 'bolt ' + conf, ok: true });
   const CLIP = (conf) => ({ x: 540, y: 590, w: 200, h: 110, label: 'clip ' + conf, ok: true });
   const LOT = { x: 405, y: 375, w: 400, h: 75, label: 'LOT 2410-A7 0.98', ok: true };
-  const AREA = { bolt: { x1: 270, y1: 290, x2: 570, y2: 610 }, clip: { x1: 515, y1: 530, x2: 935, y2: 715 },
-    label: { x1: 370, y1: 300, x2: 910, y2: 610 }, full: { x1: 0, y1: 0, x2: 1280, y2: 960 } };
   const CYCLES = [
     { ts: '20/10/2026, 02:14:07 PM', variant: 'Variant A', result: true, caps: [
-      { pos: 'CP1', name: 'Front View', kind: 'front', result: true, sas: [{ name: 'Bolt Area', area: AREA.bolt, draws: [BOLT('0.96')] }, { name: 'Clip Area', area: AREA.clip, draws: [CLIP('0.94')] }] },
+      { pos: 'CP1', name: 'Front View', kind: 'front', result: true, sas: [{ name: 'Bolt Area', draws: [BOLT('0.96')] }, { name: 'Clip Area', draws: [CLIP('0.94')] }] },
       { pos: 'CP2', name: 'Top View', kind: 'top', result: true, masterOnly: true },
-      { pos: 'CP3', name: 'Label Side', kind: 'label', result: true, sas: [{ name: 'Label Text', area: AREA.label, draws: [LOT] }] },
+      { pos: 'CP3', name: 'Label Side', kind: 'label', result: true, sas: [{ name: 'Label Text', draws: [LOT] }] },
     ] },
     { ts: '20/10/2026, 02:14:01 PM', variant: 'Variant A', result: false, caps: [
       { pos: 'CP1', name: 'Front View', kind: 'front', result: false, defect: true, sas: [
-        { name: 'Bolt Area', area: AREA.bolt, draws: [BOLT('0.95')] },
-        { name: 'Clip Area', area: AREA.clip, pass: false, draws: [CLIP('0.93'), { x: 752, y: 585, w: 165, h: 85, label: 'scratch 0.88', ok: false }] }] },
+        { name: 'Bolt Area', draws: [BOLT('0.95')] },
+        { name: 'Clip Area', draws: [CLIP('0.93'), { x: 752, y: 585, w: 165, h: 85, label: 'scratch 0.88', ok: false }] }] },
       { pos: 'CP2', name: 'Top View', kind: 'top', result: true, masterOnly: true },
-      { pos: 'CP3', name: 'Label Side', kind: 'label', result: true, sas: [{ name: 'Label Text', area: AREA.label, draws: [LOT] }] },
+      { pos: 'CP3', name: 'Label Side', kind: 'label', result: true, sas: [{ name: 'Label Text', draws: [LOT] }] },
     ] },
     { ts: '20/10/2026, 02:13:55 PM', variant: 'Variant B', result: true, caps: [
       { pos: 'CP1', name: 'Pack Photo', kind: 'pack', result: true, masterOnly: true },
@@ -388,12 +368,12 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
   try { if (new URLSearchParams(location.search).get('mode') === 'today') mode = 'today'; } catch (e) { /* ignore */ }
 
   // Today: a capture with no modules writes no capture row, so it has no sub-row and no images.
-  // After change: it gets a normal capture row; analysed image = full frame drawn as a passing "Input Image" search area.
+  // After change: it gets a normal capture row; analysed image = the clean full frame (search-area borders are off by
+  // default in Analysed Image Configurations, and the whole-frame master area is never drawn), same as its raw image.
   const captureRows = (c) => (mode === 'today' ? c.caps.filter((cap) => !cap.masterOnly) : c.caps);
   const resultImages = (c) => captureRows(c).flatMap((cap) => cap.masterOnly
-    ? [{ captureName: cap.name, name: 'Input Image', result: cap.result, src: frame(cap.kind, [], false, { ...AREA.full, name: 'Input Image' }) }]
-    : cap.sas.map((sa) => ({ captureName: cap.name, name: sa.name, result: cap.result,
-      src: frame(cap.kind, sa.draws, cap.defect, { ...sa.area, name: sa.name, pass: sa.pass }) })));
+    ? [{ captureName: cap.name, name: 'Input Image', result: cap.result, src: frame(cap.kind, [], cap.defect) }]
+    : cap.sas.map((sa) => ({ captureName: cap.name, name: sa.name, result: cap.result, src: frame(cap.kind, sa.draws, cap.defect) })));
   const rawImages = (c) => captureRows(c).map((cap) => ({ captureName: cap.name, name: 'Raw Image', src: frame(cap.kind, [], cap.defect) }));
 
   // ---------- Table (mirrors ResultTable.jsx: per-result cells rowSpan across capture sub-rows) ----------
