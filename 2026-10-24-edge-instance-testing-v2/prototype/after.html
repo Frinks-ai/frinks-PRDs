@@ -167,7 +167,7 @@ const cn = (id) => `${CAPS[id].v} · ${CAPS[id].c}`;
 const UNREADABLE = [7, 23, 41, 58, 77, 102]; // Hinge U · Right Part, Test 14
 
 const TESTS = [
-  { n: 14, started: '16 Oct 2026, 10:42 AM', took: '3 min 12 s', by: 'you', imgs: { hu: 120, hy: 88, br: 64, hs: 40, hl: 120 }, status: 'errors',
+  { n: 14, started: '16 Oct 2026, 10:42 AM', took: '3 min 12 s', by: 'you', imgs: { hu: 120, hy: 88, br: 64, hs: 40, hl: 120 }, skipped: { hy: 12 }, status: 'errors',
     reason: '6 of 120 images for Hinge U · Right Part could not be read (the files are damaged). They were left out; everything else was tested.', results: true },
   { n: 13, started: '15 Oct 2026, 4:20 PM', took: '1 min 05 s', by: 'Akshat', imgs: { hu: 40, hy: 24 }, status: 'done',
     reason: '', results: true },
@@ -189,15 +189,16 @@ const pill = (st, extra = '') => `<span class="inline-flex items-center whitespa
 // Run drawer rows. warnC = config warnings (always shown); warnF = folder warnings (only once a folder is chosen)
 const ROWS = [
   { id: 'hu', v: 'Hinge U', c: 'Right Part', pick: 'hinge_u_right', imgs: 120, annotated: true },
-  { id: 'hy', v: 'Hinge Y', c: 'Top View', pick: 'hinge_y_top', imgs: 88,
-    warnF: ["Image size doesn't match this camera: your images are 1920 × 1080, but this camera takes 2448 × 2048 images. Search areas would land in the wrong place, so the results won't be reliable."] },
+  { id: 'hy', v: 'Hinge Y', c: 'Top View', pick: 'hinge_y_top', imgs: 88, skip: 12,
+    warnF: ["Image size doesn't match this camera: 12 of 88 images are 1920 × 1080, but this camera takes 2448 × 2048 images. Those 12 won't be uploaded; the other 76 will be tested."] },
   { id: 'br', v: 'Bracket', c: 'Weld View', pick: 'bracket_weld', imgs: 64, annotated: true },
   { id: 'hs', v: 'Housing', c: 'Sealant', pick: 'housing_sealant_oct', imgs: 640,
     warnF: ['Not enough free space on the device: these images need about 2.4 GB and only 1.1 GB is free. Free up space or choose fewer images.'] },
   { id: 'hl', v: 'Housing', c: 'Label', pick: 'housing_label', imgs: 120, annotated: true },
   { id: 'hg', v: 'Housing', c: 'Gasket', err: "Can't be tested: bead inspection isn't set up for this capture yet (bead width and gap rules are missing).", link: 'Open Edit Module Configurations' },
 ];
-const imgsOf = (id) => ROWS.find((r) => r.id === id).imgs;
+// Images of the wrong size are skipped at upload; the rest of the folder is tested
+const imgsOf = (id) => { const r = ROWS.find((x) => x.id === id); return r.imgs - (r.skip || 0); };
 
 /* ════════════════════════ state ════════════════════════ */
 const S = {
@@ -205,7 +206,7 @@ const S = {
   deploy: false, other: false, recipe: false, annot: false,
   myRun: null, deleted: [], today: false,
   dr: { f: { hu: true, hy: true, br: true, hs: true, hl: false }, up: null },
-  res: { test: 14, tab: 'results', cap: 'hu', img: 2, mod: { hu: 'pin', hy: 'plating', br: 'weld', hs: 'bead', hl: 'ocr' } },
+  res: { test: 14, tab: 'summary', cap: 'hu', img: 2, mod: { hu: 'pin', hy: 'plating', br: 'weld', hs: 'bead', hl: 'ocr' } },
   thr: {}, saved: {},
 };
 for (const [id, m] of Object.entries(MODS)) {
@@ -384,40 +385,26 @@ function runCard(r) {
 }
 
 function lastTestCard() {
+  // Only a banner for the last finished test; its details live in the results Summary
   const t = allTests().find((x) => x.status !== 'running');
   if (!t) return '';
-  const caps = Object.keys(t.imgs);
-  const rows = caps.map((c) => {
-    const n = t.imgs[c];
-    const bad = t.status === 'errors' && c === 'hu' ? UNREADABLE.length : 0;
-    const chips = CAPS[c].mods.map((m) => `<span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs text-gray-700 ring-1 ring-gray-200"><span class="inline-block h-2 w-2 rounded-sm" style="background:${MODS[m].color}"></span>${MODS[m].name} <b class="font-semibold text-gray-900">${MODS[m].ms} ms</b></span>`).join(' ');
-    return `<tr class="align-top">
-      <td class="py-2.5 pr-4 font-medium text-gray-900">${cn(c)}</td>
-      <td class="py-2.5 pr-4 text-gray-700">${bad ? `${n - bad} of ${n} <span class="text-xs text-amber-800">(${bad} couldn't be read)</span>` : n}</td>
-      <td class="py-2.5"><div class="flex flex-wrap gap-1.5">${chips}</div></td>
-    </tr>`;
-  }).join('');
-  const total = caps.reduce((s, c) => s + t.imgs[c], 0);
-  return `<section class="rounded-xl border border-gray-100 bg-gray-50/50 p-6 shadow-sm">
-      <div class="flex flex-wrap items-start justify-between gap-3">
+  const B = {
+    done: ['Testing Completed', 'border-emerald-200 bg-emerald-50', ICON.ok],
+    errors: ['Testing Completed with errors', 'border-amber-200 bg-amber-50', ICON.warn],
+    failed: ['Testing Failed', 'border-red-200 bg-red-50', ICON.err],
+    cancelled: ['Testing Cancelled', 'border-gray-200 bg-gray-50', ICON.info],
+  }[t.status];
+  return `<section class="flex flex-wrap items-center justify-between gap-4 rounded-xl border ${B[1]} px-5 py-4">
+      <div class="flex items-start gap-3">
+        ${B[2].replace('mt-[2px] h-4 w-4', 'mt-0.5 h-6 w-6')}
         <div>
-          <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Last test</div>
-          <h2 class="mt-1 flex flex-wrap items-center gap-2 text-xl font-semibold text-gray-800">Test ${t.n} ${pill(t.status)}</h2>
+          <h2 class="text-lg font-semibold text-gray-900">${B[0]}</h2>
+          <p class="text-sm text-gray-600">Test ${t.n} · ${t.started} · by ${t.by}</p>
           ${t.reason ? `<p class="mt-1 max-w-3xl text-sm text-gray-700">${t.reason}</p>` : ''}
+
         </div>
-        ${t.results ? `<button data-act="viewResults" data-test="${t.n}" class="inline-flex items-center justify-center rounded-md border border-f-primary bg-transparent px-6 py-2 text-sm font-semibold text-f-primary hover:bg-f-primary/5">View results</button>` : ''}
       </div>
-      <dl class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div><dt class="text-sm text-gray-500">Ran</dt><dd class="font-semibold text-gray-900">${t.started}<span class="block text-sm font-normal text-gray-600">by ${t.by}</span></dd></div>
-        <div><dt class="text-sm text-gray-500">Took</dt><dd class="font-semibold text-gray-900">${t.took}</dd></div>
-        <div><dt class="text-sm text-gray-500">Images</dt><dd class="font-semibold text-gray-900">${total} across ${caps.length} captures</dd></div>
-        <div><dt class="text-sm text-gray-500">Annotations</dt><dd class="font-semibold text-gray-900">${S.annot ? 'Added' : 'Not added'}</dd></div>
-      </dl>
-      ${S.recipe ? `<div class="mt-4 inline-flex items-center gap-2 rounded-md bg-yellow-50 px-3 py-1.5 text-sm text-yellow-900 ring-1 ring-yellow-300">${ICON.warn}Settings have changed since this test ran.</div>` : ''}
-      <table class="mt-5 w-full text-sm">
-        <thead><tr class="border-b border-gray-200 text-left text-gray-500"><th class="py-2 pr-4 font-medium">Variant – Capture</th><th class="py-2 pr-4 font-medium">Images tested</th><th class="py-2 font-medium">Average time per image, per module</th></tr></thead>
-        <tbody class="divide-y divide-gray-100">${rows}</tbody>
-      </table>
+      ${t.results ? `<button data-act="viewResults" data-test="${t.n}" class="inline-flex items-center justify-center rounded-md bg-f-primary px-6 py-2 text-sm font-semibold text-white hover:bg-f-primary/90">View Results</button>` : ''}
     </section>
     `;
 }
@@ -499,14 +486,17 @@ function drawerView() {
 }
 function rowHtml(r) {
   const on = !r.err && S.dr.f[r.id];
+  // Errors and warnings sit behind one icon beside the folder; hovering it shows them
   const lines = [];
-  if (r.err) lines.push(`<div class="flex items-start gap-2 text-red-800">${ICON.err}<span>${r.err}${r.link ? ` <a href="#" data-act="openEMC" class="font-semibold text-f-primary underline">${r.link}</a>` : ''}</span></div>`);
-  if (on) {
-    const ann = S.annot && r.annotated ? `, each with an annotation file` : ', no annotation files';
-    lines.push(`<div class="flex items-start gap-2 text-gray-700">${ICON.ok}<span>${r.imgs} images${ann}.</span></div>`);
-  }
-  (r.warnC || []).forEach((w) => lines.push(`<div class="flex items-start gap-2 text-amber-900">${ICON.warn}<span>${w}</span></div>`));
-  if (on) (r.warnF || []).forEach((w) => lines.push(`<div class="flex items-start gap-2 text-amber-900">${ICON.warn}<span>${w}</span></div>`));
+  if (r.err) lines.push(`<div class="flex items-start gap-2">${ICON.err}<span>${r.err}${r.link ? ` <a href="#" data-act="openEMC" class="font-semibold text-orange-300 underline">${r.link}</a>` : ''}</span></div>`);
+  (r.warnC || []).forEach((w) => lines.push(`<div class="flex items-start gap-2">${ICON.warn}<span>${w}</span></div>`));
+  if (on) (r.warnF || []).forEach((w) => lines.push(`<div class="flex items-start gap-2">${ICON.warn}<span>${w}</span></div>`));
+  const tip = lines.length
+    ? `<span class="group relative inline-flex">
+        <button class="rounded p-1 ${r.err ? 'text-red-600' : 'text-amber-600'} hover:bg-gray-100" aria-label="${r.err ? 'Error' : 'Warning'}: ${(r.err || (r.warnF || r.warnC)[0]).replace(/"/g, '&quot;')}">${(r.err ? ICON.err : ICON.warn).replace('mt-[2px] h-4 w-4', 'h-5 w-5')}</button>
+        <span class="tip ${S.tip === r.id ? '' : 'invisible opacity-0'} absolute right-0 top-full z-20 flex w-[340px] flex-col gap-2 rounded-md bg-gray-900 px-3 py-2.5 text-[13px] leading-snug text-white shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">${lines.join('')}</span>
+      </span>`
+    : '';
   const folder = r.err
     ? '<button disabled class="cursor-not-allowed rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-400">Choose folder</button>'
     : on
@@ -516,9 +506,8 @@ function rowHtml(r) {
   return `<tr class="${tone}">
     <td class="px-3 pt-3 align-top font-medium ${r.err ? 'text-gray-500' : ''}">${r.v}</td>
     <td class="px-3 pt-3 align-top font-medium ${r.err ? 'text-gray-500' : ''}">${r.c}</td>
-    <td class="px-3 pt-3 align-top">${folder}</td>
-  </tr>
-  ${lines.length ? `<tr class="${tone} !border-t-0"><td colspan="3" class="px-3 pb-3 pt-2"><div class="flex flex-col gap-1 text-[13px] leading-snug">${lines.join('')}</div></td></tr>` : ''}`;
+    <td class="px-3 py-3 align-top"><div class="flex items-center gap-2">${folder}${tip}</div></td>
+  </tr>`;
 }
 function drCounts() {
   let ready = 0, warn = 0, blocked = 0;
@@ -576,20 +565,52 @@ function resultsView() {
       <div>
         <h1 class="flex flex-wrap items-center gap-3 text-2xl font-bold">Test ${t.n} results ${pill(t.status)}</h1>
         ${t.reason ? `<p class="mt-1 max-w-4xl text-sm text-gray-700">${t.reason}</p>` : ''}
-        <p class="mt-1 text-sm text-gray-500">Ran ${t.started} · took ${t.took} · ${caps.length} captures · ${total} images · annotations ${S.annot ? 'added' : 'not added'} · run by ${t.by}</p>
       </div>
       ${S.recipe ? `<div class="flex flex-wrap items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">${ICON.warn}<span class="flex-1">These results use the settings from when the test ran. Settings have changed since — run a new test to see the effect.</span><button data-act="openDrawer" class="rounded-md bg-f-primary px-4 py-1.5 text-sm font-semibold text-white">Run a new test</button></div>
         ` : ''}
-      <div class="flex justify-center"><div class="inline-flex border-b border-gray-300">${tab('results', 'Test Results')}${tab('metrics', 'Performance Metrics')}</div></div>
-      ${S.res.tab === 'results' ? resultsTab(capSel) : metricsTab(capSel)}
+      <div class="flex justify-center"><div class="inline-flex border-b border-gray-300">${tab('summary', 'Summary')}${tab('module', 'Module Results')}${tab('metrics', 'Performance Metrics')}</div></div>
+      ${S.res.tab === 'summary' ? summaryTab(t) : S.res.tab === 'module' ? resultsTab(capSel) : metricsTab(capSel)}
     </div>
   </div>`;
+}
+// Frinks UI table header: orange row, white text
+const thO = (label, cls = '') => `<th class="px-4 py-3 text-left text-sm font-medium text-white ${cls}">${label}</th>`;
+const capMs = (c) => CAPS[c].mods.reduce((s, m) => s + MODS[m].ms, 0);
+function summaryTab(t) {
+  const caps = Object.keys(t.imgs);
+  const total = caps.reduce((s, c) => s + t.imgs[c], 0);
+  // OK / NG at the thresholds the test ran with, not the sliders on Module Results
+  const tried = S.thr; S.thr = S.saved;
+  const counts = Object.fromEntries(caps.map((c) => [c, capCounts(c)]));
+  S.thr = tried;
+  const rows = caps.map((c) => {
+    const n = t.imgs[c], cc = counts[c];
+    const bad = t.status === 'errors' && c === 'hu' ? UNREADABLE.length : 0;
+    const skip = (t.skipped || {})[c];
+    const notes = [bad ? `${bad} couldn't be read` : '', skip ? `${skip} skipped at upload: wrong image size` : ''].filter(Boolean);
+    return `<tr class="align-top">
+      <td class="px-4 py-3 font-medium text-gray-900">${cn(c)}</td>
+      <td class="px-4 py-3 text-gray-700">${bad ? `${n - bad} of ${n}` : n}${notes.length ? `<div class="text-xs text-amber-800">${notes.join(' · ')}</div>` : ''}</td>
+      <td class="px-4 py-3 font-semibold text-emerald-700">${cc.ok}</td>
+      <td class="px-4 py-3 font-semibold text-red-700">${cc.ng}</td>
+      <td class="px-4 py-3 text-gray-700">${capMs(c)} ms</td>
+    </tr>`;
+  }).join('');
+  return `<section class="flex flex-col gap-2">
+      <div class="overflow-x-auto rounded-lg border border-gray-200">
+        <table class="w-full min-w-[720px] text-sm">
+          <thead><tr class="bg-f-primary">${thO('Variant – Capture')}${thO('Images tested')}${thO('OK')}${thO('NG')}${thO('Average inference time per image')}</tr></thead>
+          <tbody class="divide-y divide-gray-200 bg-white">${rows}</tbody>
+        </table>
+      </div>
+      <p class="text-xs text-gray-500">Ran ${t.started} by ${t.by} · took ${t.took} · ${total} images across ${caps.length} captures · annotations ${S.annot ? 'added' : 'not added'} · OK / NG at the thresholds the test ran with</p>
+    </section>`;
 }
 function resultsTab(capSel) {
   return `<div class="flex flex-wrap items-end justify-between gap-3">${capSel}<div id="capCount" class="flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-2.5 text-sm"></div></div>
       ${imagesBlock()}
-      ${thrPanel()}
-      <section id="modResults" class="rounded-xl border border-gray-200 p-5"></section>`;
+      <section id="modResults" class="rounded-xl border border-gray-200 p-5"></section>
+      ${thrPanel()}`;
 }
 function metricsTab(capSel) {
   const cap = S.res.cap, modelMods = CAPS[cap].mods.filter((k) => MODS[k].classes);
@@ -654,16 +675,16 @@ function renderModResults() {
   const res = evaluate(cap, i);
   box.innerHTML = `
     <div class="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 class="text-lg font-semibold">Module Results</h2><p class="text-sm text-gray-600">For <span class="font-mono">${imgName(cap, i)}</span>, using the ground truths in Edit Module Configurations and the thresholds above.</p></div>
+      <div><h2 class="text-lg font-semibold">Module Results</h2><p class="text-sm text-gray-600">For <span class="font-mono">${imgName(cap, i)}</span>, using the ground truths in Edit Module Configurations and the thresholds below.</p></div>
       <div class="flex items-center gap-2 text-sm"><span class="font-medium text-gray-700">Image result</span>${okPill(res.ok, true)}</div>
     </div>
     <div class="mt-3 overflow-x-auto"><table class="w-full min-w-[720px] text-sm">
-      <thead><tr class="border-b border-gray-200 text-left text-gray-500"><th class="py-2 pr-4 font-medium">Module</th><th class="py-2 pr-4 font-medium">Ground truth (EMC)</th><th class="py-2 pr-4 font-medium">Found in this image</th><th class="py-2 text-right font-medium">Result</th></tr></thead>
-      <tbody class="divide-y divide-gray-100">${res.rows.map((r) => `<tr class="align-top">
-        <td class="py-2.5 pr-4"><div class="font-semibold text-gray-900">${MODS[r.id].name}</div><div class="text-xs text-gray-500">${MODS[r.id].typeName}</div></td>
-        <td class="py-2.5 pr-4 text-gray-700">${r.rule}</td>
-        <td class="py-2.5 pr-4 text-gray-900">${r.found}</td>
-        <td class="py-2.5 text-right">${okPill(r.ok)}</td></tr>`).join('')}</tbody>
+      <thead><tr class="bg-f-primary">${thO('Module')}${thO('Ground truth (EMC)')}${thO('Found in this image')}${thO('Result', '!text-right')}</tr></thead>
+      <tbody class="divide-y divide-gray-200">${res.rows.map((r) => `<tr class="align-top">
+        <td class="px-4 py-2.5"><div class="font-semibold text-gray-900">${MODS[r.id].name}</div><div class="text-xs text-gray-500">${MODS[r.id].typeName}</div></td>
+        <td class="px-4 py-2.5 text-gray-700">${r.rule}</td>
+        <td class="px-4 py-2.5 text-gray-900">${r.found}</td>
+        <td class="px-4 py-2.5 text-right">${okPill(r.ok)}</td></tr>`).join('')}</tbody>
     </table></div>
     ${res.rows.some((r) => r.ok === null) ? '<p class="mt-2 text-xs text-gray-500">Not judged: the module has no ground truth set, so it doesn\'t count towards the image result.</p>' : ''}`;
 }
@@ -740,9 +761,9 @@ function thrPanel() {
     body = `<p class="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700"><b>${m.name}</b> (${m.typeName}) has no model thresholds to adjust. Its settings are in Edit Module Configurations.</p>`;
   } else {
     const hasIou = HAS_IOU(m.type);
-    body = `<table class="mt-4 w-full text-sm">
-        <thead><tr class="border-b border-gray-200 text-left text-gray-500"><th class="w-32 py-2 pr-3 font-medium">Class</th><th class="py-2 pr-6 font-medium">Confidence</th>${hasIou ? '<th class="py-2 pr-6 font-medium">IOU</th>' : ''}<th class="w-32 py-2 text-right font-medium">In EMC now</th></tr></thead>
-        <tbody class="divide-y divide-gray-200">${m.classes.map((c) => `<tr><td class="py-2.5 pr-3 font-semibold text-gray-900">${c}</td><td class="py-2.5 pr-6">${slider(id, c, 'conf')}</td>${hasIou ? `<td class="py-2.5 pr-6">${slider(id, c, 'iou')}</td>` : ''}<td class="py-2.5 text-right text-gray-500" data-emc="${c}">${emcText(id, c)}</td></tr>`).join('')}</tbody>
+    body = `<table class="mt-4 w-full overflow-hidden rounded-lg text-sm">
+        <thead><tr class="bg-f-primary">${thO('Class', 'w-32')}${thO('Confidence')}${hasIou ? thO('IOU') : ''}${thO('In EMC now', 'w-32 !text-right')}</tr></thead>
+        <tbody class="divide-y divide-gray-200 bg-white">${m.classes.map((c) => `<tr><td class="px-4 py-2.5 font-semibold text-gray-900">${c}</td><td class="px-4 py-2.5">${slider(id, c, 'conf')}</td>${hasIou ? `<td class="px-4 py-2.5">${slider(id, c, 'iou')}</td>` : ''}<td class="px-4 py-2.5 text-right text-gray-500" data-emc="${c}">${emcText(id, c)}</td></tr>`).join('')}</tbody>
       </table>
       <div class="mt-3 flex flex-wrap items-center gap-3">
         <span id="chgText" class="mr-auto text-sm text-gray-600"></span>
@@ -821,7 +842,7 @@ function metricsHtml(hasModel = true) {
           <button data-act="useSugg" class="rounded-md border border-f-primary px-4 py-2 text-sm font-semibold text-f-primary hover:bg-f-primary/5">Apply suggested thresholds to EMC</button>
         </div>
         <div class="mt-3 overflow-x-auto"><table class="w-full text-sm">
-          <thead><tr class="bg-gray-100 text-left"><th class="px-4 py-2 font-bold">Model</th><th class="px-4 py-2 font-bold">Class</th><th class="px-4 py-2 text-center font-bold">Suggested confidence</th>${hasIou ? '<th class="px-4 py-2 text-center font-bold">Suggested IOU</th>' : ''}<th class="px-4 py-2 text-center font-bold">In EMC now</th></tr></thead>
+          <thead><tr class="bg-f-primary">${thO('Model')}${thO('Class')}${thO('Suggested confidence', '!text-center')}${hasIou ? thO('Suggested IOU', '!text-center') : ''}${thO('In EMC now', '!text-center')}</tr></thead>
           <tbody>${rows}</tbody>
         </table></div>
       </div>`;
@@ -1284,12 +1305,12 @@ function render() {
   else if (S.screen === 'tab') app.innerHTML = testingTab();
   else if (S.screen === 'drawer') app.innerHTML = drawerView();
   else app.innerHTML = resultsView();
-  if (S.screen === 'results') { if (S.res.tab === 'results') { drawImages(); renderUnder(); renderPager(); updChg(); } else { drawF1(); drawCM(); } }
+  if (S.screen === 'results') { if (S.res.tab === 'module') { drawImages(); renderUnder(); renderPager(); updChg(); } else if (S.res.tab === 'metrics') { drawF1(); drawCM(); } }
   $$('.viewer-tab').forEach((t) => t.setAttribute('aria-selected', String(+t.dataset.vt === S.vt)));
   if (window.self !== window.top) parent.postMessage({ type: 'testing-v2-nav', to: stepOf() }, '*');
 }
 function stepOf() {
-  if (S.screen === 'results') return S.res.tab === 'metrics' ? 'edge-performance-metrics' : 'edge-test-results';
+  if (S.screen === 'results') return { summary: 'edge-test-results', module: 'edge-module-results', metrics: 'edge-performance-metrics' }[S.res.tab];
   return ['edge-instances', 'edge-testing-tab', 'edge-run-test', 'edge-test-running', 'edge-test-results'][S.vt];
 }
 function goScreen(name, keepScroll = false) {
@@ -1303,7 +1324,7 @@ function openResults(n) {
   const caps = Object.keys(testById(n).imgs);
   if (!caps.includes(S.res.cap)) S.res.cap = caps[0];
   S.res.img = Math.min(2, (testById(n).imgs[S.res.cap] || 1) - 1);
-  S.res.tab = 'results';
+  S.res.tab = 'summary';
   S.vt = 4;
   goScreen('results');
 }
@@ -1313,7 +1334,7 @@ function goVT(n) {
   if (n === 1) { S.myRun = null; S.noHistory = true; S.screen = 'tab'; }
   if (n === 2) { S.myRun = null; S.dr = { f: { hu: true, hy: true, br: true, hs: true, hl: false }, up: null }; S.screen = 'drawer'; }
   if (n === 3) { S.noHistory = false; S.myRun = { n: 15, state: 'running', pct: 42, caps: ['hu', 'hy', 'br', 'hs'], started: '11:05 AM' }; S.screen = 'tab'; }
-  if (n === 4) { S.noHistory = false; S.res.test = 14; S.res.tab = 'results'; S.screen = 'results'; }
+  if (n === 4) { S.noHistory = false; S.res.test = 14; S.res.tab = 'summary'; S.screen = 'results'; }
   render();
   window.scrollTo(0, 0);
 }
@@ -1456,7 +1477,7 @@ document.addEventListener('change', (e) => {
   if (t.id === 'modSel') { S.res.mod[S.res.cap] = t.value; const y = window.scrollY; render(); window.scrollTo(0, y); }
 });
 document.addEventListener('keydown', (e) => {
-  if (S.screen !== 'results' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#modal').innerHTML) return;
+  if (S.screen !== 'results' || S.res.tab !== 'module' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#modal').innerHTML) return;
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
     const N = nImgs(S.res.cap);
     S.res.img = Math.max(0, Math.min(N - 1, S.res.img + (e.key === 'ArrowRight' ? 1 : -1)));
@@ -1502,6 +1523,7 @@ function applyHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   [['deploy', 'tgDeploy'], ['other', 'tgOther'], ['recipe', 'tgRecipe'], ['annot', 'tgAnnot']].forEach(([k, id]) => { S[k] = q.get(k) === '1'; $('#' + id).checked = S[k]; });
   S.today = q.get('today') === '1';
+  S.tip = q.get('tip');
   if (q.get('cap') && CAPS[q.get('cap')]) S.res.cap = q.get('cap');
   if (q.get('img')) S.res.img = +q.get('img');
   if (q.get('mod') && MODS[q.get('mod')]) S.res.mod[S.res.cap] = q.get('mod');
@@ -1509,9 +1531,9 @@ function applyHash() {
   goVT(vt);
   // A deployment and a test can't run on the device at the same time
   if (S.deploy && activeRun() && activeRun().state === 'running') { S.deploy = false; $('#tgDeploy').checked = false; render(); }
-  if (q.get('tab') === 'metrics' && S.screen === 'results') { S.res.tab = 'metrics'; render(); }
+  if (['module', 'metrics'].includes(q.get('tab')) && S.screen === 'results') { S.res.tab = q.get('tab'); render(); }
   if (q.get('pct') && S.myRun) { S.myRun.pct = +q.get('pct'); render(); }
-  if (q.get('apply') === '1' && S.screen === 'results') { const id = S.res.mod[S.res.cap]; const c = MODS[id].classes[0]; setThr(id, c, 'conf', S.thr[id][c].conf - 0.04); openApply(); }
+  if (q.get('apply') === '1' && S.screen === 'results') { S.res.tab = 'module'; render(); const id = S.res.mod[S.res.cap]; const c = MODS[id].classes[0]; setThr(id, c, 'conf', S.thr[id][c].conf - 0.04); openApply(); }
   if (q.get('hist') === '1') { S.noHistory = false; render(); }
   if (q.get('scroll')) { const t = $('#' + q.get('scroll')); if (t) t.scrollIntoView({ block: 'start' }); }
 }
