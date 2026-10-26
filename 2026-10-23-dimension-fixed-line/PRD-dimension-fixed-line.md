@@ -2,7 +2,7 @@
 
 **Prototype:** [Interactive workflow, Today vs After change](https://vbv-fr.github.io/dimension-fixed-line-prototype/)
 **Product:** Frinks Edge
-**Status:** Draft
+**Status:** Approved
 **Date:** 24 October 2026
 **Owner:** Tanay Deo
 **Related:** FP-3228 Dimension Configuration (Edge), FP-3404 Canvas for Dimension Configuration, FP-3456 Capture Layout, FP-3230 Keys for Shapes and Dimensions (all Done); PRD "Module Outputs in Reports & Analytics" (In review: its setup window lists every single-capture dimension's keys, fixed-line dimensions included, with no change there)
@@ -342,6 +342,7 @@ Repos checked: frinksedge-deployment-frontend @ 3c027014 (2026-10-23), frinksedg
 Every line names the US / AC ids it touched.
 - 24 Oct 2026 — Draft written: US1–US12 (Tanay Deo)
 - 24 Oct 2026 — AC9.5 added at the code back-check: the Shape Extractor editor canvas shares the image viewer. Duplicate pass: AC2.5 trimmed (engine row is AC6.1); AC9.1 trimmed (Shape pickers are AC1.1); AC11.4 trimmed (install and update are AC12.2); AC11.5 trimmed (missing Feature A shape is AC10.1); AC12.3 trimmed (existing dimensions are AC12.1). Wording conflicts settled: AC2.1, AC7.2 and the AC11.6 release note limited to single-capture (cross-capture is AC4.4, AC4.5); AC5.3 limited to a missing Feature B shape (AC9.2); AC6.2 limited to the same side of the line (AC6.3); AC10.7 limited to kept captures (AC10.8). (Tanay Deo)
+- 26 Oct 2026 — Status Draft → Approved; no US or AC changed (Tanay Deo)
 
 ## Checked, not affected
 Every other part in the component map, grouped, each group with a one-line reason.
