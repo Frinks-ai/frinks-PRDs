@@ -12,4 +12,5 @@ with their screenshots. The Prototype column opens each PRD's live, clickable pr
 | 26 Oct 2026 | [Image Enhancement module](2026-10-20-image-enhancement-module/PRD-image-enhancement-module.md) | [Live prototype](https://vbv-fr.github.io/image-enhancement-prototype/) | Vision + Edge | In review | Tanay Deo |
 | 26 Oct 2026 | [Module Outputs in Reports & Analytics](2026-10-20-module-outputs-reports/PRD-module-outputs-reports.md) | [Live prototype](https://vbv-fr.github.io/module-outputs-prototype/) | Frinks Edge | In review | Tanay Deo |
 | 26 Oct 2026 | Class Split on the Training Results page (PRD pending) | [Live prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-26-class-split/prototype/) | Frinks Vision | Prototype only | Akshat Sharma |
+| 26 Oct 2026 | Image Storage (PRD pending) | [Live prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-26-image-storage/prototype/) | Frinks Edge | Prototype only | Akshat Sharma |
 | 26 Oct 2026 | [Image Enhancement under Masking](2026-10-26-image-enhancement-under-masking/PRD-image-enhancement-under-masking.md) | Pending | Vision | Draft (not started) | Tanay Deo |
