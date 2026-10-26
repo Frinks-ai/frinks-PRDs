@@ -11,15 +11,10 @@
 ---
 
 ## Discussion points
-Everything still to be settled.
-
-| # | Point to settle | Options on the table | Owner | Needed by |
-|---|---|---|---|---|
-| Q1 | After release, how will we judge success? For example, a plant admin sets up Module Outputs once, and support stops opening View JSON for customers. What numbers should we aim for in section 8? | A share of upgraded Edge boxes with Module Outputs set up within a set time; a drop in support requests that need View JSON; no open customer requests for module values | Tanay Deo | Before approval |
-| Q3 | Some values a quality engineer would want have no key today: image classification confidence, OCR text per label, tilt angle, and bead incorrect calipers and gap sizes. They are stored with each cycle. Add keys for them? | Add new keys in this release (more Edge work); leave them out of v1 and raise a follow-up | Tanay Deo | Before approval |
+None open. Q1 (success targets) and Q3 (keys for values that have none) were decided on 26 October 2026; see the changelog.
 
 ## 1. Summary
-- Reports & Analytics gets a **Module Outputs** button. It opens a setup window for the selected instance, listing every capture (grouped by variant) and, for each module, its **keys exactly as Edge shows them today** in PLC Write and Dashboard Builder (for example `[cls] Screw > [key-num] current_count`). Keys that add up or average across cycles, such as pass and fail counts, are not offered.
+- Reports & Analytics gets a **Module Outputs** button. It opens a setup window for the selected instance, listing every capture (grouped by variant) and, for each module, its **keys exactly as Edge shows them today** in PLC Write and Dashboard Builder (for example `[cls] Screw > [key-num] current_count`). Every key Edge has today is offered, including running totals such as pass and fail counts, plus the per-line angle and length keys of Edge Search and Parallel Lines shapes, which Edge writes today but never listed; these also appear in PLC Write, Internal Action Config and Dashboard Builder.
 - Each capture also lists its **dimensions**: those measured within the capture, and those measured across it and another capture.
 - Ticking a key shows a **Display Name** box. The person types the name the value appears under on the Reports page, for example "Screw count" or "Serial No.".
 - The window opens on the instance shown in the Reports table, with an **Instance** dropdown to set up any other instance on the box.
@@ -47,11 +42,11 @@ Everything still to be settled.
 - New search or filter controls for module values. The existing Search box is enough.
 - Fast Mode lines (Minute-wise), which store no per-capture results.
 - Values no key holds today, such as the default text of conditional classification, bead width in pixels (the `_bead_width` key is a pass/fail flag) and per-caliper widths.
-- New keys. Values with no key today stay out (see Q3).
-- Any change to how OK or NG is decided, or to PLC and dashboard keys.
+- New keys for values that have no key today. The only keys Edge adds are the per-line shape keys it already writes (AC3.15).
+- Any change to how OK or NG is decided, or to the PLC and dashboard keys that exist today.
 
 ## 4. Key concepts
-- **Key:** a named value Edge keeps for an instance, capture, module, class, search area or label, the same keys offered today in PLC Write, Internal Actions and Dashboard Builder (for example `current_count` of class Screw).
+- **Key:** a named value Edge keeps for an instance, capture, module, class, search area or label, the same keys offered today in PLC Write, Internal Actions and Dashboard Builder (for example `current_count` of class Screw), plus the per-line shape keys of AC3.15.
 - **Display Name:** the name a ticked key's value appears under on the Reports page and in the Excel, typed by the person setting it up.
 - **Key copy:** the value a ticked key held when its capture finished, saved by Edge with that capture in the cycle. Only ticked keys are copied. Reports shows key copies, never today's live value.
 - **Setup in use:** while an instance is running, the setup its deployment started with; changes saved meanwhile go into use at the next start. While the instance is not running, its saved setup is in use.
@@ -66,15 +61,15 @@ The parts this changes. Parts checked and not affected are listed at the very en
 |---|---|---|
 | Reports & Analytics (edge-reports-analytics) | New Module Outputs button and setup window; restart pop-up when saving on a running instance; new Module Outputs column on each capture row; new Edit Table option; new Excel column; the column is searchable | US1, US2, US4, US5, US8, US13 |
 | Edge access & audit (edge-access-audit) | Saving the setup needs Update on Analytics & Reports, checked by the report server; every save is written to the audit log | US7 |
-| Object Detection (mod-odc) | Offers its module `result` and, per output class, `result` and `current_count` | US3, US9 |
-| Image Classification (mod-classification) | Offers `result`, `detected_class (<search area>)` per area and `correct_class` | US3, US9 |
-| OCR (mod-ocr) | Offers `detected_text`; in Read & Match also `result` and each label's `_gt_text` and `_result` | US3, US9 |
-| Code Reader (mod-code-reader) | Offers `detected_string`; in Read & Match also `result` and `gt_string` | US3, US9 |
-| Segmentation (mod-segmentation) | Offers its keys only with single-class output on; in normal mode it has no keys, so nothing is shown for it | US3, US9 |
-| Bead Inspection (mod-bead-inspection) | Offers `result`, `caliper_pass_percentage`, `bead_class_name` and per-bead `bead:<bead>_…` keys, without pass and fail counts | US3, US9 |
-| Colour Detection (mod-color-detection) | Offers `result` and per-colour `_detected_color`, `_result` and `_distribution_percentage` | US3, US9 |
-| Shape Extractor (mod-shape-extractor) | Offers per-shape `shape:<shape>_…` measurement keys; each dimension, within one capture or across two, offers its five `dim_…` keys under each capture it measures | US3, US9, US12 |
-| Orientation & Tilt (mod-orientation) | Offers its module `result` | US3, US9 |
+| Object Detection (mod-odc) | Offers its module keys and, per output class, `result`, `current_count` and `count_till_now` | US3, US9 |
+| Image Classification (mod-classification) | Offers its module keys, `detected_class (<search area>)` per area and `correct_class` | US3, US9 |
+| OCR (mod-ocr) | Offers `detected_text`; in Read & Match also its module keys and each label's `labelName:<label>_…` keys | US3, US9 |
+| Code Reader (mod-code-reader) | Offers `detected_string`; in Read & Match also its module keys and `gt_string` | US3, US9 |
+| Segmentation (mod-segmentation) | Offers its keys only with single-class output on; in normal mode its card shows "No keys" and nothing is shown for it in Reports | US3, US9 |
+| Bead Inspection (mod-bead-inspection) | Offers its module keys, `caliper_pass_percentage`, `bead_class_name` and per-bead `bead:<bead>_…` keys | US3, US9 |
+| Colour Detection (mod-color-detection) | Offers its module keys and per-colour `colorName:<colour>_…` keys | US3, US9 |
+| Shape Extractor (mod-shape-extractor) | Offers per-shape `shape:<shape>_…` measurement keys, and registers the per-line angle and length keys of Parallel Lines and Edge Search shapes; each dimension, within one capture or across two, offers its five `dim_…` keys under each capture it measures | US3, US9, US11, US12 |
+| Orientation & Tilt (mod-orientation) | Offers its module keys (`result`, `pass_count`, `fail_count`) | US3, US9 |
 | Tracker (mod-tracker) | Not offered: it has no keys and produces no result on Edge today | US3 |
 | Matting (mod-matting) | Not offered: it has no keys | US3 |
 | Instance upload on Edge (edge-instance-details) | A re-upload keeps the setup; removed captures, modules and classes drop out of it; deleting the instance deletes it | US6, US11 |
@@ -82,11 +77,14 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Cycles and result storage (edge-inferencing-customization) | Saves a copy of each ticked key with the capture's row as the capture finishes, and of cross-capture dimensions when the cycle ends; a module that did not run is saved as "Not run"; keeps saving the setup in use until the restart | US12, US13, US9 |
 | Python engine (engine-workflow) | No change: results are produced and sent exactly as today | US9 |
 | Result module (mod-result) | No change: OK and NG are decided exactly as today | US9 |
-| Actions (edge-actions) | Write to DB rules that copy values into Additional Info columns keep working | US8 |
+| Actions (edge-actions) | Write to DB rules that copy values into Additional Info columns keep working; rules can use the per-line shape keys like any other key | US8, US3 |
+| PLC Write (edge-plc-write) | Its key picker also lists the per-line shape keys | US3 |
+| Internal Action Config (edge-internal-actions) | Its key picker also lists the per-line shape keys | US3 |
+| Dashboard Builder (edge-dashboard-builder) | Its key picker also lists the per-line shape keys | US3 |
 | Deployments (edge-deployment) | Deploy and Restart All Deployments put the saved setup in use; Fast Mode deployments get no Module Outputs, as they store no per-capture results | US13, US8 |
 | Health Monitoring (edge-health) | Storage cleanup deletes key copies together with their capture rows, and counts them in the data limit | US12 |
 | Backup and migration (edge-backup-migration) | The saved setup is created on upgrade and survives every later upgrade | US11, US12 |
-| Release and upgrades (edge-release-upgrade) | Ships in the scripts bundle as a normal release, with one database addition | US10 |
+| Release and upgrades (edge-release-upgrade) | Ships in the scripts bundle as a normal release, with database additions for the setup and the key copies | US10 |
 
 ## 6. User stories and acceptance criteria
 
@@ -136,31 +134,34 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ### US3 — Values each module offers
 *As a quality engineer, I want to see the same keys Edge already uses for PLC and dashboards, so that what I pick for Reports matches what the line already knows.*
 - **Kind:** Feature
-- **Parts:** mod-odc, mod-classification, mod-ocr, mod-code-reader, mod-segmentation, mod-bead-inspection, mod-color-detection, mod-shape-extractor, mod-orientation, mod-tracker, mod-matting
+- **Parts:** mod-odc, mod-classification, mod-ocr, mod-code-reader, mod-segmentation, mod-bead-inspection, mod-color-detection, mod-shape-extractor, mod-orientation, mod-tracker, mod-matting, edge-plc-write, edge-internal-actions, edge-dashboard-builder, edge-actions
 - **Teams:** SDE
 - **Covers:** C2, C12
-- **Today:** These keys are offered in PLC Write, Internal Actions and Dashboard Builder. Their per-cycle values sit inside each cycle's stored result, keyed by ids, visible only in View JSON.
+- **Today:** These keys are offered in PLC Write, Internal Actions and Dashboard Builder, except the per-line shape keys, which Edge writes but never lists. Their per-cycle values sit inside each cycle's stored result, keyed by ids, visible only in View JSON.
 - **Prototype:** [Step 4: Other module types](https://vbv-fr.github.io/module-outputs-prototype/#more-modules)
 
 ![After: capture, bead and colour keys for one capture](prototype/setup-more.png)
 ![After: shape, tilt and dimension keys for the same capture](prototype/setup-more-end.png)
 ![After: a cross-capture dimension in the Dimensions card of CP3 · Label Side](prototype/setup-cross.png)
+![After: an Edge Search shape with its per-line angle and length keys](prototype/setup-lines.png)
 
-The list is the set of keys Edge creates for the instance today, without the keys in AC3.13; no other key is shown.
-- **AC3.1** Each capture offers its own keys: `result`, `inference_time` and `completion_status`.
-- **AC3.2** Object Detection & Classification offers `result`, and for each output class `result` and `current_count`.
-- **AC3.3** Image Classification offers `result`, `detected_class (<search area>)` for each search area, and `correct_class`.
-- **AC3.4** OCR offers `detected_text`. In Read & Match it also offers `result` and, for each label, `labelName:<label>_gt_text` and `labelName:<label>_result`.
-- **AC3.5** Code Reader offers `detected_string`. In Read & Match it also offers `result` and `gt_string`.
-- **AC3.6** Segmentation offers `result`, `detected_class` and `correct_class` only when its single-class output is on.
-- **AC3.7** Bead Inspection offers `result`, `caliper_pass_percentage` and `bead_class_name`, and for each bead `bead:<bead>_result`, `_bead_width` and `_bead_gap/position`.
-- **AC3.8** Colour Detection offers `result`, and for each colour `colorName:<colour>_detected_color`, `_result` and `_distribution_percentage`.
+The list is every key Edge creates for the instance today, running totals included, plus the per-line shape keys of AC3.15; no other key is shown.
+- **AC3.1** Each capture offers its own keys: `result`, `inference_time`, `avg_inference_time`, `pass_count`, `fail_count` and `completion_status`.
+- **AC3.2** Object Detection & Classification offers `result`, `pass_count` and `fail_count`, and for each output class `result`, `current_count` and `count_till_now`.
+- **AC3.3** Image Classification offers `result`, `pass_count`, `fail_count`, `detected_class (<search area>)` for each search area, and `correct_class`.
+- **AC3.4** OCR offers `detected_text`. In Read & Match it also offers `result`, `pass_count`, `fail_count` and, for each label, `labelName:<label>_gt_text`, `labelName:<label>_result`, `labelName:<label>_pass_count` and `labelName:<label>_fail_count`.
+- **AC3.5** Code Reader offers `detected_string`. In Read & Match it also offers `result`, `pass_count`, `fail_count` and `gt_string`.
+- **AC3.6** Segmentation offers `result`, `pass_count`, `fail_count`, `detected_class` and `correct_class` only when its single-class output is on.
+- **AC3.7** Bead Inspection offers `result`, `pass_count`, `fail_count`, `caliper_pass_percentage` and `bead_class_name`, and for each bead `bead:<bead>_result`, `_pass_count`, `_fail_count`, `_bead_width` and `_bead_gap/position`.
+- **AC3.8** Colour Detection offers `result`, `pass_count` and `fail_count`, and for each colour `colorName:<colour>_detected_color`, `_result`, `_pass_count`, `_fail_count` and `_distribution_percentage`.
 - **AC3.9** Shape Extractor offers, for each shape, the `shape:<shape>_…` keys of its shape type: radius, perimeter, area, circularity, convexity, contour_continuity, error_pct, angle, length, major_axis, minor_axis, line_1 to line_4, diagonal_1, diagonal_2 and sector_angle, as Edge registers them.
-- **AC3.10** Orientation & Tilt Check offers `result`. Each dimension measured within one capture offers `dim_result`, `dim_predicted_value`, `dim_unit_used`, `dim_process` and `dim_current_gt`, in a card at the end of the capture it belongs to.
+- **AC3.10** Orientation & Tilt Check offers `result`, `pass_count` and `fail_count`. Each dimension measured within one capture offers `dim_result`, `dim_predicted_value`, `dim_unit_used`, `dim_process` and `dim_current_gt`, in a card at the end of the capture it belongs to.
 - **AC3.11** Tracker, Matting, Orientator, Masking, Search Area Allocator and the master image have no keys here and are not listed.
 - **AC3.12** Values show as they would in the key: numbers with up to 2 decimals, `distribution_percentage` as a percentage, true/false keys as "OK" or "NG".
-- **AC3.13** Keys that add up or average across cycles are not offered: every `pass_count` and `fail_count` (capture, module, label, colour and bead), `count_till_now` and `avg_inference_time`.
+- **AC3.13** (removed — running totals are offered again; like every key, each cycle shows the copy saved when its capture finished, AC4.3)
 - **AC3.14** A dimension measured across two captures offers the same five `dim_…` keys in a card at the end of each of the two captures, under its name from Dimension Configuration, with both capture names and the "⇄ CROSS-CAPTURE" badge. It is ticked and named separately under each capture, and shows only on the rows of the captures it is ticked under.
+- **AC3.15** Each Edge Search and Parallel Lines shape also offers, for each line it can find, `shape:<shape>_line:<n>_angle` and `shape:<shape>_line:<n>_length`: lines 1 and 2 for Parallel Lines, and lines 1 up to the shape's maximum results for Edge Search.
+- **AC3.16** These per-line keys are registered like every other Edge key, so PLC Write, Internal Action Config and Dashboard Builder list them too. Edge Search line values update with each capture; Parallel Lines line keys stay empty until the engine supports Parallel Lines.
 
 ### US4 — See Module Outputs in the table
 *As a quality engineer, I want each capture's chosen values on its row, so that I can see at a glance why a cycle failed or which part it was.*
@@ -297,7 +298,7 @@ The list is the set of keys Edge creates for the instance today, without the key
 - **Teams:** SDE
 - **Covers:** C8, C9
 
-- **AC9.1** OK and NG for every capture and cycle, PLC writes and dashboard keys are unchanged.
+- **AC9.1** OK and NG for every capture and cycle, PLC writes and existing dashboard keys are unchanged.
 - **AC9.2** Edge keeps storing each module's full result for every capture of every cycle, exactly as today.
 - **AC9.3** (removed — the only added work per image is saving key copies, covered by AC12.5)
 
@@ -310,15 +311,15 @@ The list is the set of keys Edge creates for the instance today, without the key
 
 - **AC10.1** Node Docker image: no change. No new libraries are needed; the Excel export already has one.
 - **AC10.2** Python Docker image: no change. The engine is not touched.
-- **AC10.3** Scripts bundle: changes. It carries the Reports app (screen and server), the inference service change for key copies, and the Edge database additions for the saved setup, the setup in use and the key copies.
+- **AC10.3** Scripts bundle: changes. It carries the Reports app (screen and server), the inference service change for key copies, the registration of the per-line shape keys, and the Edge database additions for the saved setup, the setup in use and the key copies.
 - **AC10.4** Installer: no change. Database additions already run on every install and update.
 - **AC10.5** New error codes: RPT-MOUT-001 and RPT-MOUT-002 (AC2.6, AC1.6). The report server logs them; they are not added to the Health page.
-- **AC10.6** The Edge manual's Analytics & Reports section describes the Module Outputs button, the setup window, the restart pop-up, the column and the Excel column, with new screenshots. Release note: "Reports & Analytics can now show chosen module and dimension keys, such as counts, classes, read text, codes and measurements, under your own Display Names in a new Module Outputs column. Changes made while an instance is running apply after its deployment restarts."
+- **AC10.6** The Edge manual's Analytics & Reports section describes the Module Outputs button, the setup window, the restart pop-up, the column and the Excel column, with new screenshots. Release note: "Reports & Analytics can now show chosen module and dimension keys, such as counts, classes, read text, codes and measurements, under your own Display Names in a new Module Outputs column. Changes made while an instance is running apply after its deployment restarts. Edge Search line angles and lengths are now available as keys in PLC Write, Internal Action Config and Dashboard Builder."
 
 ### US11 — Migration requirements
 *As a Frinks support engineer, I want upgrades to keep every box's data and setup, so that no plant loses its reports or has to set them up again.*
 - **Kind:** Migration
-- **Parts:** edge-backup-migration, edge-instance-details
+- **Parts:** edge-backup-migration, edge-instance-details, mod-shape-extractor
 - **Teams:** SDE
 - **Covers:** C6, C7, C15
 
@@ -326,23 +327,19 @@ The list is the set of keys Edge creates for the instance today, without the key
 - **AC11.2** The saved setup survives restarts and every later Edge upgrade.
 - **AC11.3** An older Edge with a new instance: nothing changes, because the instance package is not touched. The new Edge with an older instance: Module Outputs offers that instance's values like any other.
 - **AC11.4** Edge boxes in the field get it as a normal release. It works offline.
+- **AC11.5** Instances uploaded before the upgrade get the per-line shape keys after the upgrade, with no re-upload.
 
 ## 7. Out of scope
 - New search or filter controls for module values.
-- Values that have no key today, such as image classification confidence, OCR text per label, tilt angle, and bead incorrect calipers and gap sizes (see Q3).
+- Values that have no key today, such as image classification confidence, the text read for each OCR label, tilt angle, and bead incorrect calipers and gap sizes. No new keys are added for them.
 - Segmentation in normal mode, which has no keys.
-- Keys that add up or average across cycles: pass and fail counts, count till now, average inference time.
 - Tracker counts. The tracker produces no result on Edge today, so it needs its own fix first.
 - Matting mask counts.
 - Copying a setup from one variant or instance to another.
 - Module Outputs on the Live Dashboard, PLC or Minute-wise reports.
 
 ## 8. How we'll know it worked
-| Measure | Target |
-|---|---|
-| Edge boxes on this release with Module Outputs set up for at least one instance (from the audit log) | Q1 |
-| Support requests that need someone to read View JSON for a customer | Q1 |
-| Customer requests for module values in reports still open after release | None open |
+No success targets are set for this release (decided 26 October 2026).
 
 ## Appendix A — Coverage
 **Not applicable:**
@@ -352,10 +349,10 @@ The list is the set of keys Edge creates for the instance today, without the key
 
 **Result:** PASS, 3 warnings
 
-- 13 user stories (8 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 88 ACs (3 marked removed), 23 touched parts, 2 discussion points.
+- 13 user stories (8 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 91 ACs (4 marked removed), 26 touched parts, 0 discussion points.
 - Checklist: 17 items covered by stories, 1 N/A, 0 open.
 - Warnings kept on purpose: AC8.4 and AC12.4 contain "Fast", the product name "Fast Mode"; US3 and the impact map name keys such as `current_count`, which are the names users see in Edge's key picker, not code.
-- Every punchlist item I1–I88 in notes.md maps to exactly one AC (I-items for AC1.5, AC8.6 and AC9.3 marked removed).
+- Every punchlist item I1–I91 in notes.md maps to exactly one AC (I-items for AC1.5, AC3.13, AC8.6 and AC9.3 marked removed).
 
 ## Appendix B — Code references
 For the ticket skill and developers. Paths are relative to each repo.
@@ -368,13 +365,15 @@ For the ticket skill and developers. Paths are relative to each repo.
 - **Instance upload:** `frinksedge-deployment-backend`: `src/service/instance.ts:908-950, 1411-1469, 1856-1869, 2230-2267, 2610-2693` — dropped captures, label merge, id-keeping upsert, delete, per-instance module settings reconcile (`module_class_roi_config` precedent).
 - **Database and upgrades:** `frinksedge-deployment-backend`: `dump.sql:2823-2869` (per-instance × module table precedent), `dump.sql:2969-2974` (repeat-capture delete replayed at every update; the replay must not erase or reset the Module Outputs setup, AC11.2); `frinksedge-installer-electron`: `src/main.js:265, 387, 512` — dump replay with `--force`; `release-manager-backend`: `src/services/edgeSchemaRegistry.ts:11-13, 169-182` — schema registration on new tables.
 - **Health cleanup:** `frinksedge-health`: `src/service/storageMonitor.ts:164-200, 595-686`.
-- **Keys offered:** `frinksedge-deployment-backend`: `src/dao/systemKeyDefinition.ts:39-111` — `pass_count`/`fail_count` at every level, `count_till_now`, `avg_inference_time` (left out, AC3.13); `:113-120` — dimension keys at variant level, the same five for single- and cross-capture dimensions. `frinksedge-inferencing-backend`: `src/cycle/cycle-manager.service.ts:542-556` — `avg_inference_time` is the mean of the last 10 inference times; `src/key/key-writer/system-key-writer/system-key-writer.service.ts:101-104` — `completion_status` is 1 once the capture reports.
+- **Keys offered:** `frinksedge-deployment-backend`: `src/dao/systemKeyDefinition.ts:39-111` — `pass_count`/`fail_count` at every level, `count_till_now`, `avg_inference_time` (offered, AC3.1–AC3.10); `:113-120` — dimension keys at variant level, the same five for single- and cross-capture dimensions. `frinksedge-inferencing-backend`: `src/cycle/cycle-manager.service.ts:542-556` — `avg_inference_time` is the mean of the last 10 inference times; `src/key/key-writer/system-key-writer/system-key-writer.service.ts:101-104` — `completion_status` is 1 once the capture reports.
 - **Cross-capture dimensions:** `frinksedge-inferencing-backend`: `src/dimensioning/dimensioning-registry.service.ts:60-90` — definition (Feature A and B on two camera configurations), boot-time cache that needs a restart; `src/cycle/cycle-manager.service.ts:537-540` — measured when the second capture reports, before that capture's keys (558) and row (578); `:729-742` — unresolved ones set to NG at cycle end and counted in the cycle result; `:849-889` — measurement; `system-key-writer.service.ts:159-208` — the five keys, unresolved fail. `frinksedge-deployment-frontend`: `src/modules/inferencing-customizations/dimension-configuration/DimensionsTable.jsx:56-60`, `dimensionDisplay.js:94-99` — capture names and the "⇄ CROSS-CAPTURE" badge.
+- **Per-line shape keys:** `frinksedge-inferencing-backend`: `src/key/key-writer/system-key-writer/system-key-writer.service.ts:306-340` — line angle and length written for Parallel Lines (2 lines; engine support not shipped yet) and Edge Search; `:58-61` — unregistered keys are refused and logged; `src/key/keys/system-key.ts:269-270` — `shape:<id>_line:<n>_angle/_length`. `frinksedge-deployment-backend`: `src/dao/systemKeyDefinition.ts` (comment above id 79) — not registered; `src/keys/shapeKeyMetrics.ts` — metrics per shape type; `src/keys/createKeys.ts:231-242` — per-shape key creation; `src/dao/dimensioningConfig.ts:92` — lines per shape (Parallel 2, Edge = maxResult); `src/index.ts:46`, `src/service/inferenceProcess.ts:292` — keys rebuilt at boot and on inference restart (AC11.5).
 - **Restart:** `frinksedge-deployment-backend`: `src/service/deployment.ts:1868-1906` (a deploy from an idle box restarts the inference service), `:1922-1960` (Restart All Deployments); `frinksedge-deployment-frontend`: `src/modules/deployments/RestartAllDeployments.jsx:35`. Pop-up look: `frinksedge-report-frontend`: `src/shared/ui/WarningModal.jsx`.
 
 Repos checked: frinksedge-report @ 5fe5390 (15 Oct 2026), frinksedge-report-frontend @ 9893a19 (13 Oct 2026), frinksedge-inferencing-backend @ 310c18e (22 Oct 2026), frinksedge-deployment-backend @ 7e2951e (26 Oct 2026), frinksedge-deployment-frontend @ 3c027014 (23 Oct 2026), frinksedge-health @ 2dbc622 (23 Oct 2026), vip-inference-python @ 14670bf (26 Oct 2026), frinksvision-backend @ 093a734 (26 Oct 2026), frinksvision-frontend @ 67e4d4a (26 Oct 2026), Python-inference-docker @ 62e22bd (29 May 2026), release-manager-backend @ b8016f7 (22 Sep 2026), and the other 23 repos in the skill's list, all up to date on 26 Oct 2026.
 
 ## Changelog
+- 26 October 2026 — Q1 decided: no success targets (section 8). Q3 decided: no keys are added for values that have none; Module Outputs offers every key Edge has today. Running totals are offered again: AC3.13 (removed); AC3.1–AC3.8 and AC3.10 restored; out-of-scope line removed. Edge registers the per-line angle and length keys of Parallel Lines and Edge Search shapes, listed everywhere keys are used: AC3.15, AC3.16, AC11.5 added; AC10.3, AC10.6 changed; PLC Write, Internal Action Config, Dashboard Builder added to the impact map. Duplicate pass: AC11.5 trimmed (existing rules unchanged is AC9.1); AC9.1 and non-goals say "existing" keys; summary, Key concept and US3 Today mention the per-line keys; AC3.16 notes Parallel Lines keys stay empty until the engine supports it (Tanay Deo)
 - 26 October 2026 — Only ticked keys are copied, to keep disk use down: AC12.1 changed, AC12.8 added; cycles from before a key was in use show "Not saved" (AC4.3, G2, summary changed). Changes saved while an instance is running wait for a restart, after a Warning pop-up: new US13 (AC13.1–AC13.6); AC1.5, AC2.5, AC4.1, AC10.3 changed. Keys that add up or average across cycles are no longer offered: AC3.13 added; AC3.1–AC3.8, AC3.10 and AC4.5 changed. Dimensions measured across two captures are offered under both captures: AC3.14 and AC12.7 added, AC3.11 changed, out-of-scope line removed. Segmentation in normal mode shows nothing: removed from Q3 and listed in Out of scope (Tanay Deo)
 - 26 October 2026 — Duplicate pass: AC1.5 (removed): covered by AC13.1 and AC13.6. Trimmed restated sentences: AC1.3 (layout options are AC2.9), AC1.4 (modules never listed are AC3.11), AC2.3 (Display Name on Reports and Excel is US4/US5), AC2.9 (where the layout applies is US4/US5), AC3.6 (normal mode), AC4.5 (settings show the copy, AC4.3), AC4.9 (position is AC4.1), AC5.4 (filters are AC8.5), AC7.2 (viewing is AC7.6), AC8.1 (Additional Info is AC8.3), AC9.2 (View JSON is AC8.2), AC10.3, AC10.5 (messages are AC1.6/AC2.6), AC11.2 (mechanism moved to Appendix B), AC11.4 (data untouched is AC11.1), AC12.8 (not ticked = not saved is AC12.1), AC13.2 and AC13.3. Contradictions fixed: AC4.5 "N/A" applies to "Show in same column"; AC13.4 applies to running instances; AC2.5 names the pop-up; AC12.1 points to AC12.7; release note, G2, section 2 and summary say "while in use"; stale non-goal about segmentation and bead values reworded. AC5.5 moved after AC5.4 (Tanay Deo)
 - 26 October 2026 — Reports show a copy of each key saved when the capture finished (new US12; AC4.3, AC4.5, AC9.2, AC10.3 changed; AC8.6 and AC9.3 removed). Every key of every capture is copied, ticked or not, so cycles since the release show values; older cycles show "—". Q2 (running totals) closed: they show the copy at that moment. Same Display Name across captures sharing a column, and columns for every variant's keys, confirmed (Tanay Deo)
@@ -390,6 +389,6 @@ Repos checked: frinksedge-report @ 5fe5390 (15 Oct 2026), frinksedge-report-fron
 ## Checked, not affected
 - vision-access, vision-auto-annotation, vision-captures-cameras, vision-datasets-annotations, vision-instance-creation, vision-model-evaluation, vision-model-training, vision-projects, vision-recipe-tree, vision-training-sets-recommender, vision-variants: Edge-only feature; every name it needs is already on the box after upload, and the instance package does not change.
 - mod-input-master-image, mod-search-area, mod-masking: no values of their own; their names are only used as labels.
-- edge-plc-read, edge-plc-write, edge-plc-setup, edge-internal-actions, edge-dashboard-builder, edge-live-dashboard: rules, keys and dashboards are untouched.
+- edge-plc-read, edge-plc-setup, edge-live-dashboard: rules, PLC reads and dashboards are untouched; the live dashboard shows whatever keys a dashboard already uses.
 - edge-camera-capture, edge-model-loading-variant-change, edge-storage-image-saving: capture, model loading and saved images are untouched.
 - engine-runtime-packaging, edge-installer, edge-encryption-keys, edge-networking, edge-system-time: no new libraries, steps, keys, ports or time logic; the Reports app keeps its ports.
