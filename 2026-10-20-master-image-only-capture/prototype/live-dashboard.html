@@ -48,6 +48,8 @@ body[data-mode="today"] .only-after{display:none!important}
 body[data-mode="after"] .only-today{display:none!important}
 
 /* prototype switcher */
+html.in-shell .pctl{display:none!important}
+body[data-mode="after"].no-top #topTile{display:none}
 .pctl{position:fixed;top:16px;right:16px;z-index:1000;display:flex;align-items:center;gap:8px}
 .proto{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#4b5563;background:#f9fafb;border:1px dashed #d1d5db;border-radius:999px;padding:1px 8px;line-height:16px}
 .seg{display:inline-flex;border:1px solid #d1d5db;border-radius:999px;padding:2px;background:#fff}
@@ -121,7 +123,7 @@ body[data-mode="after"] .only-today{display:none!important}
       </div>
 
       <!-- Search-area tile 2: Variant A | Top View | Input Image (master image only) -->
-      <div class="rnd" style="width:413px;height:413px;transform:translate(433px,78px);z-index:1">
+      <div class="rnd" id="topTile" style="width:413px;height:413px;transform:translate(433px,78px);z-index:1">
         <div class="drag-handle">
           <div class="ph only-today"><span>Variant A | Top View | Input Image</span></div>
           <div class="img-wrap only-after">
@@ -220,6 +222,15 @@ body[data-mode="after"] .only-today{display:none!important}
     try { history.replaceState(null, '', '?mode=' + mode); } catch (err) { /* file:// may refuse */ }
     apply();
   });
+  var inShell = false; try { inShell = window.self !== window.top; } catch (e) { inShell = true; }
+  if (inShell) document.documentElement.classList.add('in-shell');
+  function readState() {
+    var st = { finished: true, hasSearchArea: false, inInstance: true, analysedOn: true, rawOn: true };
+    try { var v = JSON.parse(localStorage.getItem('mio-proto-state') || 'null'); if (v && typeof v === 'object') for (var k in v) st[k] = v[k]; } catch (e) {}
+    document.body.classList.toggle('no-top', st.inInstance === false);
+  }
+  readState();
+  try { window.addEventListener('storage', function (e) { if (!e.key || e.key === 'mio-proto-state') readState(); }); } catch (e) {}
   apply();
 })();
 </script>

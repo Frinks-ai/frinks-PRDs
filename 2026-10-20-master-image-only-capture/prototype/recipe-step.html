@@ -550,6 +550,10 @@ a.crumb:hover{color:#ff4301;background:#f3f4f6}
   });
 
   /* ---------- confirmation pop-up + success toast ---------- */
+  var inShell = false;
+  try { inShell = window.self !== window.top; } catch (e) { inShell = true; }
+  var currentState = 'today';
+  if (inShell) { var pr = document.querySelector('.proto'); if (pr) pr.style.display = 'none'; }
   var modal = document.getElementById('finishModal');
   function openModal() {
     hoverTip.style.visibility = 'hidden';
@@ -564,7 +568,20 @@ a.crumb:hover{color:#ff4301;background:#f3f4f6}
     closeModal();
     // project-configuration/index.tsx shows this after a capture completes (recoTriggered = false)
     toastSuccess('Configuration completed successfully.');
+    if (inShell) {
+      var mode = new URLSearchParams(location.search).get('mode');
+      if (mode !== 'today') {
+        var st = {};
+        try { st = JSON.parse(localStorage.getItem('mio-proto-state') || '{}') || {}; } catch (e) { st = {}; }
+        if (typeof st !== 'object' || Array.isArray(st)) st = {};
+        st.finished = true;
+        st.hasSearchArea = (currentState === 'after-search-area');
+        try { localStorage.setItem('mio-proto-state', JSON.stringify(st)); } catch (e) {}
+      }
+      setTimeout(function () { mioNav('vision-recipe-management'); }, 1000);
+    }
   });
+  function mioNav(to) { try { window.parent.postMessage({ type: 'mio-nav', to: to }, '*'); } catch (e) {} }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
   function toastSuccess(msg) {
     var box = document.getElementById('toaster');
@@ -584,6 +601,7 @@ a.crumb:hover{color:#ff4301;background:#f3f4f6}
     return STATES.indexOf(s) >= 0 ? s : 'today';
   }
   function setState(s, push) {
+    currentState = s;
     var base = s === 'after-popup' ? 'after-finish' : s;
     renderWorkflow(base);
     pinnedText = renderNext(base);

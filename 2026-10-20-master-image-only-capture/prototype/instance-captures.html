@@ -274,12 +274,34 @@ svg{display:block;vertical-align:middle}
   var params = new URLSearchParams(location.search);
   var mode = params.get('mode') === 'after' ? 'after' : 'today';
   var selected = {};
+  var INSHELL = window.self !== window.top;
+  var KEY = 'mio-proto-state';
+  var DEF = { finished:true, hasSearchArea:false, inInstance:true, analysedOn:true, rawOn:true };
+  function readState(){
+    var s = {}; try { s = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(_){ s = {}; }
+    var o = {}; Object.keys(DEF).forEach(function(k){ o[k] = typeof s[k] === 'boolean' ? s[k] : DEF[k]; });
+    return o;
+  }
+  function writeState(patch){
+    try { var s = {}; try { s = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(_){ s = {}; }
+      if (!s || typeof s !== 'object' || Array.isArray(s)) s = {};
+      Object.keys(patch).forEach(function(k){ s[k] = patch[k]; }); localStorage.setItem(KEY, JSON.stringify(s)); } catch(_){}
+  }
+  var state = readState();
 
-  function isConfigured(c){ return c.masterOnly ? mode === 'after' : true; }
-  function moduleInfo(c){ return c.masterOnly ? (mode === 'after' ? 'Master image only' : 'No modules added yet!') : c.moduleInfo; }
+  function isConfigured(c){ return c.masterOnly ? (mode === 'after' && state.finished) : true; }
+  function moduleInfo(c){
+    if (!c.masterOnly) return c.moduleInfo;
+    if (mode === 'after' && state.finished) return state.hasSearchArea ? 'SA (1)' : 'Master image only';
+    return 'No modules added yet!';
+  }
   function resetSelection(){
     selected = {};
-    CAPTURES.forEach(function(c){ if (isConfigured(c)) selected[c.id] = true; });
+    CAPTURES.forEach(function(c){
+      if (!isConfigured(c)) return;
+      if (c.masterOnly) { if (state.inInstance) selected[c.id] = true; }
+      else selected[c.id] = true;
+    });
   }
 
   /* Stepper (instanceWizard.getInstanceTimeline; internal step 3 = Recipe) */
@@ -356,7 +378,7 @@ svg{display:block;vertical-align:middle}
 
   function placePinned(){
     var pin = document.getElementById('pinTip'), trig = document.getElementById('disTrig');
-    if (mode === 'today' && trig){ pin.hidden = false; place(pin, trig, 'right'); }
+    if (trig){ pin.hidden = false; place(pin, trig, 'right'); }
     else pin.hidden = true;
   }
 
@@ -365,7 +387,7 @@ svg{display:block;vertical-align:middle}
     var el = e.target.closest && e.target.closest('[data-tip]');
     if (el === cur) return;
     cur = el; clearTimeout(timer); hoverTip.hidden = true;
-    if (!el || el.id === 'disTrig' && mode === 'today') return;
+    if (!el || el.id === 'disTrig') return;
     timer = setTimeout(function(){
       hoverTip.textContent = el.getAttribute('data-tip');
       hoverTip.hidden = false;
@@ -378,6 +400,8 @@ svg{display:block;vertical-align:middle}
     if (!cb || cb.classList.contains('dis')) return;
     var id = cb.getAttribute('data-id');
     if (selected[id]) delete selected[id]; else selected[id] = true;
+    var c = CAPTURES.filter(function(x){ return x.id === id; })[0];
+    if (mode === 'after' && c && c.masterOnly) { state.inInstance = !!selected[id]; writeState({ inInstance: state.inInstance }); }
     renderRows(); placePinned();
   });
 
@@ -390,6 +414,11 @@ svg{display:block;vertical-align:middle}
   document.querySelectorAll('.seg button').forEach(function(b){
     b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); });
   });
+
+  function mioNav(to){ try { window.parent.postMessage({ type: 'mio-nav', to: to }, '*'); } catch (e) {} }
+  document.getElementById('nextBtn').addEventListener('click', function(){ if (INSHELL && !this.disabled) mioNav('edge-image-saving'); });
+  if (INSHELL) document.querySelector('.proto').style.display = 'none';
+  addEventListener('storage', function(e){ if (e.key && e.key !== KEY) return; state = readState(); resetSelection(); renderRows(); placePinned(); });
 
   renderTimeline();
   sizeTables();

@@ -246,6 +246,18 @@ td.cls-status{padding:0;cursor:pointer}
     { id: 'actions', name: 'Actions' }
   ];
 
+  // shared prototype state (workflow shell)
+  var DEFAULTS = { finished: true, hasSearchArea: false, inInstance: true, analysedOn: true, rawOn: true };
+  function readState() {
+    var s = {};
+    try { var v = JSON.parse(localStorage.getItem('mio-proto-state') || '{}'); if (v && typeof v === 'object') s = v; } catch (e) {}
+    var out = {};
+    Object.keys(DEFAULTS).forEach(function (k) { out[k] = typeof s[k] === 'boolean' ? s[k] : DEFAULTS[k]; });
+    return out;
+  }
+  var inShell = false;
+  try { inShell = window.self !== window.top; } catch (e) { inShell = true; }
+
   // moduleInfo strings follow formatModuleInfo() in frinksvision-backend/src/utils/module.ts
   function rows(mode) {
     var green = 'tone-green', red = 'tone-red';
@@ -255,8 +267,14 @@ td.cls-status{padding:0;cursor:pointer}
       mode === 'today'
         ? { id: 'r2', variant: 'Variant A', capture: 'Top View', camera: 'Camera 2', moduleInfo: 'No modules added yet!',
             status: { label: 'At Step 1/2: Inspection Workflow', tone: red, tip: T.algorithmOnly }, pinned: true }
-        : { id: 'r2', variant: 'Variant A', capture: 'Top View', camera: 'Camera 2', moduleInfo: 'Master image only',
-            status: { label: 'Complete', tone: green, tip: T.masterOnlyComplete }, pinned: true },
+        : (function () {
+            var s = readState();
+            return s.finished
+              ? { id: 'r2', variant: 'Variant A', capture: 'Top View', camera: 'Camera 2', moduleInfo: s.hasSearchArea ? 'SA (1)' : 'Master image only',
+                  status: { label: 'Complete', tone: green, tip: T.masterOnlyComplete }, pinned: true }
+              : { id: 'r2', variant: 'Variant A', capture: 'Top View', camera: 'Camera 2', moduleInfo: s.hasSearchArea ? 'SA (1)' : 'No modules added yet!',
+                  status: { label: 'At Step 1/2: Inspection Workflow', tone: red, tip: T.algorithmOnly }, pinned: true };
+          })(),
       { id: 'r3', variant: 'Variant A', capture: 'Label Side', camera: 'Camera 3', moduleInfo: 'OCR (1)',
         status: { label: 'Complete', tone: green, tip: T.complete } }
     ];
@@ -300,7 +318,7 @@ td.cls-status{padding:0;cursor:pointer}
           '<span class="bc-cur" aria-current="page"><span class="bc-label"><span class="truncate">Recipe Management</span>' + infoTip(T.heading, 15) + '</span></span>' +
         '</nav>' +
       '</div></div>' +
-      '<div><div class="proto-ctl"><span class="proto">Prototype</span><div class="seg" id="seg">' +
+      '<div><div class="proto-ctl"' + (inShell ? ' style="display:none"' : '') + '><span class="proto">Prototype</span><div class="seg" id="seg">' +
         '<button type="button" data-mode="today" aria-pressed="' + (mode === 'today') + '">Today</button>' +
         '<button type="button" data-mode="after" aria-pressed="' + (mode === 'after') + '">After change</button>' +
       '</div></div></div>' +
@@ -434,6 +452,10 @@ td.cls-status{padding:0;cursor:pointer}
     hideHover(); closeMenu();
     sizeColumns(COLS.map(function (c) { return c.id === 'actions' ? 100 : null; }));
     placePinned();
+  });
+
+  window.addEventListener('storage', function (e) {
+    if (e.key === null || e.key === 'mio-proto-state') { hideHover(); closeMenu(); render(); }
   });
 
   render();

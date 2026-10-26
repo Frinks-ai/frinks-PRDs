@@ -352,12 +352,38 @@ body.overflow-auto{overflow:auto}
     return { name: name, saveAnalysedImage: on, saveAnalysedImageOk: ok, saveAnalysedImageNg: ng };
   }
 
+  var KEY = 'mio-proto-state';
+  var DEF = { finished: true, hasSearchArea: false, inInstance: true, analysedOn: true, rawOn: true };
+  var inShell = false;
+  try { inShell = window.self !== window.top; } catch (e) { inShell = true; }
+  function readState() {
+    var st = Object.assign({}, DEF);
+    try {
+      var v = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (v && typeof v === 'object') Object.keys(DEF).forEach(function (k) { if (typeof v[k] === 'boolean') st[k] = v[k]; });
+    } catch (e) { /* defaults */ }
+    return st;
+  }
+  function writeState(patch) {
+    try {
+      var cur = {};
+      try { cur = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { cur = {}; }
+      if (typeof cur !== 'object' || Array.isArray(cur)) cur = {};
+      localStorage.setItem(KEY, JSON.stringify(Object.assign(cur, patch)));
+    } catch (e) { /* ignore */ }
+  }
+  function mioNav(to) { try { window.parent.postMessage({ type: 'mio-nav', to: to }, '*'); } catch (e) {} }
+
   function seed(m) {
+    var st = readState();
+    var a = st.analysedOn, rw = st.rawOn;
     return {
       'cc-1': { raw: { enabled: false, ok: false, ng: false }, searchAreaRows: [area('Bolt Area', true, false, true)], resolution: 1, quality: 100 },
       // Master image only: today the backend returns no search area rows; after the change the
       // master image's own area ("Input Image") is returned like any other.
-      'cc-2': { raw: { enabled: true, ok: false, ng: true }, searchAreaRows: m === 'today' ? [] : [area('Input Image', true, false, true)], resolution: 1, quality: 100 },
+      'cc-2': m === 'today'
+        ? { raw: { enabled: true, ok: false, ng: true }, searchAreaRows: [], resolution: 1, quality: 100 }
+        : { raw: { enabled: rw, ok: false, ng: rw }, searchAreaRows: [area('Input Image', a, false, a)], resolution: 1, quality: 100 },
       'cc-3': { raw: { enabled: false, ok: false, ng: false }, searchAreaRows: [area('Label', true, true, true)], resolution: 2, quality: 80 }
     };
   }
@@ -411,8 +437,18 @@ body.overflow-auto{overflow:auto}
   }
 
   var tbody = document.getElementById('tbody');
+  function visibleRows() {
+    if (mode === 'after' && !readState().inInstance) return ROWS.filter(function (r) { return r.cameraConfigId !== 'cc-2'; });
+    return ROWS;
+  }
+  function pushTopView() {
+    if (mode !== 'after') return;
+    var c = configs['cc-2'];
+    var sar = c.searchAreaRows || [];
+    writeState({ analysedOn: !!(sar.length && sar[0].saveAnalysedImage), rawOn: !!c.raw.enabled });
+  }
   function render() {
-    tbody.innerHTML = ROWS.map(rowHtml).join('');
+    tbody.innerHTML = visibleRows().map(rowHtml).join('');
     syncButtons();
     document.querySelectorAll('#seg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mode === mode)); });
   }
@@ -420,7 +456,7 @@ body.overflow-auto{overflow:auto}
   function dirty() { return JSON.stringify(configs) !== JSON.stringify(initial); }
   function syncButtons() {
     var d = dirty();
-    document.getElementById('saveBtn').disabled = !d;
+    document.getElementById('saveBtn').disabled = !d && !inShell;
     document.getElementById('resetBtn').disabled = !d;
     document.getElementById('saveTip').dataset.tip = d ? 'Save changes. A running deployment is reloaded to apply them.' : 'No changes to save.';
     document.getElementById('resetTip').dataset.tip = d ? 'Discard unsaved changes on this page.' : 'No changes to reset.';
@@ -463,6 +499,7 @@ body.overflow-auto{overflow:auto}
     var c = configs[t.closest('tr').dataset.id];
     if (t.dataset.act === 'an') analysedToggle(c);
     else rawChange(c, 'enabled', !(c.raw.enabled));
+    pushTopView();
     render();
   });
   tbody.addEventListener('change', function (e) {
@@ -476,6 +513,7 @@ body.overflow-auto{overflow:auto}
     else if (act === 'rawng') rawChange(c, 'ng', el.checked);
     else if (act === 'res') c.resolution = Number(el.value);
     else return;
+    pushTopView();
     render();
   });
   tbody.addEventListener('input', function (e) {
@@ -488,8 +526,9 @@ body.overflow-auto{overflow:auto}
     syncButtons();
   });
 
-  document.getElementById('resetBtn').addEventListener('click', function () { configs = clone(initial); render(); });
+  document.getElementById('resetBtn').addEventListener('click', function () { configs = clone(initial); pushTopView(); render(); });
   document.getElementById('saveBtn').addEventListener('click', function () {
+    if (inShell) { initial = clone(configs); render(); mioNav('edge-emc'); return; }
     initial = clone(configs);
     render();
     toast('Configurations saved successfully');
@@ -586,6 +625,13 @@ body.overflow-auto{overflow:auto}
   document.addEventListener('scroll', hideTip, true);
 
   // ---------- Boot ----------
+  if (inShell) document.querySelector('.pbar').style.display = 'none';
+  addEventListener('storage', function (e) {
+    if (e.key && e.key !== KEY) return;
+    if (mode !== 'after') return;
+    reseed();
+    render();
+  });
   reseed();
   sizeCols();
   render();

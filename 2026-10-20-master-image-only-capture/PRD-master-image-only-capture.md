@@ -1,6 +1,6 @@
 # PRD: Captures with no inspection modules
 
-**Prototype:** [All screens, Today vs After change](https://vbv-fr.github.io/master-image-only-prototype/)
+**Prototype:** [Walkthrough of every screen, Today vs After change](https://vbv-fr.github.io/master-image-only-prototype/)
 **Product:** Vision + Edge
 **Status:** Approved
 **Date:** 23 October 2026
@@ -73,7 +73,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C3, C4, C5, C14
 - **Today:** with only the master image, Next is greyed out with no reason, so the capture can never be completed. With only search areas, finishing means saving, generating and ticking an empty dataset folder.
-- **Prototype:** [Recipe step](https://vbv-fr.github.io/master-image-only-prototype/recipe-step.html)
+- **Prototype:** [Recipe step](https://vbv-fr.github.io/master-image-only-prototype/#vision-recipe)
 
 ![Today: only the master image in the tree, and Next is greyed out](prototype/recipe-step-today.png)
 ![After: Finish is shown and can be clicked](prototype/recipe-step-after-finish.png)
@@ -101,7 +101,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C3
 - **Today:** with only the master image, Module Info says "No modules added yet!" and the status stays red at step 1. With only search areas, Module Info shows "SA (n)".
-- **Prototype:** [Recipe Management](https://vbv-fr.github.io/master-image-only-prototype/recipe-management.html)
+- **Prototype:** [Recipe Management](https://vbv-fr.github.io/master-image-only-prototype/#vision-recipe-management)
 
 ![Today: "No modules added yet!" and a red step-1 status](prototype/recipe-management-today.png)
 ![After: "Master image only" and green Complete](prototype/recipe-management-after.png)
@@ -117,7 +117,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C2, C10, C12
 - **Today:** a capture with only the master image can't be ticked, because it never becomes Complete. Edge refuses an upload from a project with no classes.
-- **Prototype:** [Instance captures](https://vbv-fr.github.io/master-image-only-prototype/instance-captures.html)
+- **Prototype:** [Instance captures](https://vbv-fr.github.io/master-image-only-prototype/#vision-instance)
 
 ![Today: the master-image-only capture is greyed out in the wizard](prototype/instance-captures-today.png)
 ![After: it can be ticked like any Complete capture](prototype/instance-captures-after.png)
@@ -161,7 +161,7 @@ Removed 23 October 2026: the reload only costs the time to swap models on a rare
 - **Stakeholders:** Tanay (SDE), Pallavi (AI, Python)
 - **Covers:** C8, C12
 - **Today:** the Analysed Image switch is stuck off ("No result config was included while creating project"). Raw images can be saved, but Edge never records where.
-- **Prototype:** [Image saving](https://vbv-fr.github.io/master-image-only-prototype/image-saving.html)
+- **Prototype:** [Image saving](https://vbv-fr.github.io/master-image-only-prototype/#edge-image-saving)
 
 ![Today: Analysed Image can't be switched on](prototype/image-saving-today.png)
 ![After: Raw Image and Analysed Image both work](prototype/image-saving-after.png)
@@ -178,7 +178,7 @@ Removed 23 October 2026: the reload only costs the time to swap models on a rare
 - **Teams:** SDE
 - **Covers:** C12
 - **Today:** Edge stores nothing for these captures. In a mixed cycle they have no row. A cycle made only of them shows "N/A" images and "Fail" under Config Result, though the cycle passed.
-- **Prototype:** [Reports](https://vbv-fr.github.io/master-image-only-prototype/reports.html)
+- **Prototype:** [Reports](https://vbv-fr.github.io/master-image-only-prototype/#edge-reports)
 
 ![Today: no row for Top View; the Pack Photo cycle shows N/A and Fail](prototype/reports-today.png)
 ![After: every no-inspection capture has its own Pass row with its images](prototype/reports-after.png)
@@ -198,7 +198,7 @@ Removed 23 October 2026: the reload only costs the time to swap models on a rare
 - **Stakeholders:** Tanay (SDE), Pallavi (AI, Python)
 - **Covers:** C12
 - **Today:** the default dashboard gives these captures a tile, but no image ever arrives, so it stays an empty box. Dashboard Builder can't pick them.
-- **Prototype:** [Live Dashboard](https://vbv-fr.github.io/master-image-only-prototype/live-dashboard.html), [Dashboard Builder](https://vbv-fr.github.io/master-image-only-prototype/dashboard-builder.html)
+- **Prototype:** [Live Dashboard](https://vbv-fr.github.io/master-image-only-prototype/#edge-live-dashboard), [Dashboard Builder](https://vbv-fr.github.io/master-image-only-prototype/#edge-dashboard-builder)
 
 ![Today: the Top View tile is an empty box](prototype/live-dashboard-today.png)
 ![After: the Top View tile shows the live image, like the other tiles](prototype/live-dashboard-after.png)
@@ -214,7 +214,7 @@ Removed 23 October 2026: the reload only costs the time to swap models on a rare
 - **Teams:** SDE
 - **Covers:** C11
 - **Today:** the capture is listed, but the Module list is greyed out with nothing below it and no message.
-- **Prototype:** [EMC](https://vbv-fr.github.io/master-image-only-prototype/emc.html)
+- **Prototype:** [EMC](https://vbv-fr.github.io/master-image-only-prototype/#edge-emc)
 
 ![Today: a greyed-out Module list and an empty panel](prototype/emc-today.png)
 ![After: "No inspection modules in this capture."](prototype/emc-after.png)
@@ -347,6 +347,7 @@ Repos checked (20 October 2026): frinksvision-frontend @ 110a23c, frinksvision-b
 - 20 October 2026 — Approved (Tanay Deo).
 - 23 October 2026 — Back to In review. Scope widened to captures with only search areas (AC1.1, AC1.2, AC1.4, AC1.5, AC1.6, AC2.2, AC3.1, AC4.2, AC6.1, AC11.1, AC15.6, AC16.1, AC16.2; AC2.3 and AC14.7 added). Finish asks for confirmation (AC1.9–AC1.11 added). US5 and AC5.1 removed: the model reload is small and would be custom work (now in Out of scope). Analysed image is drawn like any capture's, with no frame around the whole image (AC7.2, AC8.3, AC9.1; corrects the 20 October decision). AC3.2 (removed): covered by AC7.1, AC8.2, AC9.1. AC7.3 trimmed: the recorded location is AC8.1. Header moved to the current template (prototype first, Discussion points). Duplicate pass: AC8.4 merged its two Pass statements; AC11.1 trimmed (Edge access is AC11.2); AC16.4 trimmed (no database change is AC16.1); AC6.1 trimmed (each area's OK is AC4.2); AC14.1 reworded to the uploaded picture, so it no longer reads against AC1.7.
 - 23 October 2026 — Approved again (Tanay Deo).
+- 26 October 2026 — Prototype rebuilt as one walkthrough (step navigator, shared state across screens, Today / After change); story links now open their step. No AC changed.
 
 ## Checked, not affected
 - vision-projects, vision-access, vision-variants: permissions, projects and variants work as today.

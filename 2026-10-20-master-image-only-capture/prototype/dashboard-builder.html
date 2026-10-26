@@ -152,6 +152,9 @@ body[data-mode="today"] .only-after{display:none!important}
 body[data-mode="after"] .only-today{display:none!important}
 
 /* prototype switcher */
+html.in-shell .pctl{display:none!important}
+.rs.closed .rs-menu{display:none}
+.rs.closed .rs-control{border-color:#fcfcfcff;box-shadow:none}
 .pctl{position:absolute;right:20px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
 .proto{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#4b5563;background:#f9fafb;border:1px dashed #d1d5db;border-radius:999px;padding:1px 8px;line-height:16px}
 .seg{display:inline-flex;border:1px solid #d1d5db;border-radius:999px;padding:2px;background:#fff}
@@ -254,7 +257,7 @@ body[data-mode="after"] .only-today{display:none!important}
           </div>
           <label class="tb-ibtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></label>
           <button type="button" class="tb-ibtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
-          <button type="button" class="tb-ibtn eye"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button type="button" class="tb-ibtn eye" id="previewBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           <button type="button" class="tb-ibtn"><svg width="18" height="18" viewBox="0 0 448 512" fill="currentColor"><path d="M433.941 65.941l-51.882-51.882A48 48 0 0 0 348.118 0H176c-26.51 0-48 21.49-48 48v48H48c-26.51 0-48 21.49-48 48v320c0 26.51 21.49 48 48 48h224c26.51 0 48-21.49 48-48v-48h80c26.51 0 48-21.49 48-48V99.882a48 48 0 0 0-14.059-33.941zM266 464H54a6 6 0 0 1-6-6V150a6 6 0 0 1 6-6h74v224c0 26.51 21.49 48 48 48h96v42a6 6 0 0 1-6 6zm128-96H182a6 6 0 0 1-6-6V54a6 6 0 0 1 6-6h106v88c0 13.255 10.745 24 24 24h88v202a6 6 0 0 1-6 6zm6-256h-64V48h9.632c1.591 0 3.117.632 4.243 1.757l48.368 48.368a6 6 0 0 1 1.757 4.243V112z"/></svg></button>
         </div>
       </div>
@@ -354,7 +357,7 @@ body[data-mode="after"] .only-today{display:none!important}
 
                   <div>
                     <label>Select Search Area</label>
-                    <div class="rs focus">
+                    <div class="rs focus" id="saSelect">
                       <div class="rs-control">
                         <div class="rs-vc">
                           <div class="rs-ph only-today">Select...</div>
@@ -364,10 +367,10 @@ body[data-mode="after"] .only-today{display:none!important}
                         <div class="rs-ind"><div class="rs-dd"><svg viewBox="0 0 16 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 5.29297L11.8545 9.14597L11.1475 9.85397L8.00048 6.70697L4.85448 9.85397L4.14648 9.14597L8.00048 5.29297Z" fill="#acacac"/><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 18.707L11.8545 14.854L11.1475 14.146L8.00048 17.293L4.85448 14.146L4.14648 14.854L8.00048 18.707Z" fill="#acacac"/></svg></div></div>
                       </div>
                       <!-- react-select menu, menuPlacement="top" -->
-                      <div class="rs-menu">
+                      <div class="rs-menu" id="saMenu">
                         <div class="rs-ml">
                           <div class="rs-nomsg only-today">No options</div>
-                          <div class="rs-opt focused selected only-after">
+                          <div class="rs-opt focused selected only-after" id="saOpt">
                             <span class="lbl"><div class="fol" title=" Input Image"><div class="chip">searchArea</div><span class="rest"> Input Image</span></div></span>
                             <span class="tick"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M16.3333 3.86162C16.0907 3.61904 15.7134 3.61904 15.4708 3.86162L6.30674 12.7562L1.77862 8.30889C1.53604 8.06631 1.15869 8.09326 0.916115 8.30889C0.673537 8.55146 0.70049 8.92881 0.916115 9.17139L5.68682 13.8073C5.84854 13.969 6.06416 14.0499 6.30674 14.0499C6.54932 14.0499 6.73799 13.969 6.92666 13.8073L16.3333 4.67021C16.5759 4.48154 16.5759 4.1042 16.3333 3.86162Z" fill="currentColor"/></svg></span>
                           </div>
@@ -404,6 +407,13 @@ body[data-mode="after"] .only-today{display:none!important}
     try { history.replaceState(null, '', '?mode=' + mode); } catch (err) { /* file:// may refuse */ }
     apply();
   });
+  function mioNav(to){ try { window.parent.postMessage({ type: "mio-nav", to: to }, "*"); } catch (e) {} }
+  var inShell = false; try { inShell = window.self !== window.top; } catch (e) { inShell = true; }
+  if (inShell) document.documentElement.classList.add('in-shell');
+  var sel = document.getElementById('saSelect');
+  sel.querySelector('.rs-control').addEventListener('click', function () { if (mode === 'after') sel.classList.toggle('closed'); });
+  document.getElementById('saOpt').addEventListener('click', function (e) { e.stopPropagation(); sel.classList.add('closed'); });
+  document.getElementById('previewBtn').addEventListener('click', function () { if (mode === 'after' && inShell) mioNav('edge-live-dashboard'); });
   apply();
 })();
 </script>

@@ -3,49 +3,149 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>No-inspection captures prototypes</title>
+<title>No-inspection captures prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --ink:#1e1c1c; --muted:#6b6f72; --line:#e6e6e6; --brand:#ff4301; --bg:#f6f6f6; --card:#fff; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:Outfit, system-ui, sans-serif; }
-  header { padding:32px 24px 8px; max-width:1200px; margin:0 auto; }
-  h1 { margin:0 0 6px; font-size:28px; font-weight:600; }
-  .sub { color:var(--muted); font-size:15px; }
-  h2 { max-width:1200px; margin:28px auto 12px; padding:0 24px; font-size:15px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
-  .grid { max-width:1200px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; }
-  a.card { display:block; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; text-decoration:none; color:inherit; transition:box-shadow .15s, border-color .15s; }
-  a.card:hover { border-color:var(--brand); box-shadow:0 4px 18px rgba(0,0,0,.08); }
-  a.card img { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; object-position:top left; border-bottom:1px solid var(--line); }
-  .body { padding:12px 14px 14px; }
-  .t { font-weight:600; font-size:16px; }
-  .us { color:var(--brand); font-size:13px; font-weight:500; margin-top:2px; }
-  footer { max-width:1200px; margin:32px auto; padding:0 24px; color:var(--muted); font-size:13px; }
+  :root { --ink:#1e1c1c; --muted:#6b6f72; --line:#e4e4e4; --brand:#ff4301; --soft:#fff1ea; --bar:#ffffff; --bg:#f4f4f4; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; }
+  body { display:flex; flex-direction:column; background:var(--bg); color:var(--ink); font-family:Outfit, system-ui, sans-serif; }
+  .bar { flex:0 0 auto; background:var(--bar); border-bottom:1px solid var(--line); padding:8px 14px; display:flex; align-items:center; gap:14px; }
+  .title { font-weight:600; font-size:15px; white-space:nowrap; }
+  .tag { font-size:10px; font-weight:600; letter-spacing:.08em; color:var(--muted); border:1px dashed #c9c9c9; border-radius:999px; padding:2px 8px; }
+  nav { flex:1 1 auto; display:flex; align-items:center; gap:10px; overflow-x:auto; scrollbar-width:thin; min-width:0; }
+  .group { display:flex; align-items:center; gap:4px; }
+  .glabel { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-right:2px; white-space:nowrap; }
+  .sep { width:1px; height:22px; background:var(--line); }
+  .step { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:5px 9px; font:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+  .step .n { font-size:11px; font-weight:600; color:var(--muted); }
+  .step:hover { border-color:var(--brand); }
+  .step.on { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .step.on .n { color:#fff; }
+  .step[disabled] { opacity:.38; cursor:not-allowed; }
+  .ctrl { flex:0 0 auto; display:flex; align-items:center; gap:8px; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+  .seg button { border:0; background:#fff; font:inherit; font-size:12.5px; padding:5px 11px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--ink); color:#fff; }
+  .btn { border:1px solid var(--line); background:#fff; font:inherit; font-size:12.5px; border-radius:8px; padding:5px 10px; cursor:pointer; }
+  .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .btn[disabled] { opacity:.4; cursor:not-allowed; }
+  .btn.link { border-color:transparent; color:var(--muted); }
+  iframe { flex:1 1 auto; width:100%; border:0; background:#fff; }
+  @media (max-width: 900px) { .title { display:none; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>Captures with no inspection modules</h1>
-  <div class="sub">Prototype · each screen has a Today / After change switch</div>
-</header>
-
-<h2>Frinks Vision</h2>
-<div class="grid">
-  <a class="card" href="recipe-step.html"><img src="recipe-step-after-finish.png" alt="Recipe step with Finish"><div class="body"><div class="t">Recipe step: Finish</div><div class="us">US1</div></div></a>
-  <a class="card" href="recipe-management.html"><img src="recipe-management-after.png" alt="Recipe Management table"><div class="body"><div class="t">Recipe Management</div><div class="us">US2</div></div></a>
-  <a class="card" href="instance-captures.html"><img src="instance-captures-after.png" alt="Instance wizard captures"><div class="body"><div class="t">Instance wizard: captures</div><div class="us">US3</div></div></a>
+<div class="bar">
+  <span class="title">Captures with no inspection modules</span>
+  <span class="tag">PROTOTYPE</span>
+  <nav id="nav"></nav>
+  <div class="ctrl">
+    <div class="seg" id="mode"><button data-m="today">Today</button><button data-m="after">After change</button></div>
+    <button class="btn" id="back">Back</button>
+    <button class="btn primary" id="next">Next step</button>
+    <button class="btn link" id="reset" title="Reset what you set on the screens and go to step 1">Start over</button>
+  </div>
 </div>
+<iframe id="screen" title="Prototype screen"></iframe>
 
-<h2>Frinks Edge</h2>
-<div class="grid">
-  <a class="card" href="image-saving.html"><img src="image-saving-after.png" alt="Image Saving Configurations"><div class="body"><div class="t">Image Saving Configurations</div><div class="us">US7</div></div></a>
-  <a class="card" href="reports.html"><img src="reports-after.png" alt="Analytics and Reports"><div class="body"><div class="t">Analytics &amp; Reports</div><div class="us">US8</div></div></a>
-  <a class="card" href="live-dashboard.html"><img src="live-dashboard-after.png" alt="Live Dashboard"><div class="body"><div class="t">Live Dashboard</div><div class="us">US9</div></div></a>
-  <a class="card" href="dashboard-builder.html"><img src="dashboard-builder-after.png" alt="Dashboard Builder"><div class="body"><div class="t">Dashboard Builder</div><div class="us">US9</div></div></a>
-  <a class="card" href="emc.html"><img src="emc-after.png" alt="Edit Module Configurations"><div class="body"><div class="t">Edit Module Configurations</div><div class="us">US10</div></div></a>
-</div>
+<script>
+const STEPS = [
+  { id:"vision-recipe",             g:"vision", label:"Recipe: master image only", file:"recipe-step.html",       after:"after-finish",       today:"today" },
+  { id:"vision-recipe-search-area", g:"vision", label:"Recipe: with a search area", file:"recipe-step.html",      after:"after-search-area",  today:null },
+  { id:"vision-recipe-no-image",    g:"vision", label:"Recipe: no master image",    file:"recipe-step.html",      after:"after-no-image",     today:null },
+  { id:"vision-recipe-unsaved",     g:"vision", label:"Recipe: unsaved module",     file:"recipe-step.html",      after:"after-unconfigured", today:null },
+  { id:"vision-recipe-management",  g:"vision", label:"Recipe Management",          file:"recipe-management.html" },
+  { id:"vision-instance",           g:"vision", label:"Instance wizard",            file:"instance-captures.html" },
+  { id:"edge-image-saving",         g:"edge",   label:"Image saving",               file:"image-saving.html" },
+  { id:"edge-emc",                  g:"edge",   label:"Edit Module Configurations", file:"emc.html",              after:"after",              today:"today", stateIsMode:true },
+  { id:"edge-dashboard-builder",    g:"edge",   label:"Dashboard Builder",          file:"dashboard-builder.html" },
+  { id:"edge-live-dashboard",       g:"edge",   label:"Live Dashboard",             file:"live-dashboard.html" },
+  { id:"edge-reports",              g:"edge",   label:"Reports",                    file:"reports.html" },
+];
+const KEY = "mio-proto-state";
+const START = { finished:false, hasSearchArea:false, inInstance:false, analysedOn:false, rawOn:false };
+let mode = "after";
+try { mode = sessionStorage.getItem("mio-mode") || "after"; } catch (e) {}
 
-<footer>Sample data only.</footer>
+const nav = document.getElementById("nav"), frame = document.getElementById("screen");
+const available = s => mode === "after" || s.today !== null;
+const idx = id => STEPS.findIndex(s => s.id === id);
+
+function buildNav() {
+  nav.innerHTML = "";
+  let n = 0;
+  [["vision","Frinks Vision"],["edge","Frinks Edge"]].forEach(([g, name], gi) => {
+    if (gi) { const s = document.createElement("span"); s.className = "sep"; nav.appendChild(s); }
+    const wrap = document.createElement("div"); wrap.className = "group";
+    const lab = document.createElement("span"); lab.className = "glabel"; lab.textContent = name; wrap.appendChild(lab);
+    STEPS.filter(s => s.g === g).forEach(s => {
+      n += 1;
+      const b = document.createElement("button");
+      b.className = "step"; b.dataset.id = s.id;
+      b.innerHTML = `<span class="n">${n}</span>${s.label}`;
+      b.onclick = () => go(s.id);
+      wrap.appendChild(b);
+    });
+    nav.appendChild(wrap);
+  });
+}
+
+function current() {
+  const id = (location.hash || "").slice(1);
+  const s = STEPS.find(x => x.id === id);
+  return s && available(s) ? s : STEPS[0];
+}
+
+function render() {
+  const s = current();
+  if (("#" + s.id) !== location.hash) history.replaceState(null, "", "#" + s.id);
+  let src = s.file + "?mode=" + mode;
+  const st = mode === "after" ? s.after : s.today;
+  if (st && !s.stateIsMode) src += "&state=" + st;
+  if (frame.getAttribute("src") !== src) frame.setAttribute("src", src);
+  document.querySelectorAll(".step").forEach(b => {
+    const step = STEPS[idx(b.dataset.id)];
+    b.classList.toggle("on", b.dataset.id === s.id);
+    b.disabled = !available(step);
+    b.title = b.disabled ? "Only in After change" : "";
+  });
+  document.querySelectorAll("#mode button").forEach(b => b.classList.toggle("on", b.dataset.m === mode));
+  const i = idx(s.id);
+  document.getElementById("back").disabled = !STEPS.slice(0, i).some(available);
+  document.getElementById("next").disabled = !STEPS.slice(i + 1).some(available);
+  const on = nav.querySelector(".step.on"); if (on) on.scrollIntoView({ block:"nearest", inline:"nearest" });
+}
+
+function go(id) { location.hash = id; }
+function step(dir) {
+  let i = idx(current().id) + dir;
+  while (i >= 0 && i < STEPS.length && !available(STEPS[i])) i += dir;
+  if (i >= 0 && i < STEPS.length) go(STEPS[i].id);
+}
+
+document.getElementById("back").onclick = () => step(-1);
+document.getElementById("next").onclick = () => step(1);
+document.querySelectorAll("#mode button").forEach(b => b.onclick = () => {
+  mode = b.dataset.m;
+  try { sessionStorage.setItem("mio-mode", mode); } catch (e) {}
+  frame.removeAttribute("src");
+  render();
+});
+document.getElementById("reset").onclick = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(START)); } catch (e) {}
+  frame.removeAttribute("src");
+  if (location.hash === "#" + STEPS[0].id) render(); else go(STEPS[0].id);
+};
+window.addEventListener("hashchange", render);
+window.addEventListener("message", e => {
+  const d = e.data;
+  if (d && d.type === "mio-nav" && STEPS.some(s => s.id === d.to)) go(d.to);
+});
+
+buildNav();
+render();
+</script>
 </body>
 </html>
