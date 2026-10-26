@@ -6,7 +6,7 @@ with their screenshots. The Prototype column opens each PRD's live, clickable pr
 
 | Date | PRD | Prototype | Product | Status | Owner |
 |---|---|---|---|---|---|
-| 26 Oct 2026 | [Edge Instance Testing v2](2026-10-24-edge-instance-testing-v2/PRD-edge-instance-testing-v2.md) | [Live prototype](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/) | Frinks Edge | Draft | Akshat Sharma |
+| 26 Oct 2026 | [Edge Instance Testing v2](2026-10-24-edge-instance-testing-v2/PRD-edge-instance-testing-v2.md) | [Live prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/) | Frinks Edge | Draft | Akshat Sharma |
 | 26 Oct 2026 | [Dimensioning: distance and angle to a fixed line](2026-10-23-dimension-fixed-line/PRD-dimension-fixed-line.md) | [Live prototype](https://vbv-fr.github.io/dimension-fixed-line-prototype/) | Frinks Edge | In review | Tanay Deo |
 | 23 Oct 2026 | [Captures with no inspection modules](2026-10-20-master-image-only-capture/PRD-master-image-only-capture.md) | [Live prototype](https://vbv-fr.github.io/master-image-only-prototype/) | Vision + Edge | Approved | Tanay Deo |
 | 26 Oct 2026 | [Image Enhancement module](2026-10-20-image-enhancement-module/PRD-image-enhancement-module.md) | [Live prototype](https://vbv-fr.github.io/image-enhancement-prototype/) | Vision + Edge | In review | Tanay Deo |

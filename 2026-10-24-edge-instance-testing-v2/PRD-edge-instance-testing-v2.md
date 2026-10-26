@@ -1,6 +1,6 @@
 # PRD: Edge Instance Testing v2
 
-**Prototype:** [Interactive workflow, Today vs After change](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/)
+**Prototype:** [Interactive workflow, Today vs After change](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/)
 **Product:** Frinks Edge
 **Status:** Draft
 **Date:** 26 October 2026
@@ -86,7 +86,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C2
 - **Today:** Testing is only reachable by opening an instance and then its Testing tab.
-- **Prototype:** [edge-instances](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-instances)
+- **Prototype:** [edge-instances](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-instances)
 
 ![Today: instance list without a testing button](prototype/edge-instances-today.png)
 ![After: Instance Testing button left of Add Instance](prototype/edge-instances-after.png)
@@ -103,7 +103,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C3, C5
 - **Today:** a "Test Parameters" card shows Test Status, Test Type and Success Rate as "N/A" always.
-- **Prototype:** [edge-testing-tab](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-testing-tab)
+- **Prototype:** [edge-testing-tab](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-testing-tab)
 
 ![Today: Test Parameters card with N/A values](prototype/edge-testing-tab-today.png)
 ![After: Testing Completed banner and history](prototype/edge-testing-tab-after.png)
@@ -120,7 +120,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C3, C5, C12
 - **Today:** the history list exists but can't be opened; it shows "Errored" for every test that isn't Completed, including running ones.
-- **Prototype:** [edge-testing-tab](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-testing-tab)
+- **Prototype:** [edge-testing-tab](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-testing-tab)
 
 - **AC3.1** Under the last test banner, an "All tests" table is always shown (no View Test History button), newest first, with columns Test (with "by <name>"), Started, Took, What was tested (captures and image count), Status, and an action.
 - **AC3.2** A test's status is exactly one of Running (with %), Completed, Completed with errors, Failed, Cancelled.
@@ -150,7 +150,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C4, C5, C11
 - **Today:** the drawer shows a long paragraph of instructions; nothing is checked; uploading shows a full-screen loader.
-- **Prototype:** [edge-run-test](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-run-test)
+- **Prototype:** [edge-run-test](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-run-test)
 
 ![Today: Run a new test drawer](prototype/edge-run-test-today.png)
 ![After: drawer with per-capture checks](prototype/edge-run-test-after.png)
@@ -174,7 +174,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Stakeholders:** see Q2
 - **Covers:** C3, C5, C8
 - **Today:** a full-screen percentage loader blocks Edge; a test can't be cancelled; a test that stops responding is marked Errored with no reason.
-- **Prototype:** [edge-test-running](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-test-running)
+- **Prototype:** [edge-test-running](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-test-running)
 
 ![Today: full-screen loader](prototype/edge-test-running-today.png)
 ![After: progress card on the Testing tab](prototype/edge-test-running-after.png)
@@ -204,7 +204,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Stakeholders:** see Q2
 - **Covers:** C3, C11
 - **Today:** results open on a separate page reached only through the hidden history, with a breadcrumb that doesn't lead back to the Testing tab.
-- **Prototype:** [edge-test-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-test-results)
+- **Prototype:** [edge-test-results](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-test-results)
 
 ![Today: results page](prototype/edge-test-results-today.png)
 ![After: results Summary tab](prototype/edge-test-results-after.png)
@@ -227,7 +227,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Stakeholders:** see Q2
 - **Covers:** C9, C12, C14
 - **Today:** a reference image and a visualization with generic boxes in random colours, one module at a time; Shape Extractor is not tested.
-- **Prototype:** [edge-module-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-module-results)
+- **Prototype:** [edge-module-results](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-module-results)
 
 ![After: Module Results tab with the OK / NG / All filter](prototype/edge-module-results-after.png)
 
@@ -249,7 +249,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C9, C11
 - **Today:** one Confidence and one IOU slider per module, redrawing generic boxes; no OK/NG anywhere.
-- **Prototype:** [edge-module-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-module-results)
+- **Prototype:** [edge-module-results](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-module-results)
 
 ![After: Thresholds panel](prototype/edge-thresholds-after.png)
 
@@ -281,7 +281,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C5, C14
 - **Today:** the Performance Metrics section was removed from results.
-- **Prototype:** [edge-performance-metrics](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-performance-metrics)
+- **Prototype:** [edge-performance-metrics](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/#edge-performance-metrics)
 
 ![Today: results without metrics](prototype/edge-performance-metrics-today.png)
 ![After: Performance Metrics tab](prototype/edge-performance-metrics-after.png)
@@ -385,6 +385,7 @@ For developers. From the 24 Oct 2026 sync.
 Repos checked: frinksedge-deployment-frontend @ 3c02701 (2026-10-23), frinksedge-deployment-backend @ be6d0aa (2026-10-22), frinksedge-inferencing-backend @ 310c18e (2026-10-22), frinksedge-health @ 2dbc622 (2026-10-23), vip-inference-python @ 93451d1 (2026-10-15), Python-inference-docker @ 62e22bd (2026-05-29), and the other 28 repos in the skill's list at their latest default-branch commit on 24 Oct 2026. The testing program's own source was not found (Q1).
 
 ## Changelog
+- 26 Oct 2026 — Prototype moved to GitHub Pages on Frinks-ai/frinks-PRDs; every Prototype link updated (Akshat Sharma)
 - 26 Oct 2026 — Owner review 4: the Summary goes back to its own tab, open by default, counting OK/NG at the thresholds the test ran with (AC8.3, AC8.6, AC8.8, AC10.2); the rest of review 3 stays (Akshat Sharma)
 - 26 Oct 2026 — Owner review 3: results back to two tabs (AC8.3); the Summary moves under the Thresholds panel and follows the thresholds being tried (AC8.6, AC8.8, AC10.2); the capture's OK/NG count moves into the Thresholds header (AC10.1); the capture selector is centred and an OK / NG / All filter drives the pager (AC9.1, AC9.2); Module Results sits right under the images and changes with them (AC10.5). The prototype's latest test now completes cleanly; Completed with errors stays a status and is shown on the oldest test (Akshat Sharma)
 - 26 Oct 2026 — Owner review 2: the Testing tab shows only a "Testing Completed" banner with View Results (US2); results get three tabs with a per-capture Summary (images tested, OK, NG, average inference time per capture) replacing per-module times (AC8.2, AC8.3, AC8.6–AC8.9); Module Results sits above Thresholds and results tables use orange headers (AC9.1, AC10.1, AC10.5, AC12.6); Run drawer errors and warnings move behind a hover icon, the image count line is dropped, and wrong-size images are skipped at upload (AC5.2–AC5.5) (Akshat Sharma)
