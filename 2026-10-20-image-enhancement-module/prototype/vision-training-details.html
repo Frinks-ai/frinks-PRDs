@@ -67,6 +67,8 @@ svg{display:block;vertical-align:middle}
 
 /* ---- ai-detail/Detail.jsx ---- */
 .dt{display:flex;max-height:50vh;flex-shrink:0;flex-direction:column;gap:8px;overflow-y:auto;border-radius:8px;padding:0 40px 40px}
+/* The configurations table keeps its full height inside the scrolling column (it lists the captures selected before training). */
+.dt > .tbl{flex-shrink:0}
 .b7{font-weight:700}
 .fx{display:flex;gap:8px}
 .fx-c{display:flex;align-items:center;gap:4px}
@@ -301,9 +303,20 @@ svg{display:block;vertical-align:middle}
     percentage: '214/300', patience: 60,                  // status 8 (completed) -> post training info
     gpu: '40-series Server',                              // Detail.jsx GPU_LABELS
     imageSize: 736,                                       // configuration.tsx modelResolutionMapping[10]
-    datasets: [
-      { g: 'Print Images', p: 'Line 1', n: 'Batch 1', a: 24, c: 24 },
-      { g: 'Print Images', p: 'Line 1', n: 'Batch 2', a: 18, c: 18 }
+    // Detail.jsx moduleInfo: the configurations (variant, capture, module) selected in Build & Train before training.
+    moduleInfo: [
+      { variant: 'Variant A', cameraConfig: 'Capture 1', name: 'OCR_1' },
+      { variant: 'Variant B', cameraConfig: 'Capture 1', name: 'OCR_1' }
+    ],
+    // datasetInfo grouped per camera config (Detail.jsx groupByCameraConfig)
+    datasetGroups: [
+      { variant: 'Variant A', capture: 'Capture 1', datasets: [
+        { g: 'Print Images', p: 'Line 1', n: 'Batch 1', a: 24, c: 24 },
+        { g: 'Print Images', p: 'Line 1', n: 'Batch 2', a: 18, c: 18 }
+      ] },
+      { variant: 'Variant B', capture: 'Capture 1', datasets: [
+        { g: 'Print Images', p: 'Line 2', n: 'Batch 1', a: 20, c: 20 }
+      ] }
     ]
   };
 
@@ -369,32 +382,34 @@ svg{display:block;vertical-align:middle}
     h += '<div class="fx"><span class="b7">Classes: </span><div class="cls-list">' + MODEL.classes.map(chip).join('') + '</div></div>';
 
     h += '<div class="dt-h">Following project configurations can use this AI model :</div>';
-    h += table(['Variant', 'Capture', 'Module', 'Model Type', 'Search Area', 'Classes'], [[
-      'Variant A', 'Capture 1', 'OCR_1', esc(MODEL.modelCategory),
-      '<div class="col1"><div>' + esc(searchArea) + '</div></div>',
-      '<div class="cls-wrap">' + MODEL.classes.map(chip).join('') + '</div>'
-    ]]);
+    h += table(['Variant', 'Capture', 'Module', 'Model Type', 'Search Area', 'Classes'], MODEL.moduleInfo.map(function (m) {
+      return [esc(m.variant), esc(m.cameraConfig), esc(m.name || '-'), esc(MODEL.modelCategory),
+        '<div class="col1"><div>' + esc(searchArea) + '</div></div>',
+        '<div class="cls-wrap">' + MODEL.classes.map(chip).join('') + '</div>'];
+    }));
 
     if (after) {
       // NEW: the Image Enhancement this model was trained with (recorded at training time). It sits in a block div
       // like the datasets block: a Table placed straight in this max-h flex column shrinks to nothing once the
       // details are taller than the box (that is what happens to the configurations table above).
       h += '<div class="ds-wrap" id="ieBlock"><p class="dt-h m8">Following Image Enhancement was used for training this AI Model :</p>' +
-        table(['Variant', 'Capture', 'Module', 'Search Area', 'Filters'], [[
-          'Variant A', 'Capture 1', esc(REC.module), esc(REC.area),
-          '<div class="col1 l">' + REC.chain.map(function (s, i) { return '<div>' + esc(filterLine(s, i)) + '</div>'; }).join('') + '</div>'
-        ]], ['', '', '', '', 480]) +
+        table(['Variant', 'Capture', 'Module', 'Search Area', 'Filters'], MODEL.moduleInfo.map(function (m) {
+          return [esc(m.variant), esc(m.cameraConfig), esc(REC.module), esc(REC.area),
+            '<div class="col1 l">' + REC.chain.map(function (s, i) { return '<div>' + esc(filterLine(s, i)) + '</div>'; }).join('') + '</div>'];
+        }), ['', '', '', '', 480]) +
         '</div>';
     }
 
     h += '<div class="ds-wrap"><p class="dt-h m8">Following datasets were used for training this AI Model :</p>' +
-      '<div class="ds-pad"><div class="ds-list"><div class="ds-grp">' +
-        '<div class="ds-hd"><div class="vch"><div class="vch-in"><span class="mr1">Variant -</span><span>Variant A</span><span class="sep">|</span><span class="mr1">Capture -</span> <span>Capture 1</span></div></div></div>' +
-        '<div class="ds-rule"></div>' +
-        table(['Dataset Folder 1', 'Dataset Folder 2', 'Dataset Folder 3', 'Images'], MODEL.datasets.map(function (d) {
-          return [esc(d.g), esc(d.p), esc(d.n), '<div class="ds-n">' + d.a + '/' + d.c + '</div>'];
-        })) +
-      '</div></div></div></div>';
+      '<div class="ds-pad"><div class="ds-list">' + MODEL.datasetGroups.map(function (grp) {
+        return '<div class="ds-grp">' +
+          '<div class="ds-hd"><div class="vch"><div class="vch-in"><span class="mr1">Variant -</span><span>' + esc(grp.variant) + '</span><span class="sep">|</span><span class="mr1">Capture -</span> <span>' + esc(grp.capture) + '</span></div></div></div>' +
+          '<div class="ds-rule"></div>' +
+          table(['Dataset Folder 1', 'Dataset Folder 2', 'Dataset Folder 3', 'Images'], grp.datasets.map(function (d) {
+            return [esc(d.g), esc(d.p), esc(d.n), '<div class="ds-n">' + d.a + '/' + d.c + '</div>'];
+          })) +
+          '</div>';
+      }).join('') + '</div></div></div>';
 
     h += '<div><span class="b7">Augmentations: </span>' + esc(MODEL.augmentations.join(', ')) + '</div>';
     h += '<div class="fx-c"><span class="b7">Max epochs: </span>' + parts.total + '</div>';
@@ -406,6 +421,18 @@ svg{display:block;vertical-align:middle}
     var dt = document.getElementById('detail');
     dt.innerHTML = h;
     sizeTables();
+    reveal();
+  }
+  // The details column scrolls inside 50vh: Today opens at the top; After change opens scrolled just enough to show the
+  // Image Enhancement block, but never past the top of the last configuration row.
+  function reveal() {
+    var dt = document.getElementById('detail'), ie = document.getElementById('ieBlock');
+    dt.scrollTop = 0;
+    if (mode !== 'after' || !ie) return;
+    var box = dt.getBoundingClientRect(), last = dt.querySelector('.tbl tbody tr:last-child');
+    var need = ie.getBoundingClientRect().bottom - box.bottom + 8;
+    var cap = last ? last.getBoundingClientRect().top - box.top : need;
+    dt.scrollTop = Math.max(0, Math.min(need, cap));
   }
   function curEp() { var p = MODEL.percentage.split('/').map(Number); return { cur: p[0], total: p[1] }; }
 
@@ -451,7 +478,7 @@ svg{display:block;vertical-align:middle}
 
   setMode(mode);
   addEventListener('resize', sizeTables);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(sizeTables);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { sizeTables(); reveal(); });
 })();
 </script>
 </body>

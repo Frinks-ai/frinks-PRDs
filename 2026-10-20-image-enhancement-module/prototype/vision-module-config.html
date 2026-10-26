@@ -591,9 +591,10 @@ html.embedded .proto{display:none!important}
     if (params) Object.keys(params).forEach(function (k) { p[k] = params[k]; });
     return { uid: 'f' + (++uidN), id: id, params: p };
   }
-  // A new Image Enhancement starts with Binarize -> Invert (PM, 23 Oct).
-  function defaultChain() {
-    return [mkFilter('binarize'), mkFilter('invert')];
+  // A new Image Enhancement starts with an EMPTY chain (PM, 26 Oct). Wherever a configured Image Enhancement must draw
+  // something and the stored chain is missing or empty, the sample chain is used: Local Median Normalization 15 x 15 -> Binarize -> Invert.
+  function sampleChain() {
+    return [mkFilter('localmediannorm', { rows: 15, cols: 15 }), mkFilter('binarize'), mkFilter('invert')];
   }
 
   /* ---------- shared prototype state (localStorage "ie-proto:v1", same shape in every workflow screen) ---------- */
@@ -621,19 +622,20 @@ html.embedded .proto{display:none!important}
       });
       out.push(mkFilter(it.f, p));
     });
-    return out.length ? out : null;
+    return out;
   }
-  function loadChain() { var o = readShared(); return (o && chainFromShared(o.chain)) || defaultChain(); }
+  // Module Setup of a new IE_1 shows the stored chain as it is (empty at first).
+  function loadChain() { var o = readShared(); return (o && chainFromShared(o.chain)) || []; }
+  // A configured IE_1 that draws its enhanced area: stored chain, or the sample chain when it is missing or empty.
+  function loadDrawChain() { var c = loadChain(); return c.length ? c : sampleChain(); }
   function loadAreaName() { var o = readShared(); return o && typeof o.areaName === 'string' && o.areaName.trim() ? o.areaName.trim() : DEFAULT_AREA; }
   function chainToShared(chain) {
     return chain.map(function (f) { return FILTERS[f.id].p ? { f: f.id, p: JSON.parse(JSON.stringify(f.params)) } : { f: f.id }; });
   }
-  function saveChain() {
-    if (!S.chain.length) return;          // an empty chain cannot be saved, so it is never shared
-    writeShared({ chain: chainToShared(S.chain) });
-  }
-  // Adding Image Enhancement from Select Module creates a NEW IE_1: default filters, default area name, nothing tuned on Edge yet.
-  function resetSharedForNewModule() { writeShared({ chain: chainToShared(defaultChain()), edgeChain: null, areaName: DEFAULT_AREA, trainedChain: null, trainedAreaName: null, trainedModuleName: null }); }
+  // The live chain is shared as it is, an empty one included (other screens then draw the sample chain).
+  function saveChain() { writeShared({ chain: chainToShared(S.chain) }); }
+  // Adding Image Enhancement from Select Module creates a NEW IE_1: empty chain, default area name, nothing tuned on Edge or trained yet.
+  function resetSharedForNewModule() { writeShared({ chain: [], edgeChain: null, areaName: DEFAULT_AREA, trainedChain: null, trainedAreaName: null, trainedModuleName: null }); }
   function chainChanged() {
     S.changed = true; S.showErr = false;
     if (!S.deferSave) { S.sharedChain = true; saveChain(); }
@@ -781,21 +783,23 @@ html.embedded .proto{display:none!important}
     var ieConf = { id: 'ie1', name: 'IE_1', parentId: 'sa1', store: 'imageEnhancement', conf: true, t: 2 };
     var ieNew = { id: 'ie1', name: 'IE_1', parentId: 'sa1', store: 'imageEnhancement', conf: false, t: 2 };
     var ocrUnderIe = { id: 'ocr1', name: 'OCR_1', parentId: 'ie1', store: 'ocr', conf: true, t: 3 };
-    var s = { mode: mode, state: state, tree: [ROOT, SA1, ieConf, ocrUnderIe], selected: null, step: 0, chain: loadChain(), sharedChain: true,
+    // chainSrc 'asis' = the stored chain as it is (new IE_1, empty at first); 'draw' = stored chain, or the sample chain when missing or empty.
+    var s = { mode: mode, state: state, tree: [ROOT, SA1, ieConf, ocrUnderIe], selected: null, step: 0, chain: loadChain(), chainSrc: 'asis', sharedChain: true,
       showErr: false, picker: null, addOpen: false, ocrSelOpen: false, deferSave: false, outName: loadAreaName(), ocrBase: 'enh',
       editingName: false, nameDraft: '', nameErr: '', changed: false };
+    function drawn() { s.chain = loadDrawChain(); s.chainSrc = 'draw'; }
     if (mode === 'today') { s.tree = [ROOT, SA1, ocrUnderSa]; s.picker = 'sa1'; return s; }
     switch (state) {
       case 'picker': s.tree = [ROOT, SA1, ocrUnderSa]; s.picker = 'sa1'; break;
-      case 'picker-under-ie': s.tree = [ROOT, SA1, ieConf]; s.picker = 'ie1'; break;
+      case 'picker-under-ie': s.tree = [ROOT, SA1, ieConf]; s.picker = 'ie1'; drawn(); break;
       case 'add-filter': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1; s.addOpen = true; break;
       case 'inputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 0; break;
       case 'empty-chain': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1; s.chain = []; s.sharedChain = false; s.showErr = true; break;
-      case 'outputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 2; break;
-      // Configured IE_1 (OCR_1 below) reopened on Module Setup with one change made: a third filter added at the top
-      // (Local Median Normalization 15 x 15 evens out the lighting before Binarize). Saved only on Finish, so not shared until then.
-      case 'edit': s.selected = 'ie1'; s.step = 1; s.chain = [mkFilter('localmediannorm', { rows: 15, cols: 15 })].concat(loadChain()); s.sharedChain = false; s.deferSave = true; s.changed = true; break;
-      case 'ocr-inputs': s.selected = 'ocr1'; s.step = 0; s.ocrSelOpen = true; break;
+      case 'outputs': s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 2; drawn(); break;
+      // Configured IE_1 (OCR_1 below) reopened on Module Setup to change its filters (stored chain, else the sample chain
+      // Local Median Normalization 15 x 15 -> Binarize -> Invert). Saved only on Finish, so not shared until then.
+      case 'edit': s.selected = 'ie1'; s.step = 1; drawn(); s.sharedChain = false; s.deferSave = true; s.changed = true; break;
+      case 'ocr-inputs': s.selected = 'ocr1'; s.step = 0; s.ocrSelOpen = true; drawn(); break;
       default: s.tree = [ROOT, SA1, ieNew]; s.selected = 'ie1'; s.step = 1;
     }
     return s;
@@ -989,7 +993,8 @@ html.embedded .proto{display:none!important}
     var sc = Math.min(cw / IMG_W, ch / IMG_H), dw = IMG_W * sc, dh = IMG_H * sc, ox = (cw - dw) / 2, oy = (ch - dh) / 2;
     if (view === 'plain') { ctx.drawImage(master, ox, oy, dw, dh); return; }
     ctx.drawImage(blurred, ox, oy, dw, dh);
-    var src = view === 'clear-enh' ? enhancedCanvas(S.chain) : beforeCanvas;
+    // An empty chain leaves the area unchanged.
+    var src = view === 'clear-enh' && S.chain.length ? enhancedCanvas(S.chain) : beforeCanvas;
     ctx.drawImage(src, 0, 0, SA_RECT.w, SA_RECT.h, ox + SA_RECT.x * sc, oy + SA_RECT.y * sc, SA_RECT.w * sc, SA_RECT.h * sc);
   }
 
@@ -1287,7 +1292,7 @@ html.embedded .proto{display:none!important}
   window.addEventListener('storage', function (e) {
     if (e.key !== STORE_KEY || !S.mode) return;
     S.outName = loadAreaName();
-    if (S.sharedChain) S.chain = loadChain();
+    if (S.sharedChain) S.chain = S.chainSrc === 'draw' ? loadDrawChain() : loadChain();
     render();
   });
   window.addEventListener('resize', function () { if (floatEl) { floatEl.remove(); floatEl = null; } placeTree(); drawLeft(); placeMenus(); });

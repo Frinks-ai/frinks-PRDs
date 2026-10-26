@@ -316,9 +316,10 @@ a{color:inherit;text-decoration:inherit}
   // today SA_1 itself, after "Enhanced Search Area 1" from IE_1 (same geometry).
   var SA = { x: 420, y: 285, w: 440, h: 150 };
   // IE_1 chain (after mode) — shared prototype state localStorage["ie-proto:v1"].chain ([{f, p}]),
-  // written by Vision Module Setup; falls back to the default chain when nothing is stored.
+  // written by Vision Module Setup; falls back to the sample chain when the stored chain is missing or empty.
   var STORE_KEY = 'ie-proto:v1';
   var DEFAULT_CHAIN = [
+    { f: 'localmediannorm', p: { rows: 15, cols: 15 } },
     { f: 'binarize' },
     { f: 'invert' }
   ];

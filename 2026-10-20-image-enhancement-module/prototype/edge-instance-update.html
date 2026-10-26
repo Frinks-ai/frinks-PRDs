@@ -138,8 +138,6 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .iw-sec td{padding:12px 0!important;color:#374151;text-align:center}
 .iw-f{margin-left:auto;display:flex;align-items:center;gap:12px;padding-top:8px}
 
-.iw-sec td.fl{padding:12px 8px!important}
-
 /* ProjectCreateLoader (shared/ui/ProjectCreateLoader.jsx + shared/styles/loader.css) */
 .ldr{position:fixed;left:0;top:0;z-index:999;display:flex;height:100%;width:100%;align-items:center;justify-content:center;background:rgb(229 231 235/.75)}
 .ldr-c{width:350px;height:180px;border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:30px;box-shadow:2px 2px 10px -5px lightgrey}
@@ -326,7 +324,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 (function () {
   'use strict';
 
-  // ---------- Prototype mode / state (?mode=today|after, default after; ?state=chain-changed) ----------
+  // ---------- Prototype mode / state (?mode=today|after, default after; ?state=chain-changed = same as after) ----------
   var mode = 'after', state = '';
   try {
     var qs = new URLSearchParams(location.search);
@@ -358,69 +356,41 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 
   // ---------- Shared prototype state: localStorage["ie-proto:v1"] ----------
   // chain = IE_1 in Vision (the instance being uploaded); edgeChain = IE_1 as saved on this Edge (filters and values),
-  // null = no Edge changes (the Edge runs Vision's chain).
+  // null = no Edge changes since the last update.
   var KEY = 'ie-proto:v1';
-  var DEFAULT_CHAIN = [{ f: 'binarize' }, { f: 'invert' }];
-  // "ieBase" (written by this page on Upload) = the Vision values this Edge received at its last update, so a value
-  // counts as tuned on Edge when it differs from that base, and as changed in Vision when Vision's differs from it.
-  // Standalone samples (nothing stored by the flow).
-  // Values only: Binarize and Invert have no values, so this update's IE_1 also has an Open step (3 x 3 in Vision,
-  // unchanged since the last update), which this Edge tuned to 5 x 5.
-  var SAMPLE_VISION = DEFAULT_CHAIN.concat([{ f: 'open', p: { rows: 3, cols: 3 } }]);
-  // ?state=chain-changed: Vision added Equalize and Stretch after Open; Vision's list replaces this Edge's.
-  var CC_EDGE = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'open', p: { rows: 3, cols: 3 } }];
-  var CC_VISION = CC_EDGE.concat([{ f: 'equalize' }, { f: 'stretch' }]);
+  // Sample chain (PM, 26 Oct): Vision's IE_1 when the stored chain is missing or empty.
+  var SAMPLE_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'invert' }];
+  // IE_1 on this Edge before the update, when nothing was saved on Edge (edgeChain = null).
+  var SAMPLE_EDGE = [{ f: 'localmediannorm', p: { rows: 9, cols: 9 } }, { f: 'binarize' }, { f: 'open', p: { rows: 5, cols: 5 } }];
 
   function readStore() { try { return JSON.parse(localStorage.getItem(KEY) || 'null') || {}; } catch (e) { return {}; } }
   function validChain(c) { return Array.isArray(c) && c.length > 0 && c.every(function (s) { return s && FILTERS[s.f]; }); }
-  function sameList(a, b) { return a.length === b.length && a.every(function (s, i) { return s.f === b[i].f; }); }
   function val(step, d) { return step.p && step.p[d.k] != null ? Number(step.p[d.k]) : d.def; }
-  function clone(o) { return JSON.parse(JSON.stringify(o)); }
-  // Values tuned on Edge for the sample: every kernel two sizes up (odd, max 15).
-  function tuned(c) {
-    return c.map(function (s) {
-      var o = clone(s), F = FILTERS[s.f];
-      if (F.p === 'kernel') o.p = { rows: Math.min(15, val(s, PARAMS.kernel[0]) + 2), cols: Math.min(15, val(s, PARAMS.kernel[1]) + 2) };
-      return o;
-    });
-  }
 
-  var visionChain, edgeChain, baseChain, chainChanged;
+  var visionChain, edgeChain, moduleName;
   function computeChains() {
-    var st = readStore(), stored = validChain(st.chain);
-    var hasEdge = validChain(st.edgeChain);
-    if (state === 'chain-changed') {
-      visionChain = stored ? st.chain : CC_VISION;
-      edgeChain = hasEdge && !sameList(st.edgeChain, visionChain) ? st.edgeChain
-        : !sameList(CC_EDGE, visionChain) ? CC_EDGE : DEFAULT_CHAIN;
-    } else if (stored) {
-      // In the flow: compare what is really stored. edgeChain = null means no Edge changes (values-only, nothing tuned).
-      visionChain = st.chain;
-      edgeChain = hasEdge ? st.edgeChain : visionChain;
-    } else {
-      visionChain = SAMPLE_VISION;
-      edgeChain = tuned(SAMPLE_VISION);
-    }
-    chainChanged = !sameList(edgeChain, visionChain);
-    // Without a recorded base (or a different list) the Edge is taken to have received Vision's current values.
-    baseChain = validChain(st.ieBase) && sameList(st.ieBase, edgeChain) ? st.ieBase : visionChain;
+    var st = readStore();
+    visionChain = validChain(st.chain) ? st.chain : SAMPLE_CHAIN;
+    edgeChain = validChain(st.edgeChain) ? st.edgeChain : SAMPLE_EDGE;
+    moduleName = typeof st.moduleName === 'string' && st.moduleName ? st.moduleName : 'IE_1';
   }
-  // Same list: a value tuned on Edge is kept unless Vision changed it too (Vision's changes win); every other value
-  // takes Vision's. Returns the merged chain and the kept values.
-  function mergeValues() {
-    var kept = [];
-    var merged = edgeChain.map(function (s, i) {
-      var defs = PARAMS[FILTERS[s.f].p], o = clone(visionChain[i]);
-      if (!defs) return o;
-      o.p = {};
-      defs.forEach(function (d) {
-        var e = val(s, d), v = val(visionChain[i], d), b = val(baseChain[i], d);
-        if (e !== b && v === b) { o.p[d.k] = e; if (e !== v) kept.push({ i: i, f: s.f, d: d, e: e, v: v }); }
-        else o.p[d.k] = v;
-      });
-      return o;
-    });
-    return { chain: merged, kept: kept };
+  // One step as the table shows it: the filter's name, then its values ("Open (5 × 5)", "Clip (Low 40, High 200)").
+  function stepText(step) {
+    if (!step) return '—';
+    var F = FILTERS[step.f], defs = PARAMS[F.p];
+    if (!defs) return F.name;
+    if (F.p === 'kernel') return F.name + ' (' + val(step, defs[0]) + ' × ' + val(step, defs[1]) + ')';
+    return F.name + ' (' + defs.map(function (d) { return d.label + ' ' + val(step, d); }).join(', ') + ')';
+  }
+  // Vision's filters and values always replace Edge's: one row per step whose filter or values differ,
+  // "—" on the side that has no such step (a step added or removed in Vision).
+  function filterDiffs() {
+    var rows = [], n = Math.max(edgeChain.length, visionChain.length);
+    for (var i = 0; i < n; i++) {
+      var e = stepText(edgeChain[i]), v = stepText(visionChain[i]);
+      if (e !== v) rows.push({ variantName: 'Variant A', captureName: 'Capture 1', moduleName: moduleName, step: 'Step ' + (i + 1), existing: e, incoming: v });
+    }
+    return rows;
   }
 
   // ---------- Upload validation result (frinksedge-deployment-backend service/uploadValidation.ts) ----------
@@ -431,19 +401,6 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     'Dashboards preserved, but some widget keys may be affected if class or model references changed.',
     'Inferencing customization (file paths, naming configs) preserved, but may need reconfiguration.'
   ];
-  // getPreservationDetails: ocr_config.info label diff (className = labelName, parameter = the JSON key).
-  var OCR_DIFF = { variantName: 'Variant A', captureName: 'Capture 1', moduleName: 'OCR_1', className: 'Lot', parameter: 'gtText', existingValue: 'LOT A2419', incomingValue: 'LOT A2301' };
-
-  function gtDiffs() {
-    var rows = [OCR_DIFF];
-    if (mode === 'after' && !chainChanged) {
-      mergeValues().kept.forEach(function (k) {
-        rows.push({ variantName: 'Variant A', captureName: 'Capture 1', moduleName: 'IE_1', className: 'Step ' + (k.i + 1) + ' · ' + FILTERS[k.f].name, parameter: k.d.label, existingValue: k.e, incomingValue: k.v });
-      });
-    }
-    return rows;
-  }
-  function listText(c) { return c.map(function (s) { return FILTERS[s.f].name; }).join(' → '); }
 
   // ---------- Table (shared/ui/Table.jsx) ----------
   var INFO = function (tip) {
@@ -543,24 +500,18 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   }
   function openWarning() {
     computeChains();
-    var diffs = gtDiffs();
     var h = '<div class="ov" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="mdl"><div class="mdl-in"><div class="iw">';
     h += '<div class="iw-h"><h2 id="modal-title">Warning</h2><button type="button" class="iw-x" data-w="discard">✕</button></div>';
     h += '<ul class="iw-ul">' + WARNINGS.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>';
 
-    h += '<div class="iw-sec"><h3>Ground Truth Preservation</h3>' +
-      '<p>The following Ground Truth parameters configured on this Edge device will be preserved in the updated instance.</p>' +
-      tableHTML(['Variant', 'Capture', 'Module', 'Class/Label', 'Parameter', 'Edge (Preserved)', 'Vision'],
-        diffs.map(function (d, i) { return cellRow([d.variantName, d.captureName, d.moduleName, d.className || '-', d.parameter, String(d.existingValue), String(d.incomingValue)], i); }).join(''), true) +
-      '</div>';
-
-    if (mode === 'after' && chainChanged) {
-      h += '<div class="iw-sec"><h3>Image Enhancement Replacement</h3>' +
-        '<p>The following Image Enhancement filters configured on this Edge device will be replaced by the filters from Vision.</p>' +
-        tableHTML(['Variant', 'Capture', 'Module', 'Edge (Replaced)', 'Vision'],
-          '<tr class="odd">' + ['Variant A', 'Capture 1', 'IE_1'].map(function (c) { return '<td><div class="td-in">' + esc(c) + '</div></td>'; }).join('') +
-          '<td class="fl"><div class="td-in">' + esc(listText(edgeChain)) + '</div></td>' +
-          '<td class="fl"><div class="td-in">' + esc(listText(visionChain)) + '</div></td></tr>', true) +
+    // Ground Truth / Threshold Preservation render only when there are differences (none in this sample).
+    // After: the Image Enhancement steps that change, in the same section style, only when there are any.
+    var ie = mode === 'after' ? filterDiffs() : [];
+    if (ie.length) {
+      h += '<div class="iw-sec"><h3>Image Enhancement Filters</h3>' +
+        '<p>The following Image Enhancement filters on this Edge device will be replaced by the filters from Vision.</p>' +
+        tableHTML(['Variant', 'Capture', 'Module', 'Step', 'Edge (Replaced)', 'Vision'],
+          ie.map(function (d, i) { return cellRow([d.variantName, d.captureName, d.moduleName, d.step, d.existing, d.incoming], i); }).join(''), true) +
         '</div>';
     }
 
@@ -578,15 +529,12 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     if (!b) return;
     closeWarning();
     if (b.getAttribute('data-w') !== 'upload') return;
-    // Upload. Same filter list: values tuned on Edge are kept unless Vision changed them too; the others take Vision's.
-    // Different lists: Vision's list and values replace Edge's (no Edge changes left).
+    // Upload: Vision's filters and values replace Edge's (nothing from Edge is kept for this module).
     if (mode === 'after') {
       try {
         var st = readStore();
-        st.chain = visionChain;
-        st.ieBase = visionChain;
-        if (chainChanged) st.edgeChain = null;
-        else { var merged = mergeValues().chain; st.edgeChain = JSON.stringify(merged) === JSON.stringify(visionChain) ? null : merged; }
+        st.edgeChain = null;
+        delete st.ieBase;
         if (!st.areaName) st.areaName = 'Enhanced Search Area 1';
         if (!st.moduleName) st.moduleName = 'IE_1';
         localStorage.setItem(KEY, JSON.stringify(st));

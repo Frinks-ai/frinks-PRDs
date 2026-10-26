@@ -563,9 +563,10 @@ body.in-shell .pctl{display:none!important}
   }
 
   // IE_1's chain as this Edge runs it: the filters and values saved on Edge ("edgeChain" in localStorage["ie-proto:v1"]),
-  // or Vision's chain ("chain") while Edge has no changes (edgeChain = null). Default: Binarize -> Invert.
+  // or Vision's chain ("chain") while Edge has no changes (edgeChain = null). Sample chain (PM, 26 Oct) when the stored chain
+  // is missing or empty: Local Median Normalization 15 x 15 -> Binarize -> Invert.
   var KEY = 'ie-proto:v1';
-  var DEFAULT_CHAIN = [{ f: 'binarize' }, { f: 'invert' }];
+  var DEFAULT_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'invert' }];
   var KERNEL = ['bothat', 'close', 'dilate', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
   var PLAIN = ['binarize', 'edgemag', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
   function defaultP(f) { return KERNEL.indexOf(f) >= 0 ? { rows: 5, cols: 5 } : f === 'clip' ? { low: 40, high: 200 } : f === 'thresholdrange' ? { low: 0, high: 110 } : f === 'greydist' ? { grey: 128 } : {}; }
