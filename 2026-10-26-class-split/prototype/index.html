@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Class Split Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: replica of the Frinks Vision results page in three sections — Validation Results, Data Split (new, holds the old top strip + class-wise counts), Training Results. Deliberately light-only, matching the product. */
+:root{
+  --bg:#ffffff; --fg:#111111; --muted:#4b5563; --faint:#9ca3af; --line:#e5e7eb; --head:#f9fafb;
+  --primary:#1f4bff; --tab:#f24e1e; --tab-fg:#6b7280; --tab-line:#d1d5db; --bar:#b9c6ff; --btn:#d1d5db; --btn-fg:#6b7280; --link:#5b3df5; --zero:#dc2626;
+  --font:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:13px;line-height:1.5}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+
+.proto{background:var(--head);border-bottom:1px solid var(--line);padding:8px 16px}
+.proto-in{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;color:var(--muted);font-size:12px}
+.seg{display:inline-flex;gap:2px;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--bg)}
+.seg button{border:0;background:none;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:12px}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+
+.page{max-width:1280px;margin:0 auto;padding-inline:24px;padding-block:12px 56px;display:flex;flex-direction:column;gap:44px}
+@media (max-width:600px){.page{padding-inline:16px}}
+.tabs-wrap{display:flex;justify-content:center;padding-top:16px;overflow-x:auto}
+.tabs{display:flex;border-bottom:2px solid var(--tab-line)}
+.tabs a{padding:10px 20px 12px;font-size:18px;color:var(--tab-fg);text-decoration:none;font-weight:400;white-space:nowrap;margin-bottom:-2px;border-bottom:2px solid transparent}
+.tabs a:hover{color:var(--fg)}
+.tabs a[aria-current="page"]{color:var(--tab);border-bottom-color:var(--tab)}
+@media (max-width:600px){.tabs a{padding:8px 12px 10px;font-size:15px}}
+section{display:flex;flex-direction:column;gap:12px;min-width:0}
+h2{font-size:20px;font-weight:600;margin:12px 0 0}
+p{margin:0}
+a{color:var(--link);font-weight:600}
+.select{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--bg);font-size:12.5px}
+
+/* validation results */
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,420px));justify-content:center;gap:32px;margin-top:16px}
+.pair figure{margin:0;display:flex;flex-direction:column;gap:28px;align-items:center}
+.ph{position:relative;width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,#5b626d 0%,#3b4048 55%,#2a2e34 100%);overflow:hidden}
+.ph::after{content:"";position:absolute;right:1%;top:14%;width:65%;height:62%;background:#d23a22;border-radius:3px}
+.ph::before{content:"";position:absolute;left:6%;top:24%;width:30%;height:42%;background:#e9ebee;border-radius:2px}
+.ph .box{position:absolute;left:8%;top:45%;width:26%;height:7%;border:2px solid #e2483d;z-index:1}
+.ph.pred .box{border-color:#3fd6c0}
+.pair figcaption{font-weight:500;font-size:15px}
+.pager{display:flex;justify-content:center}
+.pager div{display:inline-flex;gap:16px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 16px;color:var(--faint)}
+.pager b{color:var(--fg);font-weight:600}
+.thresh-wrap{display:flex;justify-content:center;margin-top:8px}
+.thresh{width:min(746px,100%);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.thresh-row{display:grid;grid-template-columns:auto 1fr 54px;gap:40px;align-items:center}
+@media (max-width:600px){.thresh-row{gap:12px}}
+.thresh label{font-weight:500;line-height:1.35}
+.thresh input[type=range]{width:100%;accent-color:var(--primary)}
+.thresh output{border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+.btns{display:flex;justify-content:center;gap:10px}
+.btns button{border:0;border-radius:4px;padding:5px 11px;background:var(--btn);color:var(--btn-fg);font-weight:500}
+
+/* data split */
+.split-t{border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+table{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}
+col.c-name{width:34%}
+th,td{padding:9px 16px;border-bottom:1px solid var(--line);text-align:right}
+.ocr th,.ocr td{padding:7px 12px}
+thead th{background:var(--head);font-weight:500;color:var(--muted);vertical-align:bottom;line-height:1.3}
+thead th b{display:block;color:var(--fg);font-weight:600;font-size:13.5px}
+.ocr thead th b{font-size:13px}
+th:first-child{text-align:left}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+tbody th{font-weight:500;overflow-wrap:anywhere}
+.ocr tbody th{font-weight:600;font-size:14px}
+td.z{color:var(--zero);font-weight:600}
+.more{align-self:flex-start;border:0;background:none;padding:2px 0;cursor:pointer;color:var(--primary);font-weight:500;font-size:13px}
+.more:hover{text-decoration:underline;text-underline-offset:3px}
+tbody tr:hover th,tbody tr:hover td{background:var(--head)}
+.note{color:var(--muted);font-size:12px}
+
+/* training results */
+.results{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start;margin-top:12px}
+@media (max-width:900px){.results{grid-template-columns:1fr}}
+.panel{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.panel h3{margin:0;font-size:13px;font-weight:600}
+.panel .cap{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.mxwrap{overflow-x:auto;max-width:100%}
+.mx{display:grid;font-variant-numeric:tabular-nums}
+.mx .rl{padding-right:8px;display:flex;align-items:center;justify-content:flex-end;font-size:11px;min-height:60px;text-align:right}
+.mx .c{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;min-height:60px}
+.mx .cl{font-size:10.5px;color:var(--muted);text-align:center;padding-top:6px;line-height:1.25;overflow-wrap:anywhere}
+.loss svg{width:100%;height:auto;display:block}
+.loss line{stroke:var(--line)} .loss text{fill:var(--muted);font-size:10px;font-family:var(--font)}
+.ocr-ph{border:1px dashed var(--line);border-radius:8px;padding:24px;color:var(--muted);text-align:center;width:100%}
+</style>
+</head>
+<body>
+
+<div class="proto"><div class="proto-in">
+  Prototype · model type
+  <div class="seg" role="group" aria-label="Model type">
+    <button type="button" id="t-odc" data-type="odc" aria-pressed="true">ODC</button>
+    <button type="button" id="t-seg" data-type="seg" aria-pressed="false">Segmentation</button>
+    <button type="button" id="t-ic" data-type="ic" aria-pressed="false">IC</button>
+    <button type="button" id="t-ocr" data-type="ocr" aria-pressed="false">OCR</button>
+  </div>
+  The top strip has moved into the new Class Split section.
+</div></div>
+
+<main class="page">
+  <nav class="tabs-wrap" aria-label="Model tabs"><div class="tabs">
+    <a href="#" onclick="return false">Model Details</a>
+    <a href="#" onclick="return false" aria-current="page">Training Results</a>
+    <a href="#" onclick="return false">Evaluation Results</a>
+  </div></nav>
+
+  <section>
+    <h2>Validation Results</h2>
+    <p>Review the validation results properly before deploying the AI model. Compare the ground truth with prediction to check the model accuracy. You can adjust the confidence threshold to observe the changes in the model prediction. If the results are not satisfactory, train another new model with more data than this model (on cases where it is currently failing) or change the model parameters.</p>
+    <select class="select" id="capture" aria-label="Capture"></select>
+    <div class="pair">
+      <figure><div class="ph"><span class="box"></span></div><figcaption>Actual</figcaption></figure>
+      <figure><div class="ph pred"><span class="box"></span></div><figcaption>Prediction</figcaption></figure>
+    </div>
+    <div class="pager"><div>« ‹ <b>1</b> 2 3 4 5 … › »</div></div>
+    <div class="thresh-wrap"><div class="thresh">
+      <div class="thresh-row">
+        <label for="conf">Confidence<br>Threshold:</label>
+        <input type="range" id="conf" min="0" max="1" step="0.01" value="0.9">
+        <output id="conf-out" for="conf">0.9</output>
+      </div>
+      <div class="btns"><button type="button" disabled>Save Threshold</button><button type="button" disabled>Reset</button></div>
+    </div></div>
+  </section>
+
+  <section>
+    <h2 id="split-h">Class Split</h2>
+    <p id="split-desc"></p>
+    <div id="split" style="display:flex;flex-direction:column;gap:8px"></div>
+  </section>
+
+  <section>
+    <h2>Training Results</h2>
+    <p>The below graphs help you visualize the training results. You can understand the false positives and false negatives of the trained model from the <a href="#" onclick="return false">confusion matrix</a>. The <a href="#" onclick="return false">loss-epoch curve</a> helps you understand how well the model trained &amp; how well it performed during its validation.</p>
+    <div class="results">
+      <div class="panel" id="matrix"></div>
+      <div class="panel loss">
+        <h3>Training vs. Validation Loss Curve</h3>
+        <div id="loss" style="width:100%"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const MODELS = {
+  odc: { what: 'class', unit: 'occurrences', splits: [114, 20, 20],
+    captures: ['25_8 kw ODU-1-Frontside-SPD and Hazard Sticker', '25_8 kw ODU-1-Rear-Air Filter', '25_8 kw ODU-1-Top-PCB Connector'],
+    classes: { PCB_Connector: [412, 26, 24], Air_Filter_Arrow: [160, 13, 0], Stickers: [101, 13, 11] },
+    matrix: { bg: true, iou: true, d: [[14,0,0,12],[0,7,0,6],[0,0,7,6],[11,6,6,0]] } },
+  seg: { what: 'class', unit: 'occurrences', splits: [210, 40, 40],
+    captures: ['Bracket-Weld Seam Left', 'Bracket-Weld Seam Right'],
+    classes: { Weld_Bead: [640, 128, 120], Spatter: [310, 52, 61], Porosity: [88, 3, 21], Burn_Through: [19, 0, 2] },
+    matrix: { bg: true, iou: true, d: [[118,4,0,0,6],[3,41,2,0,6],[0,1,1,0,1],[0,0,0,0,0],[5,9,2,1,0]] } },
+  ic: { what: 'class', unit: 'images', splits: [300, 50, 50],
+    captures: ['Door Panel-Clip Station'],
+    classes: { OK: [220, 38, 36], NG_Scratch: [48, 7, 9], NG_Dent: [25, 4, 5], NG_Missing_Clip: [7, 1, 0] },
+    matrix: { bg: false, iou: false, d: [[36,1,1,0],[2,5,0,0],[1,0,3,0],[1,0,0,0]] } },
+  ocr: { what: 'character', unit: 'occurrences', ocr: true, splits: [640, 80, 80], captures: ['Battery Pack-Lot Code Print'] }
+};
+(() => {
+  const t = {0:342,1:388,2:410,3:296,4:301,5:276,6:254,7:263,8:240,9:231,A:142,B:96,C:118,D:84,E:131,F:62,G:47,H:58,I:12,J:9,K:66,L:88,M:74,N:91,O:6,P:79,Q:0,R:104,S:112,T:97,U:51,V:38,W:22,X:17,Y:14,Z:0};
+  const force = { J: [null, null, 0], O: [null, 0, null], W: [null, null, 0], Y: [null, 0, null] };
+  MODELS.ocr.classes = {};
+  Object.keys(t).forEach(ch => {
+    const v = [t[ch], Math.round(t[ch] * 0.12), Math.round(t[ch] * 0.115)];
+    (force[ch] || []).forEach((f, i) => { if (f !== null) v[i] = f; });
+    MODELS.ocr.classes[ch] = v;
+  });
+})();
+
+const SPLITS = ['Training Data', 'Testing Data', 'Validation Data'];
+const SHORT = ['Training', 'Testing', 'Validation'];
+const $ = s => document.querySelector(s);
+const fmt = n => n.toLocaleString('en-IN');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let type = 'odc';
+try { const s = localStorage.getItem('cs-type'); if (s && MODELS[s]) type = s; } catch (e) {}
+
+const VISIBLE = 3;
+let expanded = false;
+
+function renderSplit(m) {
+  $('#split-desc').textContent = `Images in each split, and ${m.unit === 'images' ? 'how many of them belong to each class' : `how many times each ${m.what} occurs in them`}. A ${m.what} with far fewer ${m.unit} than the others can bias the model towards the larger ones.`;
+  $('#split-h').textContent = m.ocr ? 'Character Split' : 'Class Split';
+  const names = Object.keys(m.classes);
+  const rows = m.ocr ? names : [...names].sort((a, b) => m.classes[b][0] - m.classes[a][0]);
+  const shown = expanded ? rows : rows.slice(0, VISIBLE);
+  const head = `<tr><th>${m.ocr ? 'Character' : 'Class'}</th>${SPLITS.map((s, i) => `<th><b>${s}</b>${fmt(m.splits[i])} images</th>`).join('')}</tr>`;
+  const body = shown.map(n => `<tr><th scope="row">${esc(n)}</th>${m.classes[n].map(x => `<td class="${x === 0 ? 'z' : ''}">${fmt(x)}</td>`).join('')}</tr>`).join('');
+  const more = rows.length > VISIBLE
+    ? `<button type="button" class="more" id="split-more" aria-expanded="${expanded}">${expanded ? 'Show less' : `Show all ${rows.length} ${m.ocr ? 'characters' : 'classes'}`}</button>`
+    : '';
+  $('#split').innerHTML = `<div class="split-t${m.ocr ? ' ocr' : ''}"><table><colgroup><col class="c-name"><col><col><col></colgroup><thead>${head}</thead><tbody>${body}</tbody></table></div>${more}`;
+  const btn = $('#split-more');
+  if (btn) btn.addEventListener('click', () => { expanded = !expanded; renderSplit(m); $('#split-more').focus(); });
+}
+
+function blue(t) { const a = [243,247,252], b = [8,48,107]; return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`; }
+function renderMatrix(m) {
+  if (m.ocr) { $('#matrix').innerHTML = `<h3>Confusion Matrix</h3><div class="ocr-ph">OCR training results as today</div>`; return; }
+  const labels = [...Object.keys(m.classes), ...(m.matrix.bg ? ['Background'] : [])];
+  const d = m.matrix.d, max = Math.max(...d.flat());
+  let h = '';
+  d.forEach((row, r) => {
+    h += `<div class="rl">${esc(labels[r])} (Actual)</div>`;
+    row.forEach(v => { const t = v / max; h += v ? `<div class="c" style="background:${blue(0.12 + 0.88 * t)};color:${t > 0.45 ? '#fff' : '#0b2a5c'}">${v}</div>` : `<div class="c" style="background:${blue(0.02)}"></div>`; });
+  });
+  h += '<div></div>' + labels.map(l => `<div class="cl">${esc(l)} (Pred)</div>`).join('');
+  $('#matrix').innerHTML = `<h3>Confusion Matrix</h3><div class="cap">${m.matrix.iou ? 'This has been calculated with an IOU Threshold of 0.6.' : '&nbsp;'}</div>
+    <div class="mxwrap"><div class="mx" style="grid-template-columns:minmax(110px,auto) repeat(${labels.length}, minmax(52px,72px))">${h}</div></div>`;
+}
+
+function renderLoss(seed) {
+  let s = seed; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  const W = 520, H = 290, L = 32, B = 30, T = 10, R = 10, N = 80, tr = [], va = [];
+  for (let i = 0; i < N; i++) {
+    tr.push(Math.max(6, 32 * Math.exp(-i / 2.2) + 11 - i * 0.04 + (rnd() - 0.5) * 3.2 + (rnd() > 0.95 ? 3 : 0)));
+    va.push(Math.max(5, 21 * Math.exp(-i / 2.4) + 6.6 - i * 0.006 + (rnd() - 0.5) * 0.9));
+  }
+  const x = i => L + (W - L - R) * i / (N - 1), y = v => T + (H - T - B) * (1 - v / 35);
+  const line = (a, c) => `<polyline fill="none" stroke="${c}" stroke-width="1.5" points="${a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/>`;
+  let g = '';
+  [5, 10, 15, 20, 25, 30].forEach(v => g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`);
+  [0, 20, 40, 60, 79].forEach(i => g += `<text x="${x(i)}" y="${H - B + 14}" text-anchor="middle">${i === 79 ? 80 : i}</text>`);
+  g += `<text x="${(L + W) / 2}" y="${H - 3}" text-anchor="middle">Epoch</text>`;
+  $('#loss').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Training and validation loss over 80 epochs">${g}${line(tr, '#1f77b4')}${line(va, '#ff7f0e')}</svg>`;
+}
+
+function render() {
+  const m = MODELS[type];
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === type));
+  $('#capture').innerHTML = m.captures.map((c, i) => `<option value="${i}">${esc(c)}</option>`).join('');
+  renderSplit(m); renderMatrix(m); renderLoss({ odc: 7, seg: 19, ic: 31, ocr: 43 }[type]);
+  try { localStorage.setItem('cs-type', type); } catch (e) {}
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { type = b.dataset.type; expanded = false; render(); }));
+$('#conf').addEventListener('input', e => $('#conf-out').textContent = +(+e.target.value).toFixed(2));
+render();
+</script>
+</body>
+</html>
