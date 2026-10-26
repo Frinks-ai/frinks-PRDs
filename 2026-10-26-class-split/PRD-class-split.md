@@ -112,5 +112,5 @@ To be added by the developer. Map each case to an executional ID (E1, E2...).
 - **Component / Sub-component:** Models & Modules / Model - Training
 - **Type (layer):** Frontend + Backend (training pipeline)
 - **Fix version:** TBD - to be set once the 26.x release version exists in Jira
-- **Migration needed:** N (to be confirmed when E6 is added)
+- **Migration needed:** Y
 - **Related:** FP-1645, FP-1646 (original Training Results graphs), FP-2144 (OCR training results, To Do)
