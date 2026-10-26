@@ -69,6 +69,7 @@
     { id: 'edge-dim-list', label: 'Dimensions table', file: 'dimension-config.html', state: 'list' },
     { id: 'edge-dim-shape-value', label: 'Measured value', file: 'dimension-config.html', state: 'shape-value' },
     { id: 'edge-dim-distance', label: 'Distance to a fixed line', file: 'dimension-config.html', state: 'distance' },
+    { id: 'edge-dim-line', label: 'Show the line on the analysed image', file: 'dimension-config.html', state: 'line' },
     { id: 'edge-dim-units', label: 'Ground Truth in px', file: 'dimension-config.html', state: 'gt-px' },
     { id: 'edge-dim-angle', label: 'Angle from a fixed line', file: 'dimension-config.html', state: 'angle' },
     { id: 'edge-dim-cross', label: 'Cross-capture fixed line', file: 'dimension-config.html', state: 'cross' },
@@ -76,6 +77,7 @@
     { id: 'edge-analysed', label: 'Analysed image: OK', file: 'analysed-image.html', state: 'ok' },
     { id: 'edge-analysed-ng', label: 'Analysed image: NG', file: 'analysed-image.html', state: 'ng' },
     { id: 'edge-analysed-angle', label: 'Analysed image: angle', file: 'analysed-image.html', state: 'angle' },
+    { id: 'edge-analysed-cross', label: 'Analysed image: cross-capture', file: 'analysed-image.html', state: 'cross' },
   ];
   const $ = (id) => document.getElementById(id);
   let mode = 'after';
@@ -91,7 +93,7 @@
     const q = [];
     if (step.state) q.push('state=' + step.state);
     q.push('mode=' + mode);
-    q.push('v=20261026a');
+    q.push('v=20261026b');
     if (extra) Object.keys(extra).forEach((k) => q.push(k + '=' + encodeURIComponent(extra[k])));
     return step.file + '?' + q.join('&');
   }

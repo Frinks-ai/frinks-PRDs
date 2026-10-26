@@ -197,6 +197,11 @@ table.tbl{min-width:100%;width:100%;border-collapse:collapse;text-indent:0}
 .tip.sbt{border:0;max-width:200px;background:#ff4301;padding:6px 10px;font-weight:600;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.3)}
 
 /* ===== DECIDED CHANGE (After mode): segmented controls ===== */
+.tgl{display:flex;align-items:center;width:48px;height:24px;padding:4px 0;border-radius:9999px;background:#d1d5db;cursor:pointer;flex-shrink:0}
+.tgl.on{background:#ff4301}
+.tgl-k{width:20px;height:20px;background:#fff;border-radius:9999px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);transition:transform .15s}
+.tgl.on .tgl-k{transform:translateX(24px)}
+.tgl-l{font-size:14px;line-height:20px;font-weight:500;color:#000}
 .seg{display:grid;gap:3px;border:1px solid #d1d5db;border-radius:6px;background:#fff;padding:3px;box-shadow:0 1px 2px 0 rgba(0,0,0,.05)}
 .seg button{border-radius:4px;padding:5px 8px;font-size:14px;line-height:20px;font-weight:500;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seg button:hover{background:#f3f4f6}
@@ -225,14 +230,14 @@ table.tbl{min-width:100%;width:100%;border-collapse:collapse;text-indent:0}
  * ========================================================================= */
 var Q = new URLSearchParams(location.search);
 var IN_IFRAME = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
-var VALID_STATES = ['list', 'shape-value', 'distance', 'distance-vertical', 'distance-tilted', 'gt', 'gt-px', 'angle', 'cross', 'saved'];
+var VALID_STATES = ['list', 'shape-value', 'distance', 'distance-vertical', 'distance-tilted', 'line', 'gt', 'gt-px', 'angle', 'cross', 'saved'];
 var MODE = Q.get('mode') === 'today' ? 'today' : 'after';
 var STATE = VALID_STATES.indexOf(Q.get('state')) >= 0 ? Q.get('state') : 'list';
 var SHOW_SWITCH = !IN_IFRAME && Q.get('switch') !== '0';
-var SCROLL_TO = Q.get('scroll') || (STATE === 'gt' || STATE === 'gt-px' ? 'gt' : '');
+var SCROLL_TO = Q.get('scroll') || (STATE === 'gt' || STATE === 'gt-px' ? 'gt' : (STATE === 'line' ? 'col' : ''));
 function isAfter() { return MODE === 'after'; }
 function effState() {
-  if (MODE === 'today' && (STATE === 'distance-vertical' || STATE === 'distance-tilted')) return 'distance';
+  if (MODE === 'today' && (STATE === 'distance-vertical' || STATE === 'distance-tilted' || STATE === 'line')) return 'distance';
   return STATE;
 }
 function nav(to) {
@@ -282,7 +287,7 @@ var DERIV_PREV_LINE = 'Perpendicular from Previous Line';
  * Shared state with the other prototype screens (localStorage)
  * ========================================================================= */
 var LS_KEY = 'fixedline-proto-v2';
-var SHARED_DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, refAngle: 30, name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000', shape: null };
+var SHARED_DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, refAngle: 30, name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000', showLine: false, lineColor: '#FFFF33', shape: null };
 function sanitizeShapeRow(o) {
   if (!o || typeof o !== 'object' || typeof o.name !== 'string' || !o.name.trim()) return null;
   var n = function (v) { var x = Number(v); return v === null || v === undefined || v === '' || !Number.isFinite(x) ? null : x; };
@@ -302,6 +307,8 @@ function sanitizeShared(o) {
   if (['mm', 'px', '°'].indexOf(o.unit) >= 0) d.unit = o.unit;
   if (/^#[0-9A-Fa-f]{6}$/.test(o.okColor || '')) d.okColor = o.okColor;
   if (/^#[0-9A-Fa-f]{6}$/.test(o.ngColor || '')) d.ngColor = o.ngColor;
+  if (typeof o.showLine === 'boolean') d.showLine = o.showLine;
+  if (/^#[0-9A-Fa-f]{6}$/.test(o.lineColor || '')) d.lineColor = o.lineColor;
   return d;
 }
 function readShared() { try { var raw = localStorage.getItem(LS_KEY); return sanitizeShared(raw ? JSON.parse(raw) : null); } catch (e) { return Object.assign({}, SHARED_DEFAULTS); } }
@@ -472,7 +479,13 @@ function hasErrors(e) { return Object.keys(e).length > 0; }
  * ========================================================================= */
 var FIXED = {
   // Copy / options
-  B_KINDS: [['shape', 'Shape'], ['fixed', 'Fixed line']],
+  SHAPE_OPTION: { id: '__fixed', name: 'Fixed line' },   // last entry of a Distance's Feature B Shape dropdown
+  LINE_TYPE_PLACEHOLDER: 'Line type',
+  SHOW_LINE_LABEL: 'Show the fixed line on inferenced image',
+  LINE_COLOUR_LABEL: 'Fixed line colour',
+  DEFAULT_LINE_COLOR: '#FFFF33',  // yellow
+  ANGLE_TYPE_LABEL: 'Angle type',
+  TWO_FEATURES_NAME: 'Between two features',
   LINE_MODES: [['horizontal', 'Horizontal (y =)'], ['vertical', 'Vertical (x =)'], ['tilted', 'Tilted']],
   ANGLE_OPTION: { id: 'fixed', name: 'From a fixed line' },
   ANGLE_LABEL: 'Angle',           // the one box shown for Angle → From a fixed line
@@ -481,7 +494,7 @@ var FIXED = {
   SHOW_READOUT: true,             // live cursor read-out on the single-capture canvas
   PILL_GAP: 6,                    // on-screen px between a label pill and what it measures
 
-  angleModes: function () { return [ANGLE_MODES_TODAY[0], ANGLE_MODES_TODAY[1], FIXED.ANGLE_OPTION, ANGLE_MODES_TODAY[2]]; },
+  angleModes: function () { return [ANGLE_MODES_TODAY[0], ANGLE_MODES_TODAY[1], FIXED.ANGLE_OPTION, { id: 'two', name: FIXED.TWO_FEATURES_NAME }]; },
 
   // Defaults applied when "Fixed line" is picked: Horizontal at the image's middle row.
   applyDefaults: function (fx, cap) { var s = imgSizeOf(cap); fx.mode = 'horizontal'; fx.y = String(s.h / 2); fx.cap = cap; },
@@ -589,15 +602,31 @@ var FIXED = {
         : [['fixed.cx', 'Centre x', fx.cx, 'px', 'fixedCx'], ['fixed.cy', 'Centre y', fx.cy, 'px', 'fixedCy'], ['fixed.angle', 'Angle', fx.angle, '°', 'fixedAngle']];
     return '<div class="g3 gap2">' + cells.map(function (c) { return numberTextField(c[0], c[1], c[2], c[3], c[4], { pattern: 'fixed' }); }).join('') + '</div>';
   },
-  // Distance: Feature B gets "Shape | Fixed line" at its top.
-  featureBBlock: function (f, shapeInner) {
-    var html = '<div class="min0"><label class="fl">Feature B</label><div class="col gap2">' + FIXED.segmented('bKind', FIXED.B_KINDS, f.bKind);
+  // Distance: "Fixed line" is the last entry of Feature B's Shape dropdown. Picking it swaps Part / Point
+  // for a Line type dropdown, then the line's boxes.
+  featureBBlock: function (f) {
+    var html = '<div class="min0"><label class="fl">Feature B</label><div class="col gap2">', warn = '';
     if (f.bKind === 'fixed') {
+      var capObj = capById(f.fixed.cap), types = shapeTypesFor(f.type);
+      var shapes = capObj ? capObj.shapes.filter(function (sh) { return types.indexOf(sh.type) >= 0; }) : [];
       html += selectInput('fixed.cap', { options: captureOptions(), value: f.fixed.cap, placeholder: 'Capture' });
-      html += FIXED.segmented('fixed.mode', FIXED.LINE_MODES, f.fixed.mode) + FIXED.inputs(f.fixed);
-    } else html += shapeInner;
-    html += '</div>' + fieldError('featureB') + '</div>';
+      html += '<div class="g2 gap2">' + selectInput('B.shape', { options: shapes.map(function (sh) { return { id: sh.id, name: sh.name }; }).concat([FIXED.SHAPE_OPTION]), value: FIXED.SHAPE_OPTION.id, placeholder: 'Shape' })
+        + selectInput('fixed.mode', { options: FIXED.LINE_MODES.map(function (m) { return { id: m[0], name: m[1] }; }), value: f.fixed.mode, placeholder: FIXED.LINE_TYPE_PLACEHOLDER }) + '</div>';
+      html += FIXED.inputs(f.fixed);
+    } else {
+      var inner = featurePickerInner(f, 'B', true, true, [FIXED.SHAPE_OPTION]);
+      html += inner.html; warn = inner.warn;
+    }
+    html += '</div>' + warn + fieldError('featureB') + '</div>';
     return html;
+  },
+  // Inference Line Colours: the toggle, and under it (when on) the line's own colour.
+  lineColourBlock: function (f, colour) {
+    var on = !!f.showLine;
+    var h = '<div class="row gap3" style="align-items:center"><div role="switch" aria-checked="' + on + '" class="tgl' + (on ? ' on' : '') + '" data-seg="showLine" data-val="' + (on ? 'off' : 'on') + '"><div class="tgl-k"></div></div>'
+      + '<span class="tgl-l">' + esc(FIXED.SHOW_LINE_LABEL) + '</span></div>';
+    if (on) h += '<div class="g2 gap3">' + colour('lineColor', FIXED.LINE_COLOUR_LABEL, f.lineColor) + '</div>';
+    return h;
   },
   // Angle: one box — the fixed line's angle. It runs through the middle of Feature A's line.
   angleBlock: function (f) {
@@ -711,10 +740,12 @@ function baseForm(S) {
     fixed: { cap: 'top', mode: S.lineMode, y: numText(S.y), x: numText(S.x), cx: numText(S.cx), cy: numText(S.cy), angle: numText(S.angle) },
     name: '', min: '', max: '', unit: 'mm', ratio: numText(S.ratio), offset: 0,
     okColor: S.okColor, ngColor: S.ngColor, labelSize: 'medium',
+    showLine: S.showLine, lineColor: S.lineColor,
   };
 }
 function buildForm(st, S) {
   var f = baseForm(S), after = isAfter();
+  if (Q.get('line') === 'on') f.showLine = true; else if (Q.get('line') === 'off') f.showLine = false;
   if (after && FORCED_LINE[st]) f.fixed.mode = FORCED_LINE[st];
   if (st === 'angle') {
     var useA = S.dimType === 'angle';
@@ -756,7 +787,7 @@ function applySharedToForm(S) {
   var f = App.form; if (!f) return;
   var st = App.formState, fresh = buildForm(st, S);
   var forced = isAfter() && FORCED_LINE[st];
-  f.okColor = S.okColor; f.ngColor = S.ngColor;
+  f.okColor = S.okColor; f.ngColor = S.ngColor; f.lineColor = S.lineColor; if (!Q.get('line')) f.showLine = S.showLine;
   if (OWN_STATES.indexOf(st) >= 0) return;
   ['y', 'x', 'cx', 'cy', 'angle'].forEach(function (k) { f.fixed[k] = fresh.fixed[k]; });
   if (!forced) f.fixed.mode = S.lineMode;
@@ -766,7 +797,12 @@ function applySharedToForm(S) {
 function pushShared(keys) {
   var f = App.form; if (!f) return;
   var st = App.formState;
-  if (OWN_STATES.indexOf(st) >= 0) return;
+  if (OWN_STATES.indexOf(st) >= 0) {
+    // an own-sample form still shares the analysed-image toggle and its colour
+    var own = {}; keys.forEach(function (k) { if (k === 'showLine' || k === 'lineColor') own[k] = f[k]; });
+    if (Object.keys(own).length) writeShared(own);
+    return;
+  }
   var patch = {}, fx = f.fixed, isAng = f.type === 'angle';
   var shapeUnit = function (u) { return u === 'deg' ? '°' : (u === 'px' ? 'px' : 'mm'); };
   keys.forEach(function (k) {
@@ -776,7 +812,7 @@ function pushShared(keys) {
       var n = textToNum(fx[k]), sz = imgSizeOf(fx.cap), hi = { y: sz.h, x: sz.w, cx: sz.w, cy: sz.h, angle: 180 }[k];
       if (n !== null && n >= 0 && n <= hi) { if (!isAng) patch[k] = n; else if (k === 'angle') patch.refAngle = n; }
     }
-    else if (k === 'okColor' || k === 'ngColor') patch[k] = f[k];
+    else if (k === 'okColor' || k === 'ngColor' || k === 'lineColor' || k === 'showLine') patch[k] = f[k];
   });
   if (f.type === 'distance' || f.type === 'angle') {
     var S = readShared(), all = S.dimType !== f.type;
@@ -907,7 +943,7 @@ function shapeNumberField(key, label, value, errKey, o) {
 function sectionHeading(text, right) { return '<div class="sh"><span>' + esc(text) + '</span>' + (right || '') + '</div>'; }
 
 /* ---- FeaturePicker ---- */
-function featurePickerInner(f, side, showCapture, forB) {
+function featurePickerInner(f, side, showCapture, forB, extraShapes) {
   var feat = f[side], capObj = capById(feat.cap), types = shapeTypesFor(f.type);
   var shapes = capObj ? capObj.shapes.filter(function (s) { return types.indexOf(s.type) >= 0; }) : [];
   var shp = shapeOf(feat), mode = pickerMode(f.type);
@@ -920,7 +956,7 @@ function featurePickerInner(f, side, showCapture, forB) {
   if (showCapture) h += selectInput(side + '.cap', { options: captureOptions(), value: feat.cap, placeholder: 'Capture' });
   var showAspect = mode !== 'whole';
   h += '<div class="' + (showAspect ? (split ? 'g3 gap2' : 'g2 gap2') : '') + '">';
-  h += selectInput(side + '.shape', { options: shapes.map(function (s) { return { id: s.id, name: s.name }; }), value: feat.shape, placeholder: 'Shape', disabled: !feat.cap });
+  h += selectInput(side + '.shape', { options: shapes.map(function (s) { return { id: s.id, name: s.name }; }).concat(extraShapes || []), value: feat.shape, placeholder: 'Shape', disabled: !feat.cap });
   if (showAspect && split) {
     h += selectInput(side + '.part', { options: groupOpts, value: feat.part, placeholder: 'Part', disabled: !shp || !groupOpts.length });
     h += selectInput(side + '.point', { options: pointOpts, value: feat.point, placeholder: 'Point', disabled: !pointOpts.length });
@@ -928,7 +964,7 @@ function featurePickerInner(f, side, showCapture, forB) {
     h += selectInput(side + '.part', { options: groupOpts, value: feat.part, placeholder: 'Part', disabled: !shp || !groupOpts.length });
   }
   h += '</div>';
-  return { html: h, warn: feat.cap && !shapes.length ? '<p class="hint-amber">This capture has no shape that a ' + (mode === 'point' ? 'point' : 'measurement') + ' of this kind can use.</p>' : '' };
+  return { html: h, warn: feat.cap && !shapes.length && !(extraShapes && extraShapes.length) ? '<p class="hint-amber">This capture has no shape that a ' + (mode === 'point' ? 'point' : 'measurement') + ' of this kind can use.</p>' : '' };
 }
 function featurePicker(f, side, label, showCapture, forB) {
   var inner = featurePickerInner(f, side, showCapture, forB);
@@ -946,7 +982,7 @@ function renderForm(f) {
   // Type + sub-field
   h += '<div class="gap3 ' + (hasSub ? 'g2' : 'g1') + '">';
   h += selectField('type', 'Type', { options: TYPES, value: f.type });
-  if (isA) h += selectField('angleMode', 'Angle from', { options: isAfter() ? FIXED.angleModes() : ANGLE_MODES_TODAY, value: f.angleMode, errKey: 'angle' });
+  if (isA) h += selectField('angleMode', isAfter() ? FIXED.ANGLE_TYPE_LABEL : 'Angle from', { options: isAfter() ? FIXED.angleModes() : ANGLE_MODES_TODAY, value: f.angleMode, errKey: 'angle' });
   if (showAxis) h += selectField('distanceAxis', 'Distance axis', { options: DIST_AXES, value: f.distanceAxis, errKey: 'distanceAxis' });
   h += '</div>';
   // Features
@@ -954,7 +990,7 @@ function renderForm(f) {
   if (!isD) h += selectField('sharedCap', 'Capture', { options: captureOptions(), value: f.A.cap, placeholder: 'Capture' });
   var reqB = isD || (isA && f.angleMode === 'two');
   h += featurePicker(f, 'A', reqB ? 'Feature A' : 'Feature', isD, false);
-  if (isD && isAfter()) h += FIXED.featureBBlock(f, featurePickerInner(f, 'B', true, true).html);
+  if (isD && isAfter()) h += FIXED.featureBBlock(f);
   else if (reqB) h += featurePicker(f, 'B', 'Feature B', isD, isD);
   if (fA) h += FIXED.angleBlock(f);
   h += '</div>';
@@ -989,8 +1025,9 @@ function renderForm(f) {
     var c = COLOR_OPTIONS.filter(function (x) { return x.id === value; })[0];
     return '<div class="min0">' + fieldLabel(label) + '<div class="row gap2"><span class="swatch" style="background:' + (c ? c.id : 'transparent') + '"></span>' + selectInput(key, { options: COLOR_OPTIONS, value: value }) + '</div></div>';
   };
-  h += '<div class="col gap3">' + sectionHeading(quality ? 'Inference Line Colour' : 'Inference Line Colours') + '<div class="g2 gap3">'
-    + (quality ? colour('okColorQ', 'Colour', f.okColor) : colour('okColor', 'OK colour', f.okColor) + colour('ngColor', 'NG colour', f.ngColor)) + '</div></div>';
+  h += '<div class="col gap3" id="colBlock">' + sectionHeading(quality ? 'Inference Line Colour' : 'Inference Line Colours') + '<div class="g2 gap3">'
+    + (quality ? colour('okColorQ', 'Colour', f.okColor) : colour('okColor', 'OK colour', f.okColor) + colour('ngColor', 'NG colour', f.ngColor)) + '</div>'
+    + (fixedActive(f) ? FIXED.lineColourBlock(f, colour) : '') + '</div>';
   h += selectField('labelSize', 'Label Text Size', { options: LABEL_SIZES, value: f.labelSize });
   h += '</div>';
   return h;
@@ -1437,7 +1474,17 @@ function onSelect(key, val) {
   }
   if (key === 'distanceAxis') { f.distanceAxis = val; renderMain(); afterFormChange(); return; }
   if (key === 'sharedCap') { f.A = emptyFeature(val); f.B = emptyFeature(f.angleMode === 'two' ? val : null); f.fixed.cap = val; renderMain(); afterFormChange(); return; }
-  if (key === 'fixed.cap') { f.fixed.cap = val; renderMain(); afterFormChange(); return; }
+  if (key === 'fixed.cap') { f.fixed.cap = val; f.B = emptyFeature(val); if (isCross(f) && f.unit === 'px') f.unit = 'mm'; renderMain(); afterFormChange(); return; }
+  if (key === 'fixed.mode') { if (f.fixed.mode === val) return; f.fixed.mode = val; renderMain(); afterFormChange(['lineMode']); return; }
+  if (key === 'B.shape' && val === FIXED.SHAPE_OPTION.id) {
+    if (f.bKind === 'fixed') return;
+    f.bKind = 'fixed'; FIXED.applyDefaults(f.fixed, f.B.cap || f.A.cap || 'top');
+    f.showLine = false; f.lineColor = FIXED.DEFAULT_LINE_COLOR;   // a newly picked fixed line starts off, in yellow
+    if (isCross(f) && f.unit === 'px') f.unit = 'mm';
+    renderMain(); afterFormChange(['lineMode', 'y', 'showLine', 'lineColor']); return;
+  }
+  if (key === 'B.shape' && f.bKind === 'fixed') { f.bKind = 'shape'; f.B = { cap: f.fixed.cap, shape: val, part: null, point: null }; renderMain(); afterFormChange(); return; }
+  if (key === 'lineColor') { f.lineColor = val; renderMain(); afterFormChange(['lineColor']); return; }
   if (key === 'unit') { f.unit = val; renderMain(); afterFormChange(['unit']); return; }
   if (key === 'okColor' || key === 'ngColor') { f[key] = val; renderMain(); afterFormChange([key]); return; }
   if (key === 'okColorQ') { f.okColor = val; f.ngColor = val; renderMain(); afterFormChange(['okColor', 'ngColor']); return; }
@@ -1463,14 +1510,7 @@ function onSelect(key, val) {
 }
 function onSeg(key, val) {
   var f = App.form;
-  if (key === 'bKind') {
-    if (f.bKind === val) return;
-    f.bKind = val;
-    var k = [];
-    if (val === 'fixed') { FIXED.applyDefaults(f.fixed, f.A.cap || 'top'); k = ['lineMode', 'y']; }
-    renderMain(); afterFormChange(k); return;
-  }
-  if (key === 'fixed.mode') { if (f.fixed.mode === val) return; f.fixed.mode = val; renderMain(); afterFormChange(['lineMode']); }
+  if (key === 'showLine') { f.showLine = val === 'on'; renderMain(); afterFormChange(['showLine']); }
 }
 function onInput(el) {
   var f = App.form; if (!f) return;
@@ -1504,7 +1544,7 @@ function doSave() {
   toast('success', App.editingName ? 'Dimension updated' : 'Dimension created');
   var f = App.form;
   if (App.formState === 'shape-value' && isAfter()) writeShared({ shape: { name: f.name, min: textToNum(f.min), max: textToNum(f.max), unit: f.unit === 'px' ? 'px' : 'mm', ratio: textToNum(f.ratio) } });
-  pushShared(f.type === 'angle' ? ['angle', 'name', 'min', 'max', 'unit', 'ratio'] : ['lineMode', 'y', 'x', 'cx', 'cy', 'angle', 'name', 'min', 'max', 'unit', 'ratio']);
+  pushShared((f.type === 'angle' ? ['angle', 'name', 'min', 'max', 'unit', 'ratio'] : ['lineMode', 'y', 'x', 'cx', 'cy', 'angle', 'name', 'min', 'max', 'unit', 'ratio']).concat(fixedActive(f) ? ['showLine', 'lineColor'] : []));
   goState('saved', 'edge-dim-saved');
 }
 function zoomBy(factor) {
@@ -1598,6 +1638,7 @@ enterState(effState());
 // scroll=preview: bring the bottom of the preview column just above the footer (used for screenshots).
 function applyScroll() {
   if (SCROLL_TO === 'preview') { var pc = document.getElementById('previewCol'); if (pc) document.body.scrollTop = pc.getBoundingClientRect().bottom + document.body.scrollTop - (window.innerHeight - 64) + 12; }
+  else if (SCROLL_TO === 'col') { var cb = document.getElementById('colBlock'); if (cb) document.body.scrollTop = cb.getBoundingClientRect().bottom + document.body.scrollTop - (window.innerHeight - 64) + 16; }
   else if (SCROLL_TO === 'gt') { var gb = document.getElementById('gtBlock'); if (gb) document.body.scrollTop = gb.getBoundingClientRect().bottom + document.body.scrollTop - (window.innerHeight - 64) + 16; }
   else if (Number(SCROLL_TO)) document.body.scrollTop = Number(SCROLL_TO);
 }

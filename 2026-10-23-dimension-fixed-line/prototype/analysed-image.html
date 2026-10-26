@@ -304,7 +304,8 @@
   var STATE = ['ok', 'ng', 'angle', 'cross'].indexOf(qs.get('state')) >= 0 ? qs.get('state') : 'ok';
   var KEY = 'fixedline-proto-v2';
   var DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, refAngle: 30,
-    name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000' };
+    name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000',
+    showLine: false, lineColor: '#FFFF33' };
   // Angle → From a fixed line: the line's angle (refAngle) is its only setting.
   var ANGLE_DEFAULTS = { refAngle: 30, name: 'Angle_edge_to_ref', min: 25, max: 35, unit: 'degrees' };
   var HEX = /^#[0-9a-fA-F]{6}$/;
@@ -323,6 +324,9 @@
     if (['horizontal', 'vertical', 'tilted'].indexOf(c.lineMode) < 0) c.lineMode = DEFAULTS.lineMode;
     if (!HEX.test(String(c.okColor))) c.okColor = DEFAULTS.okColor;
     if (!HEX.test(String(c.ngColor))) c.ngColor = DEFAULTS.ngColor;
+    if (!HEX.test(String(c.lineColor))) c.lineColor = DEFAULTS.lineColor;
+    // "Show the fixed line on inferenced image" (?line=on|off overrides, for screenshots)
+    c.showLine = qs.get('line') === 'on' ? true : qs.get('line') === 'off' ? false : raw.showLine === true;
     if (!(c.ratio > 0)) c.ratio = DEFAULTS.ratio;
     if (c.min > c.max) { var t = c.min; c.min = c.max; c.max = t; }
     c.unit = String(c.unit || DEFAULTS.unit);
@@ -658,7 +662,7 @@
     }
     var pass = within(value, c), color = pass ? c.okColor : c.ngColor;
     var seg = clipLine(L);
-    if (seg) cvDashed(ctx, seg, color, 2);
+    if (seg && c.showLine) cvDashed(ctx, seg, c.lineColor, 2);
     var tA = [foot[0] - L.v[0], foot[1] - L.v[1]], tB = [foot[0] + L.v[0], foot[1] + L.v[1]];
     tick(ctx, foot, tA, tB, HOLE, color);
     cvDot(ctx, HOLE, color, 5); cvDot(ctx, foot, color, 5);
@@ -696,7 +700,7 @@
     var angle = Math.abs(deg(Math.atan2(u[0] * L.v[1] - u[1] * L.v[0], dot(u, L.v))));
     var pass = within(Math.round(angle * 1000) / 1000, c), color = pass ? c.okColor : c.ngColor;
     cvLine(ctx, e1, e2, color, 2);
-    if (seg) cvDashed(ctx, seg, color, 2);
+    if (seg && c.showLine) cvDashed(ctx, seg, c.lineColor, 2);
     // Opening between the two directions, never the reflex side; drawn on the side the value can grow away from.
     var a1 = deg(Math.atan2(u[1], u[0])), a2 = deg(Math.atan2(L.v[1], L.v[0]));
     var diff = ((a2 - a1 + 540) % 360) - 180, start = diff >= 0 ? a1 : a2, sweep = Math.abs(diff);
@@ -778,13 +782,15 @@
   function buildImages() {
     var top, pass = true, list;
     if (STATE === 'cross') {
-      var topPlain = renderTop(EDGE_OK), side = renderSide(), cross = renderCross(topPlain, side);
+      // Cross-capture: no combined result image (its rendering is switched off). After: the fixed line
+      // (x = 960 px on Side Camera) is drawn on Side Camera's own analysed image when the toggle is on.
+      var cc = readConfig(), topPlain = renderTop(EDGE_OK), side = renderSide();
+      if (MODE === 'after' && cc.showLine) cvDashed(side.getContext('2d'), [[960, 0], [960, H]], cc.lineColor, 2);
       list = [
         { captureName: 'Top Camera', name: 'Search Area 1', result: true, src: topPlain.toDataURL('image/jpeg', 0.92) },
-        { captureName: 'Side Camera', name: 'Search Area 1', result: true, src: side.toDataURL('image/jpeg', 0.92) },
-        { captureName: 'Cross-capture', name: cross.name, result: cross.pass, src: cross.cv.toDataURL('image/png') }
+        { captureName: 'Side Camera', name: 'Search Area 1', result: true, src: side.toDataURL('image/jpeg', 0.92) }
       ];
-      return { list: list, start: 2 };
+      return { list: list, start: 1 };
     }
     if (STATE === 'angle') {
       top = renderTop(EDGE_OK);
