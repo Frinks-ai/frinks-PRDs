@@ -633,7 +633,7 @@ html.embedded .proto{display:none!important}
     writeShared({ chain: chainToShared(S.chain) });
   }
   // Adding Image Enhancement from Select Module creates a NEW IE_1: default filters, default area name, nothing tuned on Edge yet.
-  function resetSharedForNewModule() { writeShared({ chain: chainToShared(defaultChain()), edgeChain: null, areaName: DEFAULT_AREA }); }
+  function resetSharedForNewModule() { writeShared({ chain: chainToShared(defaultChain()), edgeChain: null, areaName: DEFAULT_AREA, trainedChain: null, trainedAreaName: null, trainedModuleName: null }); }
   function chainChanged() {
     S.changed = true; S.showErr = false;
     if (!S.deferSave) { S.sharedChain = true; saveChain(); }
