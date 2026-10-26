@@ -16,7 +16,6 @@ Everything still to be settled.
 | # | Point to settle | Options on the table | Owner | Needed by |
 |---|---|---|---|---|
 | Q1 | After release, how will we judge success? For example, a plant admin sets up Module Outputs once, and support stops opening View JSON for customers. What numbers should we aim for in section 8? | A share of upgraded Edge boxes with Module Outputs set up within a set time; a drop in support requests that need View JSON; no open customer requests for module values | Tanay Deo | Before approval |
-| Q2 | A quality engineer ticks Screw `count_till_now` or a module's `pass_count`. These are running totals kept live on the box, not saved with each cycle, so every row would show "—". Should such keys be offered at all? | Hide running totals (pass_count, fail_count, count_till_now, avg_inference_time, completion_status) from the list; keep them listed and show "—" (as drafted) | Tanay Deo | Before approval |
 | Q3 | Some values a quality engineer would want have no key today: image classification confidence, OCR text per label, tilt angle, bead incorrect calipers and gap sizes, segmentation region counts (segmentation in normal mode has no keys at all). They are stored with each cycle. Add keys for them? | Add new keys in this release (more Edge work); leave them out of v1 and raise a follow-up | Tanay Deo | Before approval |
 
 ## 1. Summary
@@ -25,7 +24,7 @@ Everything still to be settled.
 - The window opens on the instance shown in the Reports table, with an **Instance** dropdown to set up any other instance on the box.
 - Two options at the top, **Show in same column** and **Show in separate columns**, decide the layout. In the same column, the ticked keys share one Module Outputs column. In separate columns, each ticked key gets its own column, headed by its Display Name.
 - After saving, a new **Module Outputs** column (or one column per key) shows the ticked keys on each capture's row as `Display Name: value` lines, such as `Screw count: 4` or `Serial No.: SN-48213`.
-- Values come from the results Edge already stores with every cycle, so **past cycles show them too**. Changing the setup changes what every cycle shows, straight away, with no redeploy.
+- When each capture finishes, Edge **saves a copy of every key of that capture** with the cycle, ticked or not. Reports shows those copies: each value is what the key held at that moment, the same value the dashboard and PLC saw. A key ticked later still shows values for every cycle since this release; older cycles show "—". Changing the setup changes what every cycle shows, straight away, with no redeploy.
 - Every module type that has keys is covered: object detection, image classification, OCR, code reader, segmentation (single-class mode), bead inspection, colour detection, shape extractor, orientation & tilt check and single-capture dimensions.
 - The column is searchable with the existing Search box and exported to Excel as one "Module Outputs" column.
 - Saving the setup needs the existing **Update** permission on Analytics & Reports. Everyone who can view Reports sees the column.
@@ -52,6 +51,7 @@ Everything still to be settled.
 ## 4. Key concepts
 - **Key:** a named value Edge keeps for an instance, capture, module, class, search area or label, the same keys offered today in PLC Write, Internal Actions and Dashboard Builder (for example `current_count` of class Screw).
 - **Display Name:** the name a ticked key's value appears under on the Reports page and in the Excel, typed by the person setting it up.
+- **Key copy:** the value a key held when a capture finished, saved by Edge with that capture in the cycle. Reports shows key copies, never today's live value.
 - **Module Outputs setup:** the per-instance choice of which keys show in Reports, their Display Names, and whether they share one column or get one column each.
 - **Show in same column / Show in separate columns:** the per-instance layout. Same column puts every ticked key in one Module Outputs column as `Display Name: value` lines. Separate columns gives each ticked key its own column, headed by its Display Name.
 
@@ -75,13 +75,13 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Matting (mod-matting) | Not offered: it has no keys | US3 |
 | Instance upload on Edge (edge-instance-details) | A re-upload keeps the setup; removed captures, modules and classes drop out of it; deleting the instance deletes it | US6, US11 |
 | Edit Module Configurations (edge-emc) | Edits keep the setup; the values offered follow the current module settings | US6 |
-| Cycles and result storage (edge-inferencing-customization) | No change: Edge keeps storing every module's result for every capture, which is what the column reads | US9 |
+| Cycles and result storage (edge-inferencing-customization) | Saves a copy of every key of each capture with the cycle, as the capture finishes; a module that did not run is saved as "Not run" | US12, US9 |
 | Python engine (engine-workflow) | No change: results are produced and sent exactly as today | US9 |
 | Result module (mod-result) | No change: OK and NG are decided exactly as today | US9 |
 | Actions (edge-actions) | Write to DB rules that copy values into Additional Info columns keep working | US8 |
 | Deployments (edge-deployment) | Fast Mode deployments get no Module Outputs, as they store no per-capture results | US8 |
-| Health Monitoring (edge-health) | No new per-cycle data, so storage cleanup is unchanged | US8 |
-| Backup and migration (edge-backup-migration) | The saved setup is created on upgrade and survives every later upgrade | US11 |
+| Health Monitoring (edge-health) | Storage cleanup deletes key copies together with their capture rows, and counts them in the data limit | US12 |
+| Backup and migration (edge-backup-migration) | The saved setup is created on upgrade and survives every later upgrade | US11, US12 |
 | Release and upgrades (edge-release-upgrade) | Ships in the scripts bundle as a normal release, with one database addition | US10 |
 
 ## 6. User stories and acceptance criteria
@@ -174,9 +174,9 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 
 - **AC4.1** After the first save, the ticked keys appear after Config Result, as the last per-capture column or columns, and Camera Position and Camera Configuration are turned on with them.
 - **AC4.2** With "Show in same column", one "Module Outputs" column shows each capture's ticked keys, one per line, as "Display Name: value", in the order of the setup (module order, then key order).
-- **AC4.3** Values are read from the results already stored with each cycle. Cycles stored before the setup, and before this release, show values too. Changing the setup changes what every cycle shows.
+- **AC4.3** Values are the key copies saved with each cycle (US12). A key ticked today shows values for every cycle since this release. Cycles stored before this release have no copies and show "—" for every key. Changing the setup changes what every cycle shows.
 - **AC4.4** For a capture triggered more than once in a cycle, the values come from the latest attempt, the same attempt Config Result shows.
-- **AC4.5** A value with nothing found (no text read, no code decoded) shows "—"; a count of zero shows "0". A module that did not run on that image (its search area was not found) shows "Not run" for its values. A capture with nothing ticked shows "N/A". A stored result that lacks the value (for example one saved by an older Edge version) shows "—", never an error. Running totals that are not saved with each cycle (`pass_count`, `fail_count`, `count_till_now`, `avg_inference_time`, `completion_status`) show "—" (see Q2). Keys that hold a module setting (`correct_class`, `gt_string`, `labelName:<label>_gt_text`, `bead_class_name`, `dim_current_gt`, `colorName:<colour>_detected_color`) show the setting saved with that cycle where stored, else the current setting.
+- **AC4.5** A value with nothing found (no text read, no code decoded) shows "—"; a count of zero shows "0". A key saved as "Not run" (US12) shows "Not run". A capture with nothing ticked shows "N/A". Every key, including running totals such as `pass_count` and settings such as `gt_string`, shows the copy saved when that capture finished, never today's value.
 - **AC4.6** Once set up, Edit Table lists "Module Outputs" after Config Result, or, with "Show in separate columns", each key column by its Display Name. Unticking one hides it. While any of them is ticked, Camera Position and Camera Configuration cannot be turned off, as with Config Result today. Edit Table choices stay shared for the whole box, as today.
 - **AC4.7** The existing Search box also matches text in the Module Outputs column or the key columns, the same way it matches the other visible columns on the page. No new search or filter controls are added.
 - **AC4.8** Text read from parts (OCR text, codes) is shown exactly as read, as plain text, never as a link or formatted content.
@@ -201,6 +201,21 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 - **AC5.5** With "Show in separate columns", the Excel gets one column per visible key column instead, after Config Result, headed by its Display Name, in the same order and with the same value-only cells as the screen.
 - **AC5.3** Values are written as text. A value that starts with =, +, - or @ is never treated as a formula.
 - **AC5.4** Export limits and filters are unchanged: up to 100,000 cycles still export with the column on, and the time, instance, variant, outcome, class and additional-info filters apply.
+
+### US12 — Edge saves a copy of every key with each capture
+*As a quality engineer, I want each cycle to keep the values its keys had at that moment, so that the report shows what the line actually saw, not what the keys say now.*
+- **Kind:** Feature
+- **Parts:** edge-inferencing-customization, edge-health, edge-backup-migration
+- **Teams:** SDE
+- **Covers:** C6, C8, C12
+- **Today:** Keys hold only their latest value; nothing keeps a key's value per cycle. A module that does not run on an image leaves its keys holding the previous image's value.
+
+- **AC12.1** When a capture's result arrives and its keys are updated, Edge saves the value of every key of that capture (capture, module, class, search area, label, colour, bead, shape and single-capture dimension keys) with that capture's row in the cycle, whether or not the key is ticked in Module Outputs.
+- **AC12.2** A module that did not run on that image (its search area was not found) has its keys saved as "Not run", not the value left from the previous image.
+- **AC12.3** Each attempt of a capture triggered more than once in a cycle saves its own copies.
+- **AC12.4** Fast Mode deployments save no copies, as they store no capture rows.
+- **AC12.5** Saving copies does not delay the capture result, PLC writes or dashboard updates.
+- **AC12.6** Storage cleanup deletes key copies together with their capture rows, and counts them in the instance's data limit.
 
 ### US6 — The setup follows the instance
 *As a plant admin, I want the setup to survive instance updates and Edge-side edits, so that I set it up once.*
@@ -244,7 +259,7 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 - **AC8.3** Write to DB rules that copy module values into Additional Info columns keep working alongside Module Outputs.
 - **AC8.4** The Minute-wise tab shows the same per-minute rows and totals as before for Fast Mode deployments.
 - **AC8.5** Filters, the Download popup ("Report (Excel Sheet)" and "Images Only") and its size checks work as before.
-- **AC8.6** Storage cleanup keeps deleting the oldest results as today. Module Outputs stores no extra data per cycle, so nothing new needs cleaning up.
+- **AC8.6** (removed — storage cleanup of key copies is now AC12.6)
 
 ### US9 — Inspection results keep working as today
 *As an integrator, I want inspection, verdicts and PLC signals untouched, so that the line runs exactly as before.*
@@ -254,8 +269,8 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 - **Covers:** C8, C9
 
 - **AC9.1** OK and NG for every capture and cycle, PLC writes and dashboard keys are unchanged.
-- **AC9.2** Edge keeps storing each module's full result for every capture of every cycle, exactly as today. This is the data the column reads.
-- **AC9.3** Cycle time and per-image processing are unchanged. Module Outputs does its work only when Reports are viewed or exported.
+- **AC9.2** Edge keeps storing each module's full result for every capture of every cycle, exactly as today, and View JSON keeps showing it.
+- **AC9.3** (removed — the only added work per image is saving key copies, covered by AC12.5)
 
 ### US10 — Platform requirements
 *As a Frinks support engineer, I want to know what ships and how, so that the release goes out like any other.*
@@ -266,7 +281,7 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 
 - **AC10.1** Node Docker image: no change. No new libraries are needed; the Excel export already has one.
 - **AC10.2** Python Docker image: no change. The engine is not touched.
-- **AC10.3** Scripts bundle: changes. It carries the Reports app (screen and server) and the Edge database addition that holds the setup.
+- **AC10.3** Scripts bundle: changes. It carries the Reports app (screen and server), the inference service change that saves key copies, and the Edge database additions that hold the setup and the key copies.
 - **AC10.4** Installer: no change. Database additions already run on every install and update.
 - **AC10.5** New error codes: RPT-MOUT-001 "Module Outputs could not be saved" and RPT-MOUT-002 "Module Outputs could not be loaded". The report server logs them and the window shows them. They are not added to the Health page.
 - **AC10.6** The Edge manual's Analytics & Reports section describes the Module Outputs button, the setup window, the column and the Excel column, with new screenshots. Release note: "Reports & Analytics can now show chosen module keys, such as counts, classes, read text and codes, under your own Display Names in a new Module Outputs column, for past and new cycles."
@@ -305,12 +320,12 @@ The list is exactly the set of keys Edge creates for the instance today; a key s
 
 **Coverage check:**
 
-**Result:** PASS, 2 warnings
+**Result:** PASS, 3 warnings
 
-- 11 user stories (6 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 72 ACs, 23 touched parts, 3 discussion points.
+- 12 user stories (7 feature, 1 rules, 2 keeps working, 1 platform, 1 migration), 78 ACs (2 marked removed), 23 touched parts, 2 discussion points.
 - Checklist: 17 items covered by stories, 1 N/A, 0 open.
-- Warnings kept on purpose: AC8.4 contains "Fast", the product name "Fast Mode"; US3 names keys such as `current_count`, which are the names users see in Edge's key picker, not code.
-- Every punchlist item I1–I72 in notes.md maps to exactly one AC.
+- Warnings kept on purpose: AC8.4 and AC12.4 contain "Fast", the product name "Fast Mode"; US3 names keys such as `current_count`, which are the names users see in Edge's key picker, not code.
+- Every punchlist item I1–I78 in notes.md maps to exactly one AC (I-items for AC8.6 and AC9.3 marked removed).
 
 ## Appendix B — Code references
 For the ticket skill and developers. Paths are relative to each repo.
@@ -327,6 +342,7 @@ For the ticket skill and developers. Paths are relative to each repo.
 Repos checked: frinksedge-report @ 5fe5390 (15 Oct 2026), frinksedge-report-frontend @ 9893a19 (13 Oct 2026), frinksedge-inferencing-backend @ eddd8e5 (19 Oct 2026), frinksedge-deployment-backend @ 009fc11 (19 Oct 2026), frinksedge-deployment-frontend @ 7e92de34 (19 Oct 2026), frinksedge-health @ e8ef112 (15 Oct 2026), vip-inference-python @ 93451d1 (15 Oct 2026), frinksvision-backend @ eda944f (14 Oct 2026), frinksvision-frontend @ 110a23c (19 Oct 2026), Python-inference-docker @ 62e22bd (29 May 2026), release-manager-backend @ b8016f7 (22 Sep 2026), and the other 23 repos in the skill's list, all up to date on 20 Oct 2026.
 
 ## Changelog
+- 26 October 2026 — Reports show a copy of each key saved when the capture finished (new US12; AC4.3, AC4.5, AC9.2, AC10.3 changed; AC8.6 and AC9.3 removed). Every key of every capture is copied, ticked or not, so cycles since the release show values; older cycles show "—". Q2 (running totals) closed: they show the copy at that moment. Same Display Name across captures sharing a column, and columns for every variant's keys, confirmed (Tanay Deo)
 - 24 October 2026 — Instance dropdown at the top of the setup window, defaulting to the instance in the Reports table (AC1.2 changed, AC1.7 added); "Show in same column / Show in separate columns" layout per instance (AC2.9, AC4.9, AC4.10, AC5.5 added; AC2.8, AC4.1, AC4.2, AC4.6, AC4.7, AC5.1 changed) (Tanay Deo)
 - 23 October 2026 — Setup lists each module's real Edge keys as the key picker shows them; ticking a key asks for a Display Name used on the Reports page. US2 and US3 rewritten; old Q2 (segmentation "Detected classes") dropped as segmentation offers only its keys; new Q2 (running totals) and Q3 (values with no key) (Tanay Deo)
 - 23 October 2026 — Duplicate pass: AC8.4, AC11.1 and AC11.3 no longer restate AC1.1, AC4.3 and AC4.5 (Tanay Deo)
