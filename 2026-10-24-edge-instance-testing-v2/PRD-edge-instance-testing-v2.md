@@ -62,7 +62,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Edit Module Configurations (edge-emc) | Thresholds from a test saved per class, to this instance only; ground truths read for OK/NG | US8, US10, US11, US12 |
 | Analysed Image Configuration (edge-inferencing-customization) | Its Pass/Fail colours and Show on/off are used to draw test results (read only) | US9 |
 | Result module (mod-result) | Its OK/NG rules give each module and image an OK/NG in tests | US10 |
-| Shape Extractor (mod-shape-extractor) | Included in tests for the first time; missing dimensions flagged in the Run drawer | US5, US9 |
+| Shape Extractor (mod-shape-extractor) | Included in tests for the first time | US9 |
 | Bead Inspection (mod-bead-inspection) | Incomplete bead setup blocks that capture in the Run drawer; bead results drawn as on the line | US5, US9 |
 | Object Detection (mod-odc) | Boxes drawn in test results the way the line draws them; per-class thresholds | US9 |
 | Image Classification (mod-classification) | Box on its search area drawn the way the line draws it | US9 |
@@ -113,7 +113,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC2.2** With at least one finished test, a "Last test" card shows the most recent finished test: Test number, status, reason (when there is one), when it ran, who ran it, how long it took, total images and captures, and whether annotations were added.
 - **AC2.3** The Last test card lists each Variant – Capture tested with its images tested; when some couldn't be read it shows e.g. "114 of 120 (6 couldn't be read)".
 - **AC2.4** For each Variant – Capture, the Last test card shows each module's average time per image in ms, measured during the test.
-- **AC2.5** With no tests, the tab shows "No tests yet", the line "Run a test to check this instance's setup on saved images before using it on the line. Tests don't affect the line." and a "Run a new test" button.
+- **AC2.5** With no tests, the tab shows "No tests yet", the line "Run a test to check this instance's setup on saved images before using it on the line. Tests don't affect the line." The only way to start a test is the Run Test button at the top; there is no second button in the middle of the tab.
 
 ### US3 — Test history, statuses and delete
 *As a plant admin, I want every test listed with a plain status and reason, so that I can find results and understand failures.*
@@ -148,7 +148,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ### US5 — Run drawer: instructions and pre-checks
 *As an operator, I want each capture checked before the test starts, so that I don't waste a run.*
 - **Kind:** Feature
-- **Parts:** edge-instance-details, mod-bead-inspection, mod-shape-extractor, edge-health
+- **Parts:** edge-instance-details, mod-bead-inspection, edge-health
 - **Teams:** SDE
 - **Covers:** C4, C5, C11
 - **Today:** the drawer shows a long paragraph of instructions; nothing is checked; uploading shows a full-screen loader.
@@ -159,16 +159,13 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC5.1** Above the Variant | Capture | Dataset folder table, the drawer shows only: "Choose a folder of test images for each capture you want to test.", "Optional: add an annotation file for every image (same file name; segmentation masks in a "masks" folder) to also get model performance and suggested thresholds." and "Tests never send PLC signals, trigger integrations or change production reports."
 - **AC5.2** A capture whose bead inspection isn't fully set up in Edit Module Configurations shows the error "Can't be tested: bead inspection isn't set up for this capture yet (bead width and gap rules are missing)." with an "Open Edit Module Configurations" link, and its folder can't be chosen.
-- **AC5.3** A capture whose model files are missing on the device shows the error "Can't be tested: this capture's model files are missing on this device. Upload the instance to the device again to restore them." and its folder can't be chosen.
-- **AC5.4** A capture with a Shape Extractor that has no dimensions shows the warning "No dimensions set — the results will show shapes only."
-- **AC5.5** After a folder is chosen, the row shows "<n> images, each with an annotation file." or "<n> images, no annotation files."
-- **AC5.6** When the chosen images' size differs from the camera's image size, the row warns with both sizes, e.g. "Image size doesn't match this camera: your images are 1920 × 1080, but this camera takes 2448 × 2048 images. Search areas would land in the wrong place, so the results won't be reliable."
-- **AC5.7** When a folder holds more than 500 images, the row warns "<n> images is more than the suggested 500 per capture. The test will take longer; a smaller folder gives results sooner."
-- **AC5.8** When the chosen images need more space than the device has free, the row warns with both figures in GB, e.g. "Not enough free space on the device: these images need about 2.4 GB and only 1.1 GB is free. Free up space or choose fewer images."
-- **AC5.9** A capture with no folder and nothing to report shows only its "Choose folder" button.
-- **AC5.10** The footer shows "<n> captures will be tested · <n> with warnings · <n> can't be tested"; Start Testing is disabled with "Choose at least one folder to start." until a folder is chosen.
-- **AC5.11** If testing becomes blocked while the drawer is open (US4), Start Testing is disabled with "Testing is blocked on this device right now. The Testing tab shows why."
-- **AC5.12** After Start Testing, the footer shows "Uploading images for <Variant · Capture> — <x> of <y>" with a bar; when the upload ends the drawer closes and the running test shows on the tab. No full-screen loader is shown.
+- **AC5.3** After a folder is chosen, the row shows "<n> images, each with an annotation file." or "<n> images, no annotation files."
+- **AC5.4** When the chosen images' size differs from the camera's image size, the row warns with both sizes, e.g. "Image size doesn't match this camera: your images are 1920 × 1080, but this camera takes 2448 × 2048 images. Search areas would land in the wrong place, so the results won't be reliable."
+- **AC5.5** When the chosen images need more space than the device has free, the row warns with both figures in GB, e.g. "Not enough free space on the device: these images need about 2.4 GB and only 1.1 GB is free. Free up space or choose fewer images."
+- **AC5.6** A capture with no folder and nothing to report shows only its "Choose folder" button.
+- **AC5.7** The footer shows "<n> captures will be tested · <n> with warnings · <n> can't be tested"; Start Testing is disabled with "Choose at least one folder to start." until a folder is chosen.
+- **AC5.8** If testing becomes blocked while the drawer is open (US4), Start Testing is disabled with "Testing is blocked on this device right now. The Testing tab shows why."
+- **AC5.9** After Start Testing, the footer shows "Uploading images for <Variant · Capture> — <x> of <y>" with a bar; when the upload ends the drawer closes and the running test shows on the tab. No full-screen loader is shown.
 
 ### US6 — Follow and cancel a running test
 *As an operator, I want to see a running test's progress on the tab and cancel it, so that I can keep using Edge.*
@@ -344,7 +341,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ## 8. How we'll know it worked
 | Measure | Target |
 |---|---|
-| Tests ending Failed for reasons a pre-check catches (bead not set up, model files missing, disk full) | 0 in the first month after release |
+| Tests ending Failed for reasons a pre-check catches (bead not set up, disk full) | 0 in the first month after release |
 | Field reports of a test ending another test or a deployment | 0 |
 | Thresholds applied from tests that change another instance or another class | 0 |
 
@@ -359,10 +356,10 @@ The parts this changes. Parts checked and not affected are listed at the very en
 >
 > **Result:** PASS
 >
-> - 16 user stories (12 feature, 1 rules, 1 keeps working, 1 platform, 1 migration), 86 ACs, 19 touched parts, 3 discussion points.
+> - 16 user stories (12 feature, 1 rules, 1 keeps working, 1 platform, 1 migration), 83 ACs, 19 touched parts, 3 discussion points.
 > - Checklist: 16 items covered by stories, 2 N/A, 0 open.
 
-**Manual checks (26 Oct 2026):** every coverage-sheet item maps to exactly one AC (86 of 86); duplicate and contradiction pass applied (see Changelog); every goal is delivered (G1 US3, G2 US4/US7, G3 US9/US10, G4 US11, G5 US12); code back-check: every file the code check says will change belongs to a part in the impact map. The component map has no part for Instance Testing; it is filed under edge-instance-details until the next map refresh.
+**Manual checks (26 Oct 2026):** every coverage-sheet item maps to exactly one AC (83 of 83); duplicate and contradiction pass applied (see Changelog); every goal is delivered (G1 US3, G2 US4/US7, G3 US9/US10, G4 US11, G5 US12); code back-check: every file the code check says will change belongs to a part in the impact map. The component map has no part for Instance Testing; it is filed under edge-instance-details until the next map refresh.
 
 ## Appendix B — Code references
 For developers. From the 24 Oct 2026 sync.
@@ -378,6 +375,7 @@ For developers. From the 24 Oct 2026 sync.
 Repos checked: frinksedge-deployment-frontend @ 3c02701 (2026-10-23), frinksedge-deployment-backend @ be6d0aa (2026-10-22), frinksedge-inferencing-backend @ 310c18e (2026-10-22), frinksedge-health @ 2dbc622 (2026-10-23), vip-inference-python @ 93451d1 (2026-10-15), Python-inference-docker @ 62e22bd (2026-05-29), and the other 28 repos in the skill's list at their latest default-branch commit on 24 Oct 2026. The testing program's own source was not found (Q1).
 
 ## Changelog
+- 26 Oct 2026 — Owner review: Run drawer no longer checks for missing model files, Shape Extractor without dimensions, or folders over 500 images (old AC5.3, AC5.4, AC5.7 removed; US5 renumbered AC5.1–AC5.9); the empty Testing tab has no centred Run a new test button (AC2.5) (Akshat Sharma)
 - 24 Oct 2026 — Draft started (Akshat Sharma)
 - 26 Oct 2026 — Prototype hosted on GitHub Pages; Prototype lines on US1–US6, US8, US9, US12 linked (Akshat Sharma)
 - 26 Oct 2026 — Duplicate pass: AC6.5 trimmed (outcome placement lives in AC2.2, AC3.1); AC13.1 trimmed (cancel scope lives in AC6.3); AC4.1, AC4.2 name the reason line under Run Test; AC12.7 states In EMC now updates and sliders stay (Akshat Sharma)

@@ -189,13 +189,11 @@ const pill = (st, extra = '') => `<span class="inline-flex items-center whitespa
 // Run drawer rows. warnC = config warnings (always shown); warnF = folder warnings (only once a folder is chosen)
 const ROWS = [
   { id: 'hu', v: 'Hinge U', c: 'Right Part', pick: 'hinge_u_right', imgs: 120, annotated: true },
-  { id: 'hul', v: 'Hinge U', c: 'Left Part', err: "Can't be tested: this capture's model files are missing on this device. Upload the instance to the device again to restore them." },
   { id: 'hy', v: 'Hinge Y', c: 'Top View', pick: 'hinge_y_top', imgs: 88,
     warnF: ["Image size doesn't match this camera: your images are 1920 × 1080, but this camera takes 2448 × 2048 images. Search areas would land in the wrong place, so the results won't be reliable."] },
-  { id: 'br', v: 'Bracket', c: 'Weld View', pick: 'bracket_weld', imgs: 64, annotated: true, warnC: ['No dimensions set — the results will show shapes only.'] },
+  { id: 'br', v: 'Bracket', c: 'Weld View', pick: 'bracket_weld', imgs: 64, annotated: true },
   { id: 'hs', v: 'Housing', c: 'Sealant', pick: 'housing_sealant_oct', imgs: 640,
-    warnF: ['640 images is more than the suggested 500 per capture. The test will take longer; a smaller folder gives results sooner.',
-      'Not enough free space on the device: these images need about 2.4 GB and only 1.1 GB is free. Free up space or choose fewer images.'] },
+    warnF: ['Not enough free space on the device: these images need about 2.4 GB and only 1.1 GB is free. Free up space or choose fewer images.'] },
   { id: 'hl', v: 'Housing', c: 'Label', pick: 'housing_label', imgs: 120, annotated: true },
   { id: 'hg', v: 'Housing', c: 'Gasket', err: "Can't be tested: bead inspection isn't set up for this capture yet (bead width and gap rules are missing).", link: 'Open Edit Module Configurations' },
 ];
@@ -430,7 +428,6 @@ function historyCard() {
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.3"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 14h9"/></svg>
       <h2 class="text-lg font-semibold text-gray-800">No tests yet</h2>
       <p class="max-w-md text-sm text-gray-600">Run a test to check this instance's setup on saved images before using it on the line. Tests don't affect the line.</p>
-      <button data-act="openDrawer" class="mt-1 rounded-md bg-f-primary px-5 py-2 text-sm font-semibold text-white hover:bg-f-primary/90">Run a new test</button>
     </section>`;
   }
   return `<section>
