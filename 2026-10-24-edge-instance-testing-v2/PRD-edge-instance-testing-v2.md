@@ -24,7 +24,7 @@
 - Only **one test runs on a device at a time**, a test can't start while a deployment runs, and a deployment can't start while a test runs. The Testing tab says why Run Test is blocked.
 - Each capture is **checked in the Run drawer** before the test starts; problems that block show as errors, the rest as warnings, behind an icon you hover. Images of the wrong size are left out of the upload; the rest of the folder is tested.
 - A running test shows its **progress inline** (no full-screen loader) and **anyone allowed to test can cancel it**.
-- Results open on their own page with two tabs, **Module Results** and **Performance Metrics**. Module Results has an **OK / NG / All filter** to step through just the NG (or OK) images, and below the thresholds a **Summary** of every capture (images tested, OK, NG, average inference time) that updates as thresholds change. It shows each image **exactly as the line would judge it**: OK/NG for the image and every module, the line's Pass/Fail colours, the image's file name, and Shape Extractor results.
+- Results open on their own page with three tabs: a **Summary** per capture (images tested, OK, NG, average inference time), **Module Results** and **Performance Metrics**. Module Results has an **OK / NG / All filter** to step through just the NG (or OK) images, and shows each image **exactly as the line would judge it**: OK/NG for the image and every module, the line's Pass/Fail colours, the image's file name, and Shape Extractor results.
 - Thresholds can be tried per class and **saved per class to Edit Module Configurations for this instance only**, after a confirmation that lists every change.
 - When the test images had annotations, a **Performance Metrics** tab shows accuracy, a confusion matrix and suggested thresholds.
 
@@ -207,16 +207,16 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Prototype:** [edge-test-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-test-results)
 
 ![Today: results page](prototype/edge-test-results-today.png)
-![After: Module Results tab with the OK / NG / All filter](prototype/edge-test-results-after.png)
+![After: results Summary tab](prototype/edge-test-results-after.png)
 
 - **AC8.1** View results opens a page with the breadcrumb Instances › Instance Details › <instance> › Testing › Test <n>, where Testing leads back to the tab, and a "← Back to all tests" link.
 - **AC8.2** The page header shows "Test <n> results", the status and the reason.
-- **AC8.3** Two centred tabs sit under the header: Module Results (open by default) and Performance Metrics.
+- **AC8.3** Three centred tabs sit under the header: Summary (open by default), Module Results and Performance Metrics.
 - **AC8.4** Results are drawn and judged with the settings snapshot saved when the test started, not the current settings.
 - **AC8.5** When the recipe, ground truths, thresholds or Analysed Image Configuration have changed since the test, the page shows "These results use the settings from when the test ran. Settings have changed since — run a new test to see the effect." with a "Run a new test" button.
-- **AC8.6** On the Module Results tab, below the Thresholds panel, a Summary table with orange column headers has one row per Variant – Capture tested: Variant – Capture, Images tested, OK, NG, and Average inference time per image (in ms, for the whole capture, measured during the test); the selected capture's row is highlighted.
+- **AC8.6** The Summary tab has one row per Variant – Capture tested, in a table with orange column headers: Variant – Capture, Images tested, OK, NG, and Average inference time per image (in ms, for the whole capture, measured during the test).
 - **AC8.7** Images tested shows e.g. "114 of 120", with small text under it for images left out: "6 couldn't be read" and "12 skipped at upload: wrong image size".
-- **AC8.8** OK and NG count each capture's images by image result at the thresholds set in the Thresholds panel (the test's own thresholds until changed) and update as soon as a threshold changes; images that couldn't be read count in neither.
+- **AC8.8** OK and NG count each capture's images by image result at the thresholds the test ran with; images that couldn't be read count in neither.
 - **AC8.9** Under the table, small text shows "Ran <date> by <name> · took <time> · <n> images across <n> captures · annotations added/not added".
 
 ### US9 — Each image as the line would show it
@@ -227,7 +227,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Stakeholders:** see Q2
 - **Covers:** C9, C12, C14
 - **Today:** a reference image and a visualization with generic boxes in random colours, one module at a time; Shape Extractor is not tested.
-- **Prototype:** [edge-test-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-test-results)
+- **Prototype:** [edge-module-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-module-results)
+
+![After: Module Results tab with the OK / NG / All filter](prototype/edge-module-results-after.png)
 
 - **AC9.1** On the Module Results tab, a Variant – Capture selector, centred above the images, picks the capture.
 - **AC9.2** At the top right, a "Show images" filter (All <n> · OK <n> · NG <n>, counted at the current thresholds) limits the pager and the arrow keys to images with that result; the position shows as e.g. "Image 41 of 120 · NG 3 of 29", and with none it shows "No NG images at these thresholds".
@@ -247,12 +249,12 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Teams:** SDE
 - **Covers:** C9, C11
 - **Today:** one Confidence and one IOU slider per module, redrawing generic boxes; no OK/NG anywhere.
-- **Prototype:** [edge-test-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-test-results)
+- **Prototype:** [edge-module-results](https://akshat-sharma-frinks.github.io/edge-instance-testing-v2-prototype/#edge-module-results)
 
-![After: Thresholds panel and the Summary of every capture](prototype/edge-thresholds-after.png)
+![After: Thresholds panel](prototype/edge-thresholds-after.png)
 
 - **AC10.1** Below the images, a Thresholds panel headed with "<Variant · Capture> at these thresholds" and the capture's OK and NG image counts has a Module dropdown and shows, in a table with orange column headers, one row per class with a Confidence slider and number (0.00–1.00), an IOU slider and number only for detection and segmentation, and "In EMC now".
-- **AC10.2** Changing a value immediately redraws the analysed image, the Module Results, the capture's OK/NG counts, the filter counts and the Summary; confidence hides items below it; IOU merges overlapping items of the same class.
+- **AC10.2** Changing a value immediately redraws the analysed image, the Module Results, the capture's OK/NG counts and the filter counts; confidence hides items below it; IOU merges overlapping items of the same class.
 - **AC10.3** A module with no model thresholds (colour, shape, bead, code reader, tilt) shows "<Module> (<type>) has no model thresholds to adjust. Its settings are in Edit Module Configurations."
 - **AC10.4** "Reset to EMC values" puts back the EMC values; the panel says "<n> values differ from EMC." or "Same as EMC."; nothing is saved without Apply.
 - **AC10.5** Directly under the images and their pager, a Module Results table for the current image, with orange column headers, changes with the image and lists every module with Module (and type), Ground truth (EMC), Found in this image, and Result (OK / NG / Not judged), with the Image result (OK/NG) at the top. Example: Weld check, ground truth "weld 1 · spatter 0 · porosity 0", found "weld 1 · spatter 2 · porosity 1" → NG.
@@ -383,6 +385,7 @@ For developers. From the 24 Oct 2026 sync.
 Repos checked: frinksedge-deployment-frontend @ 3c02701 (2026-10-23), frinksedge-deployment-backend @ be6d0aa (2026-10-22), frinksedge-inferencing-backend @ 310c18e (2026-10-22), frinksedge-health @ 2dbc622 (2026-10-23), vip-inference-python @ 93451d1 (2026-10-15), Python-inference-docker @ 62e22bd (2026-05-29), and the other 28 repos in the skill's list at their latest default-branch commit on 24 Oct 2026. The testing program's own source was not found (Q1).
 
 ## Changelog
+- 26 Oct 2026 — Owner review 4: the Summary goes back to its own tab, open by default, counting OK/NG at the thresholds the test ran with (AC8.3, AC8.6, AC8.8, AC10.2); the rest of review 3 stays (Akshat Sharma)
 - 26 Oct 2026 — Owner review 3: results back to two tabs (AC8.3); the Summary moves under the Thresholds panel and follows the thresholds being tried (AC8.6, AC8.8, AC10.2); the capture's OK/NG count moves into the Thresholds header (AC10.1); the capture selector is centred and an OK / NG / All filter drives the pager (AC9.1, AC9.2); Module Results sits right under the images and changes with them (AC10.5). The prototype's latest test now completes cleanly; Completed with errors stays a status and is shown on the oldest test (Akshat Sharma)
 - 26 Oct 2026 — Owner review 2: the Testing tab shows only a "Testing Completed" banner with View Results (US2); results get three tabs with a per-capture Summary (images tested, OK, NG, average inference time per capture) replacing per-module times (AC8.2, AC8.3, AC8.6–AC8.9); Module Results sits above Thresholds and results tables use orange headers (AC9.1, AC10.1, AC10.5, AC12.6); Run drawer errors and warnings move behind a hover icon, the image count line is dropped, and wrong-size images are skipped at upload (AC5.2–AC5.5) (Akshat Sharma)
 - 26 Oct 2026 — Owner review: Run drawer no longer checks for missing model files, Shape Extractor without dimensions, or folders over 500 images (old AC5.3, AC5.4, AC5.7 removed; US5 renumbered AC5.1–AC5.9); the empty Testing tab has no centred Run a new test button (AC2.5) (Akshat Sharma)
