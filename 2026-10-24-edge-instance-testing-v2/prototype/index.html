@@ -43,8 +43,7 @@ const STEPS = [
   { id: 'edge-testing-tab', label: 'Testing tab', today: 'today.html?state=s1', after: 'after.html#vt=1&hist=1' },
   { id: 'edge-run-test', label: 'Run a new test', today: 'today.html?state=s2', after: 'after.html#vt=2' },
   { id: 'edge-test-running', label: 'Test running', today: 'today.html?state=running', after: 'after.html#vt=3' },
-  { id: 'edge-test-results', label: 'Results summary', today: 'today.html?state=s4', after: 'after.html#vt=4' },
-  { id: 'edge-module-results', label: 'Module results', today: 'today.html?state=s4', after: 'after.html#vt=4&tab=module' },
+  { id: 'edge-test-results', label: 'Test results', today: 'today.html?state=s4', after: 'after.html#vt=4' },
   { id: 'edge-performance-metrics', label: 'Performance metrics', today: 'today.html?state=s4', after: 'after.html#vt=4&tab=metrics&annot=1' },
 ];
 const KEY = 'edge-testing-v2-shell';
@@ -65,8 +64,9 @@ function paint() {
   history.replaceState(null, '', `${location.pathname}?mode=${st.mode}#${STEPS[cur].id}`);
 }
 function load() {
-  // ?tip=<row> opens a Run drawer hover tip, for screenshots
-  const src = STEPS[cur][st.mode] + (st.mode === 'after' && qp.get('tip') ? `&tip=${qp.get('tip')}` : '');
+  // ?tip=<row>, ?filter=ng, ?scroll=<id> pass through to the after screens, for screenshots
+  const extra = st.mode === 'after' ? ['tip', 'filter', 'scroll'].filter((k) => qp.get(k)).map((k) => `&${k}=${qp.get(k)}`).join('') : '';
+  const src = STEPS[cur][st.mode] + extra;
   // Same page, different hash: change the hash only so the screen keeps its state
   const now = frame.getAttribute('src') || '';
   if (now.split('#')[0] === src.split('#')[0] && src.includes('#') && frame.contentWindow) {

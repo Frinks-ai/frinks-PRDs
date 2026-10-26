@@ -164,18 +164,19 @@ const CAPS = {
   hl: { v: 'Housing', c: 'Label', mods: ['ocr', 'qr'] },
 };
 const cn = (id) => `${CAPS[id].v} · ${CAPS[id].c}`;
-const UNREADABLE = [7, 23, 41, 58, 77, 102]; // Hinge U · Right Part, Test 14
+const UNREADABLE = [7, 23, 41, 58, 77, 102]; // Hinge U · Right Part, Test 10
 
 const TESTS = [
-  { n: 14, started: '16 Oct 2026, 10:42 AM', took: '3 min 12 s', by: 'you', imgs: { hu: 120, hy: 88, br: 64, hs: 40, hl: 120 }, skipped: { hy: 12 }, status: 'errors',
-    reason: '6 of 120 images for Hinge U · Right Part could not be read (the files are damaged). They were left out; everything else was tested.', results: true },
+  { n: 14, started: '16 Oct 2026, 10:42 AM', took: '3 min 12 s', by: 'you', imgs: { hu: 120, hy: 88, br: 64, hs: 40, hl: 120 }, skipped: { hy: 12 }, status: 'done',
+    reason: '', results: true },
   { n: 13, started: '15 Oct 2026, 4:20 PM', took: '1 min 05 s', by: 'Akshat', imgs: { hu: 40, hy: 24 }, status: 'done',
     reason: '', results: true },
   { n: 12, started: '15 Oct 2026, 2:02 PM', took: '12 s', by: 'you', imgs: { hs: 40, hl: 120 }, status: 'failed',
     reason: 'The device ran out of storage space while saving results. Free up space, then run the test again.', results: false },
   { n: 11, started: '14 Oct 2026, 6:10 PM', took: '40 s', by: 'Akshat', imgs: { hu: 30, br: 20, hs: 20, hl: 20 }, status: 'cancelled',
     reason: 'Cancelled by Akshat after 30 of 90 images. Nothing was kept.', results: false },
-  { n: 10, started: '14 Oct 2026, 11:40 AM', took: '2 min 14 s', by: 'you', imgs: { hu: 120, hy: 88 }, status: 'done', reason: '', results: true },
+  { n: 10, started: '14 Oct 2026, 11:40 AM', took: '2 min 14 s', by: 'you', imgs: { hu: 120, hy: 88 }, status: 'errors',
+    reason: '6 of 120 images for Hinge U · Right Part could not be read (the files are damaged). They were left out; everything else was tested.', results: true },
 ];
 const STATUS = {
   running: { label: 'Running', cls: 'bg-blue-100 text-blue-800' },
@@ -206,7 +207,7 @@ const S = {
   deploy: false, other: false, recipe: false, annot: false,
   myRun: null, deleted: [], today: false,
   dr: { f: { hu: true, hy: true, br: true, hs: true, hl: false }, up: null },
-  res: { test: 14, tab: 'summary', cap: 'hu', img: 2, mod: { hu: 'pin', hy: 'plating', br: 'weld', hs: 'bead', hl: 'ocr' } },
+  res: { test: 14, tab: 'module', filter: 'all', cap: 'hu', img: 2, mod: { hu: 'pin', hy: 'plating', br: 'weld', hs: 'bead', hl: 'ocr' } },
   thr: {}, saved: {},
 };
 for (const [id, m] of Object.entries(MODS)) {
@@ -568,27 +569,25 @@ function resultsView() {
       </div>
       ${S.recipe ? `<div class="flex flex-wrap items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">${ICON.warn}<span class="flex-1">These results use the settings from when the test ran. Settings have changed since — run a new test to see the effect.</span><button data-act="openDrawer" class="rounded-md bg-f-primary px-4 py-1.5 text-sm font-semibold text-white">Run a new test</button></div>
         ` : ''}
-      <div class="flex justify-center"><div class="inline-flex border-b border-gray-300">${tab('summary', 'Summary')}${tab('module', 'Module Results')}${tab('metrics', 'Performance Metrics')}</div></div>
-      ${S.res.tab === 'summary' ? summaryTab(t) : S.res.tab === 'module' ? resultsTab(capSel) : metricsTab(capSel)}
+      <div class="flex justify-center"><div class="inline-flex border-b border-gray-300">${tab('module', 'Module Results')}${tab('metrics', 'Performance Metrics')}</div></div>
+      ${S.res.tab === 'metrics' ? metricsTab(capSel) : resultsTab(capSel)}
     </div>
   </div>`;
 }
 // Frinks UI table header: orange row, white text
 const thO = (label, cls = '') => `<th class="px-4 py-3 text-left text-sm font-medium text-white ${cls}">${label}</th>`;
 const capMs = (c) => CAPS[c].mods.reduce((s, m) => s + MODS[m].ms, 0);
-function summaryTab(t) {
-  const caps = Object.keys(t.imgs);
+// All captures at the thresholds being tried; redrawn whenever a threshold changes
+function renderSummary() {
+  const box = $('#summary'); if (!box) return;
+  const t = curTest(), caps = Object.keys(t.imgs);
   const total = caps.reduce((s, c) => s + t.imgs[c], 0);
-  // OK / NG at the thresholds the test ran with, not the sliders on Module Results
-  const tried = S.thr; S.thr = S.saved;
-  const counts = Object.fromEntries(caps.map((c) => [c, capCounts(c)]));
-  S.thr = tried;
   const rows = caps.map((c) => {
-    const n = t.imgs[c], cc = counts[c];
+    const n = t.imgs[c], cc = capCounts(c);
     const bad = t.status === 'errors' && c === 'hu' ? UNREADABLE.length : 0;
     const skip = (t.skipped || {})[c];
     const notes = [bad ? `${bad} couldn't be read` : '', skip ? `${skip} skipped at upload: wrong image size` : ''].filter(Boolean);
-    return `<tr class="align-top">
+    return `<tr class="align-top ${c === S.res.cap ? 'bg-orange-50/60' : ''}">
       <td class="px-4 py-3 font-medium text-gray-900">${cn(c)}</td>
       <td class="px-4 py-3 text-gray-700">${bad ? `${n - bad} of ${n}` : n}${notes.length ? `<div class="text-xs text-amber-800">${notes.join(' · ')}</div>` : ''}</td>
       <td class="px-4 py-3 font-semibold text-emerald-700">${cc.ok}</td>
@@ -596,21 +595,21 @@ function summaryTab(t) {
       <td class="px-4 py-3 text-gray-700">${capMs(c)} ms</td>
     </tr>`;
   }).join('');
-  return `<section class="flex flex-col gap-2">
-      <div class="overflow-x-auto rounded-lg border border-gray-200">
+  box.innerHTML = `<h2 class="text-lg font-semibold">Summary</h2>
+      <p class="text-sm text-gray-600">Every capture in this test at the thresholds above; OK and NG update as you change them.</p>
+      <div class="mt-3 overflow-x-auto rounded-lg border border-gray-200">
         <table class="w-full min-w-[720px] text-sm">
           <thead><tr class="bg-f-primary">${thO('Variant – Capture')}${thO('Images tested')}${thO('OK')}${thO('NG')}${thO('Average inference time per image')}</tr></thead>
           <tbody class="divide-y divide-gray-200 bg-white">${rows}</tbody>
         </table>
       </div>
-      <p class="text-xs text-gray-500">Ran ${t.started} by ${t.by} · took ${t.took} · ${total} images across ${caps.length} captures · annotations ${S.annot ? 'added' : 'not added'} · OK / NG at the thresholds the test ran with</p>
-    </section>`;
+      <p class="mt-2 text-xs text-gray-500">Ran ${t.started} by ${t.by} · took ${t.took} · ${total} images across ${caps.length} captures · annotations ${S.annot ? 'added' : 'not added'}</p>`;
 }
 function resultsTab(capSel) {
-  return `<div class="flex flex-wrap items-end justify-between gap-3">${capSel}<div id="capCount" class="flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-2.5 text-sm"></div></div>
+  return `<div class="grid items-end gap-3 md:grid-cols-[1fr_auto_1fr]"><div class="hidden md:block"></div><div class="flex justify-center">${capSel}</div><div id="imgFilter" class="flex md:justify-end"></div></div>
       ${imagesBlock()}
-      <section id="modResults" class="rounded-xl border border-gray-200 p-5"></section>
-      ${thrPanel()}`;
+      ${thrPanel()}
+      <section id="summary" class="rounded-xl border border-gray-200 p-5"></section>`;
 }
 function metricsTab(capSel) {
   const cap = S.res.cap, modelMods = CAPS[cap].mods.filter((k) => MODS[k].classes);
@@ -624,12 +623,11 @@ function metricsTab(capSel) {
 }
 
 function imagesBlock() {
-  const N = nImgs(S.res.cap), i = S.res.img;
   return `<section id="imgSec" class="scroll-mt-24 rounded-xl border border-gray-200 p-4">
     <div id="imgHead" class="mx-auto mb-3 flex max-w-[824px] flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-2.5 text-sm"></div>
     <div class="flex flex-wrap items-start justify-center gap-6">
       <figure class="flex w-[400px] max-w-full flex-col gap-2">
-        <div class="flex h-9 items-center justify-between"><figcaption class="text-lg font-medium text-gray-700">Raw image</figcaption><span class="text-sm text-gray-500">Image ${i + 1} of ${N}</span></div>
+        <div class="flex h-9 items-center justify-between"><figcaption class="text-lg font-medium text-gray-700">Raw image</figcaption><span id="imgPos" class="text-sm text-gray-500"></span></div>
         <div class="aspect-square overflow-hidden rounded-lg border border-[#e0e0e0] bg-white"><svg id="rawSvg" viewBox="0 0 400 400" class="block h-full w-full"></svg></div>
       </figure>
       <figure class="flex w-[400px] max-w-full flex-col gap-2">
@@ -639,6 +637,7 @@ function imagesBlock() {
     </div>
     <div id="under" class="mx-auto mt-3 flex max-w-[824px] flex-col gap-2"></div>
     <div class="mt-4"><nav class="flex items-center" aria-label="Images"><ul id="pager" class="mx-auto flex items-center gap-2 rounded-full border border-f-primary bg-white px-2 py-1.5 text-sm"></ul></nav></div>
+    <div id="modResults" class="mt-5 border-t border-gray-200 pt-4"></div>
   </section>`;
 }
 
@@ -663,7 +662,7 @@ function renderImgHead() {
   const cap = S.res.cap, i = S.res.img, cc = capCounts(cap);
   $('#imgHead').innerHTML = `<div class="flex flex-wrap items-center gap-2"><span class="text-gray-500">Image name</span><span class="font-mono font-semibold text-gray-900">${imgName(cap, i)}</span></div>`;
   const box = $('#capCount');
-  if (box) box.innerHTML = `<span class="text-gray-600">This capture at these thresholds</span><span class="rounded-full bg-emerald-100 px-2.5 py-1 font-bold text-emerald-800">${cc.ok} OK</span><span class="rounded-full bg-red-100 px-2.5 py-1 font-bold text-red-700">${cc.ng} NG</span>`;
+  if (box) box.innerHTML = `<span class="text-gray-600">${cn(cap)} at these thresholds</span><span class="rounded-full bg-emerald-100 px-2.5 py-1 font-bold text-emerald-800">${cc.ok} OK</span><span class="rounded-full bg-red-100 px-2.5 py-1 font-bold text-red-700">${cc.ng} NG</span>`;
 }
 function renderModResults() {
   const box = $('#modResults'); if (!box) return;
@@ -688,16 +687,46 @@ function renderModResults() {
     </table></div>
     ${res.rows.some((r) => r.ok === null) ? '<p class="mt-2 text-xs text-gray-500">Not judged: the module has no ground truth set, so it doesn\'t count towards the image result.</p>' : ''}`;
 }
+// Images shown by the OK / NG / All filter, at the thresholds being tried
+function visImgs() {
+  const cap = S.res.cap, f = S.res.filter, out = [];
+  for (let k = 0; k < nImgs(cap); k++) {
+    if (f === 'all') out.push(k);
+    else if (!isBad(cap, k) && evaluate(cap, k).ok === (f === 'ok')) out.push(k);
+  }
+  return out;
+}
+function renderFilter() {
+  const box = $('#imgFilter'); if (!box) return;
+  const cc = capCounts(S.res.cap), N = nImgs(S.res.cap);
+  const b = (f, label) => `<button data-act="imgFilter" data-f="${f}" class="px-4 py-2 text-sm font-semibold ${S.res.filter === f ? 'bg-f-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}" aria-pressed="${S.res.filter === f}">${label}</button>`;
+  box.innerHTML = `<div class="flex flex-col gap-1"><span class="text-sm font-medium text-gray-600">Show images</span>
+    <div class="inline-flex divide-x divide-gray-300 overflow-hidden rounded-lg border border-gray-300 shadow-sm">${b('all', `All ${N}`)}${b('ok', `OK ${cc.ok}`)}${b('ng', `NG ${cc.ng}`)}</div></div>`;
+}
 function renderPager() {
-  const cap = S.res.cap, N = nImgs(cap), cur = S.res.img, win = 5;
-  const start = Math.max(0, Math.min(cur - 2, N - win));
-  const li = (act, label, aria) => `<li><button data-act="${act}" class="cursor-pointer px-1 text-f-primary" aria-label="${aria}">${label}</button></li>`;
+  const cap = S.res.cap, N = nImgs(cap), cur = S.res.img, v = visImgs(), win = 5;
+  const p = v.indexOf(cur), label = { ok: 'OK', ng: 'NG' }[S.res.filter];
+  if ($('#imgPos')) $('#imgPos').textContent = `Image ${cur + 1} of ${N}${label && p >= 0 ? ` · ${label} ${p + 1} of ${v.length}` : ''}`;
+  if (!v.length) { $('#pager').innerHTML = `<li class="px-2 text-gray-600">No ${label} images at these thresholds</li>`; return; }
+  const at = Math.max(0, p);
+  const start = Math.max(0, Math.min(at - 2, v.length - win));
+  const li = (act, text, aria) => `<li><button data-act="${act}" class="cursor-pointer px-1 text-f-primary" aria-label="${aria}">${text}</button></li>`;
   let h = li('imgFirst', '«', 'First image') + li('imgPrev', '‹', 'Previous image');
-  for (let k = start; k < Math.min(N, start + win); k++) {
+  for (let q = start; q < Math.min(v.length, start + win); q++) {
+    const k = v[q];
     h += `<li><button data-act="imgGo" data-i="${k}" class="cursor-pointer px-1 ${k === cur ? 'font-semibold text-gray-900' : 'text-gray-400 hover:text-gray-700'}" ${k === cur ? 'aria-current="true"' : ''}>${k + 1}</button></li>`;
   }
   h += li('imgNext', '›', 'Next image') + li('imgLast', '»', 'Last image');
   $('#pager').innerHTML = h;
+}
+// Moves within the filtered images: 'first' | 'last' | 1 | -1
+function navImg(to) {
+  const v = visImgs(), cur = S.res.img; if (!v.length) return;
+  if (to === 'first') S.res.img = v[0];
+  else if (to === 'last') S.res.img = v[v.length - 1];
+  else if (to > 0) S.res.img = v.find((k) => k > cur) ?? v[v.length - 1];
+  else S.res.img = [...v].reverse().find((k) => k < cur) ?? v[0];
+  drawImages(); renderPager();
 }
 function badImg(svg) {
   el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#e5e7eb' }, svg);
@@ -773,7 +802,8 @@ function thrPanel() {
   }
   return `<section id="thrPanel" class="scroll-mt-28 rounded-xl border border-gray-200 bg-gray-50 p-5">
       <div class="flex flex-wrap items-end justify-between gap-3">
-        <div><h2 class="text-lg font-semibold">Thresholds</h2><p class="text-sm text-gray-600">Try thresholds here to see how the analysed image looks. Nothing changes unless you apply them to EMC.</p></div>
+        <div><h2 class="text-lg font-semibold">Thresholds</h2><p class="text-sm text-gray-600">Try thresholds here to see how the analysed image looks. Nothing changes unless you apply them to EMC.</p>
+          <div id="capCount" class="mt-2 flex flex-wrap items-center gap-2 text-sm"></div></div>
         <label class="flex flex-col gap-1 text-sm"><span class="font-medium text-gray-600">Module</span>
           <select id="modSel" class="rounded-lg border border-gray-300 bg-white px-3 py-2 font-semibold shadow-sm">${opts}</select></label>
       </div>
@@ -795,7 +825,7 @@ function setThr(id, c, k, v) {
   const r = $(`[data-thr="${key}"]`), n = $(`[data-thrn="${key}"]`);
   if (r) { r.value = Math.round(v * 100); r.setAttribute('style', trackBg(Math.round(v * 100))); }
   if (n && document.activeElement !== n) n.value = v.toFixed(2);
-  updChg(); redrawAna(); updF1(); updSuggCur();
+  updChg(); redrawAna(); updF1(); updSuggCur(); renderFilter(); renderSummary(); if ($('#pager')) renderPager();
 }
 
 /* ─── Performance metrics ─── */
@@ -1305,12 +1335,12 @@ function render() {
   else if (S.screen === 'tab') app.innerHTML = testingTab();
   else if (S.screen === 'drawer') app.innerHTML = drawerView();
   else app.innerHTML = resultsView();
-  if (S.screen === 'results') { if (S.res.tab === 'module') { drawImages(); renderUnder(); renderPager(); updChg(); } else if (S.res.tab === 'metrics') { drawF1(); drawCM(); } }
+  if (S.screen === 'results') { if (S.res.tab === 'module') { const v = visImgs(); if (v.length && !v.includes(S.res.img)) S.res.img = v[0]; drawImages(); renderUnder(); renderPager(); renderFilter(); renderSummary(); updChg(); } else if (S.res.tab === 'metrics') { drawF1(); drawCM(); } }
   $$('.viewer-tab').forEach((t) => t.setAttribute('aria-selected', String(+t.dataset.vt === S.vt)));
   if (window.self !== window.top) parent.postMessage({ type: 'testing-v2-nav', to: stepOf() }, '*');
 }
 function stepOf() {
-  if (S.screen === 'results') return { summary: 'edge-test-results', module: 'edge-module-results', metrics: 'edge-performance-metrics' }[S.res.tab];
+  if (S.screen === 'results') return S.res.tab === 'metrics' ? 'edge-performance-metrics' : 'edge-test-results';
   return ['edge-instances', 'edge-testing-tab', 'edge-run-test', 'edge-test-running', 'edge-test-results'][S.vt];
 }
 function goScreen(name, keepScroll = false) {
@@ -1324,7 +1354,7 @@ function openResults(n) {
   const caps = Object.keys(testById(n).imgs);
   if (!caps.includes(S.res.cap)) S.res.cap = caps[0];
   S.res.img = Math.min(2, (testById(n).imgs[S.res.cap] || 1) - 1);
-  S.res.tab = 'summary';
+  S.res.tab = 'module';
   S.vt = 4;
   goScreen('results');
 }
@@ -1334,7 +1364,7 @@ function goVT(n) {
   if (n === 1) { S.myRun = null; S.noHistory = true; S.screen = 'tab'; }
   if (n === 2) { S.myRun = null; S.dr = { f: { hu: true, hy: true, br: true, hs: true, hl: false }, up: null }; S.screen = 'drawer'; }
   if (n === 3) { S.noHistory = false; S.myRun = { n: 15, state: 'running', pct: 42, caps: ['hu', 'hy', 'br', 'hs'], started: '11:05 AM' }; S.screen = 'tab'; }
-  if (n === 4) { S.noHistory = false; S.res.test = 14; S.res.tab = 'summary'; S.screen = 'results'; }
+  if (n === 4) { S.noHistory = false; S.res.test = 14; S.res.tab = 'module'; S.screen = 'results'; }
   render();
   window.scrollTo(0, 0);
 }
@@ -1436,12 +1466,16 @@ document.addEventListener('click', (e) => {
       break;
     case 'pickInst': S.inst = a.dataset.name; S.pick = false; S.myRun = null; goScreen('tab'); break;
     case 'resTab': S.res.tab = a.dataset.tab; render(); break;
-    case 'imgFirst': case 'imgLast': case 'imgPrev': case 'imgNext': case 'imgGo': {
-      const N = nImgs(S.res.cap);
-      S.res.img = act === 'imgGo' ? +a.dataset.i : act === 'imgFirst' ? 0 : act === 'imgLast' ? N - 1
-        : Math.max(0, Math.min(N - 1, S.res.img + (act === 'imgNext' ? 1 : -1)));
-      $('#rawSvg').closest('figure').querySelector('span.text-sm').textContent = `Image ${S.res.img + 1} of ${N}`;
-      drawImages(); renderPager(); break;
+    case 'imgGo': S.res.img = +a.dataset.i; drawImages(); renderPager(); break;
+    case 'imgFirst': navImg('first'); break;
+    case 'imgLast': navImg('last'); break;
+    case 'imgPrev': navImg(-1); break;
+    case 'imgNext': navImg(1); break;
+    case 'imgFilter': {
+      S.res.filter = a.dataset.f;
+      const v = visImgs();
+      if (v.length && !v.includes(S.res.img)) S.res.img = v[0];
+      renderFilter(); drawImages(); renderPager(); break;
     }
     case 'resetThr': {
       const id = S.res.mod[S.res.cap];
@@ -1479,10 +1513,7 @@ document.addEventListener('change', (e) => {
 document.addEventListener('keydown', (e) => {
   if (S.screen !== 'results' || S.res.tab !== 'module' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#modal').innerHTML) return;
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-    const N = nImgs(S.res.cap);
-    S.res.img = Math.max(0, Math.min(N - 1, S.res.img + (e.key === 'ArrowRight' ? 1 : -1)));
-    $('#rawSvg').closest('figure').querySelector('span.text-sm').textContent = `Image ${S.res.img + 1} of ${N}`;
-    drawImages(); renderPager();
+    navImg(e.key === 'ArrowRight' ? 1 : -1);
   }
 });
 
@@ -1524,6 +1555,7 @@ function applyHash() {
   [['deploy', 'tgDeploy'], ['other', 'tgOther'], ['recipe', 'tgRecipe'], ['annot', 'tgAnnot']].forEach(([k, id]) => { S[k] = q.get(k) === '1'; $('#' + id).checked = S[k]; });
   S.today = q.get('today') === '1';
   S.tip = q.get('tip');
+  S.res.filter = ['ok', 'ng'].includes(q.get('filter')) ? q.get('filter') : 'all';
   if (q.get('cap') && CAPS[q.get('cap')]) S.res.cap = q.get('cap');
   if (q.get('img')) S.res.img = +q.get('img');
   if (q.get('mod') && MODS[q.get('mod')]) S.res.mod[S.res.cap] = q.get('mod');
@@ -1531,7 +1563,7 @@ function applyHash() {
   goVT(vt);
   // A deployment and a test can't run on the device at the same time
   if (S.deploy && activeRun() && activeRun().state === 'running') { S.deploy = false; $('#tgDeploy').checked = false; render(); }
-  if (['module', 'metrics'].includes(q.get('tab')) && S.screen === 'results') { S.res.tab = q.get('tab'); render(); }
+  if (q.get('tab') === 'metrics' && S.screen === 'results') { S.res.tab = q.get('tab'); render(); }
   if (q.get('pct') && S.myRun) { S.myRun.pct = +q.get('pct'); render(); }
   if (q.get('apply') === '1' && S.screen === 'results') { S.res.tab = 'module'; render(); const id = S.res.mod[S.res.cap]; const c = MODS[id].classes[0]; setThr(id, c, 'conf', S.thr[id][c].conf - 0.04); openApply(); }
   if (q.get('hist') === '1') { S.noHistory = false; render(); }
