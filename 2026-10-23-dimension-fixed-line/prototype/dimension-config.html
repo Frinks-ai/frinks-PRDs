@@ -113,6 +113,7 @@ a{color:inherit;text-decoration:inherit}
 .inp{display:block;width:100%;border-radius:6px;border:1px solid #d1d5db;background:#fff;padding:8px 12px;font-size:14px;line-height:20px;outline:1px solid transparent;outline-offset:0}
 .inp:focus{border-color:#ff4301;outline:2px solid #ff4301}
 .inp::placeholder{color:#6b7280;opacity:1}
+.inp:disabled{cursor:not-allowed;background:#f3f4f6}
 .sfx{pointer-events:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);user-select:none;font-size:12px;line-height:16px;font-weight:500;color:#9ca3af}
 .sh{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding-bottom:6px}
 .sh>span:first-child,.caps-h{font-size:13px;font-weight:700;color:#1f2937;text-transform:uppercase;letter-spacing:.05em}
@@ -224,11 +225,11 @@ table.tbl{min-width:100%;width:100%;border-collapse:collapse;text-indent:0}
  * ========================================================================= */
 var Q = new URLSearchParams(location.search);
 var IN_IFRAME = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
-var VALID_STATES = ['list', 'distance', 'distance-vertical', 'distance-tilted', 'angle', 'cross', 'saved'];
+var VALID_STATES = ['list', 'shape-value', 'distance', 'distance-vertical', 'distance-tilted', 'gt', 'gt-px', 'angle', 'cross', 'saved'];
 var MODE = Q.get('mode') === 'today' ? 'today' : 'after';
 var STATE = VALID_STATES.indexOf(Q.get('state')) >= 0 ? Q.get('state') : 'list';
 var SHOW_SWITCH = !IN_IFRAME && Q.get('switch') !== '0';
-var SCROLL_TO = Q.get('scroll') || '';
+var SCROLL_TO = Q.get('scroll') || (STATE === 'gt' || STATE === 'gt-px' ? 'gt' : '');
 function isAfter() { return MODE === 'after'; }
 function effState() {
   if (MODE === 'today' && (STATE === 'distance-vertical' || STATE === 'distance-tilted')) return 'distance';
@@ -280,14 +281,20 @@ var DERIV_PREV_LINE = 'Perpendicular from Previous Line';
 /* =========================================================================
  * Shared state with the other prototype screens (localStorage)
  * ========================================================================= */
-var LS_KEY = 'fixedline-proto-v1';
-var SHARED_DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000' };
+var LS_KEY = 'fixedline-proto-v2';
+var SHARED_DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, refAngle: 30, name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000', shape: null };
+function sanitizeShapeRow(o) {
+  if (!o || typeof o !== 'object' || typeof o.name !== 'string' || !o.name.trim()) return null;
+  var n = function (v) { var x = Number(v); return v === null || v === undefined || v === '' || !Number.isFinite(x) ? null : x; };
+  return { name: o.name, min: n(o.min), max: n(o.max), unit: o.unit === 'px' ? 'px' : 'mm', ratio: n(o.ratio) };
+}
 function sanitizeShared(o) {
   var d = Object.assign({}, SHARED_DEFAULTS);
   if (!o || typeof o !== 'object') return d;
   if (o.dimType === 'distance' || o.dimType === 'angle') d.dimType = o.dimType;
   if (['horizontal', 'vertical', 'tilted'].indexOf(o.lineMode) >= 0) d.lineMode = o.lineMode;
-  ['y', 'x', 'cx', 'cy', 'angle', 'min', 'max', 'ratio'].forEach(function (k) {
+  d.shape = sanitizeShapeRow(o.shape);
+  ['y', 'x', 'cx', 'cy', 'angle', 'refAngle', 'min', 'max', 'ratio'].forEach(function (k) {
     if (o[k] === null || o[k] === undefined || o[k] === '') return;
     var n = Number(o[k]); if (Number.isFinite(n)) d[k] = n;
   });
@@ -414,7 +421,7 @@ function unitOptionsFor(f) {
   return { showRatio: showRatio, options: base.map(function (u) {
     var o = { id: u, name: UNIT_LABEL[u] };
     if (cross && f.type === 'distance' && u === 'px') { o.disabled = true; o.title = 'A cross-capture distance is measured in mm'; }
-    else if (showRatio && (u === 'mm' || u === 'mm2') && !rOk) { o.disabled = true; o.title = 'Enter a pixel to mm ratio first'; }
+    else if (!isAfter() && showRatio && (u === 'mm' || u === 'mm2') && !rOk) { o.disabled = true; o.title = 'Enter a pixel to mm ratio first'; }
     return o;
   }) };
 }
@@ -468,10 +475,11 @@ var FIXED = {
   B_KINDS: [['shape', 'Shape'], ['fixed', 'Fixed line']],
   LINE_MODES: [['horizontal', 'Horizontal (y =)'], ['vertical', 'Vertical (x =)'], ['tilted', 'Tilted']],
   ANGLE_OPTION: { id: 'fixed', name: 'From a fixed line' },
-  BLOCK_LABEL_ANGLE: 'Fixed line',
+  ANGLE_LABEL: 'Angle',           // the one box shown for Angle → From a fixed line
   HIDE_DISTANCE_AXIS: true,       // Distance axis is hidden while Feature B is a fixed line
   DECIMALS: 2,
   SHOW_READOUT: true,             // live cursor read-out on the single-capture canvas
+  PILL_GAP: 6,                    // on-screen px between a label pill and what it measures
 
   angleModes: function () { return [ANGLE_MODES_TODAY[0], ANGLE_MODES_TODAY[1], FIXED.ANGLE_OPTION, ANGLE_MODES_TODAY[2]]; },
 
@@ -484,6 +492,8 @@ var FIXED = {
     var e = {}, fx = f.fixed, s = imgSizeOf(fx.cap);
     var inR = function (t, lo, hi) { var n = textToNum(t); return n !== null && n >= lo && n <= hi; };
     var px = function (max) { return 'Enter a value between 0 and ' + max + ' px.'; };
+    // Angle → From a fixed line: the angle is the only input.
+    if (f.type === 'angle') { if (!inR(fx.angle, 0, 180)) e.fixedAngle = 'Enter an angle between 0° and 180°.'; return e; }
     if (fx.mode === 'horizontal' && !inR(fx.y, 0, s.h)) e.fixedY = px(s.h);
     if (fx.mode === 'vertical' && !inR(fx.x, 0, s.w)) e.fixedX = px(s.w);
     if (fx.mode === 'tilted') {
@@ -501,6 +511,70 @@ var FIXED = {
     else if (fx.mode === 'tilted') txt = 'Fixed line · Tilted (' + v(fx.cx) + ', ' + v(fx.cy) + ') at ' + v(fx.angle) + '°';
     else txt = 'Fixed line · y = ' + v(fx.y) + ' px';
     return captureName ? captureName + ' · ' + txt : txt;
+  },
+  describeAngle: function (angle) { return 'Fixed line · ' + fmt2(textToNum(angle)) + '°'; },
+
+  // Measured value shown after the name in the canvas pill (single capture: camera px; cross capture: mm).
+  valueText: function (f, px, mm) {
+    var off = textToNum(f.offset) || 0;
+    if (mm !== null && mm !== undefined) return (mm + off).toFixed(2) + ' mm';
+    var r = textToNum(f.ratio);
+    if ((f.unit === 'mm' || f.unit === 'mm2') && r !== null && r > 0) return (px * r + off).toFixed(2) + ' mm';
+    return (px + off).toFixed(2) + ' px';
+  },
+  pillText: function (f, m) {
+    var name = f.name || 'Dimension';
+    if (!isAfter() || f.type !== 'distance' || !m || (m.px === undefined && m.mm === undefined)) return name;
+    return name + ' · ' + FIXED.valueText(f, m.px, m.mm);
+  },
+
+  // ---- label pill placement: never on top of what it measures ----
+  pillSize: function (text, fs) { return { w: Math.max(fs * 4, text.length * fs * 0.62 + fs * 1.4), h: fs * 1.9 }; },
+  rectOf: function (c, sz, pad) { return { x0: c.x - sz.w / 2 - pad, y0: c.y - sz.h / 2 - pad, x1: c.x + sz.w / 2 + pad, y1: c.y + sz.h / 2 + pad }; },
+  overflow: function (r, W, H) { return Math.max(0, -r.x0) + Math.max(0, r.x1 - W) + Math.max(0, -r.y0) + Math.max(0, r.y1 - H); },
+  segHitsRect: function (a, b, r) {
+    var t0 = 0, t1 = 1, dx = b.x - a.x, dy = b.y - a.y;
+    var ps = [-dx, dx, -dy, dy], qs = [a.x - r.x0, r.x1 - a.x, a.y - r.y0, r.y1 - a.y];
+    for (var i = 0; i < 4; i++) {
+      if (Math.abs(ps[i]) < 1e-12) { if (qs[i] < 0) return false; continue; }
+      var t = qs[i] / ps[i];
+      if (ps[i] < 0) { if (t > t1) return false; if (t > t0) t0 = t; } else { if (t < t0) return false; if (t < t1) t1 = t; }
+    }
+    return true;
+  },
+  // Beside a straight span (half = half its length): shifted along its normal to a side that stays
+  // inside the image and clear of the other drawn lines (avoid); else slid a little along the span;
+  // else just past one end of the span.
+  pillBeside: function (at, dir, text, fs, W, H, gap, avoid, half) {
+    half = half || 0;
+    var sz = FIXED.pillSize(text, fs), n = { x: -dir.y, y: dir.x };
+    var s = Math.abs(n.x) * sz.w / 2 + Math.abs(n.y) * sz.h / 2 + gap;
+    var ext = Math.abs(dir.x) * sz.w / 2 + Math.abs(dir.y) * sz.h / 2;
+    var sides = [add(at, mul(n, s)), add(at, mul(n, -s))].map(function (p) { return { p: p, o: FIXED.overflow(FIXED.rectOf(p, sz, 0), W, H) }; });
+    sides.sort(function (a, b) { return (a.o - b.o) || (a.p.y - b.p.y) || (a.p.x - b.p.x); });
+    var clear = function (p) { var r = FIXED.rectOf(p, sz, gap * 0.5); return FIXED.overflow(FIXED.rectOf(p, sz, 0), W, H) === 0 && !(avoid || []).some(function (sg) { return sg && FIXED.segHitsRect(sg.a, sg.b, r); }); };
+    var i, k, step = fs * 0.25, lim = half + ext * 0.75;
+    for (i = 0; i < 2; i++) if (clear(sides[i].p)) return sides[i].p;
+    for (k = 1; k * step <= lim; k++) for (i = 0; i < 2; i++) {
+      var p1 = add(sides[i].p, mul(dir, k * step)); if (clear(p1)) return p1;
+      var p2 = add(sides[i].p, mul(dir, -k * step)); if (clear(p2)) return p2;
+    }
+    var ends = [add(at, mul(dir, half + ext + gap)), add(at, mul(dir, -(half + ext + gap)))];
+    for (i = 0; i < 2; i++) if (clear(ends[i])) return ends[i];
+    return sides[0].p;
+  },
+  // Along the arc's bisector, out until it clears the arc and both lines.
+  pillClear: function (vertex, dir, t0, radius, segs, text, fs, W, H, gap) {
+    var sz = FIXED.pillSize(text, fs), step = fs * 0.5;
+    for (var t = t0; t < t0 + fs * 120; t += step) {
+      var c = add(vertex, mul(dir, t)), r = FIXED.rectOf(c, sz, gap);
+      var nx = Math.max(r.x0, Math.min(vertex.x, r.x1)), ny = Math.max(r.y0, Math.min(vertex.y, r.y1));
+      if (Math.hypot(nx - vertex.x, ny - vertex.y) <= radius) continue;
+      if (segs.some(function (s) { return s && FIXED.segHitsRect(s.a, s.b, r); })) continue;
+      if (FIXED.overflow(FIXED.rectOf(c, sz, 0), W, H) > 0) continue;
+      return c;
+    }
+    return add(vertex, mul(dir, t0));
   },
 
   // ---- form ----
@@ -525,9 +599,9 @@ var FIXED = {
     html += '</div>' + fieldError('featureB') + '</div>';
     return html;
   },
-  // Angle: same block, no capture picker.
+  // Angle: one box — the fixed line's angle. It runs through the middle of Feature A's line.
   angleBlock: function (f) {
-    return '<div class="min0"><label class="fl">' + FIXED.BLOCK_LABEL_ANGLE + '</label><div class="col gap2">' + FIXED.segmented('fixed.mode', FIXED.LINE_MODES, f.fixed.mode) + FIXED.inputs(f.fixed) + '</div></div>';
+    return '<div class="g2 gap2">' + numberTextField('fixed.angle', FIXED.ANGLE_LABEL, f.fixed.angle, '°', 'fixedAngle', { pattern: 'fixed' }) + '</div>';
   },
 
   // ---- geometry (image px, y down; 0° = horizontal, +angle = counter-clockwise on screen) ----
@@ -565,6 +639,7 @@ var FIXED = {
     var foot = FIXED.foot(P, g.p, g.u), d = len(sub(P, foot));
     return {
       at: d > 0.5 ? mid(P, foot) : P,
+      px: d, half: d / 2, dir: d > 0.5 ? unit(sub(P, foot)) : g.u, avoid: seg ? [{ a: seg[0], b: seg[1] }] : [],
       draw: function (ctx) {
         if (seg) strokeLine(ctx, seg[0], seg[1], color, sw, [5 * sw, 3 * sw]);
         if (d > 0.5) { FIXED.tick(ctx, foot, g.u, unit(sub(P, foot)), 5 * sw, color, sw * 0.6); strokeLine(ctx, P, foot, color, sw * 1.4); }
@@ -572,29 +647,25 @@ var FIXED = {
       },
     };
   },
-  // Single capture, Angle: arc between Feature A's line and the fixed line.
+  // Single capture, Angle: the fixed line runs dashed across the whole image through the middle of
+  // Feature A's line at the typed angle (counter-clockwise from horizontal on screen); the arc at that
+  // point spans the opening between the two (never the reflex side).
   angleMeasurement: function (f, sw, color) {
     var lineA = resolveFeatureLine(shapeOf(f.A), f.A); if (!lineA) return null;
-    var g = FIXED.geom(f.fixed); if (!g) return null;
-    var s = imgSizeOf(f.fixed.cap), seg = FIXED.clip(g.p, g.u, s.w, s.h);
-    var mA = mid(lineA.a, lineA.b);
-    var vx = intersectLines(lineA, { a: g.p, b: add(g.p, g.u) });
-    var inside = !!vx && vx.x >= 0 && vx.x <= s.w && vx.y >= 0 && vx.y <= s.h;
-    var vertex = inside ? vx : mA;
-    var va = sub(mA, vertex); va = len(va) < 1 ? unit(sub(lineA.b, lineA.a)) : unit(va);
-    var vb = dot(g.u, va) >= 0 ? g.u : mul(g.u, -1);
-    var angA = Math.atan2(va.y, va.x) / DEG, angB = Math.atan2(vb.y, vb.x) / DEG;
+    var a = textToNum(f.fixed.angle); if (a === null) return null;
+    var s = imgSizeOf(f.A.cap), vertex = mid(lineA.a, lineA.b);
+    var u = { x: Math.cos(a * DEG), y: -Math.sin(a * DEG) }, seg = FIXED.clip(vertex, u, s.w, s.h);
+    var dA = unit(sub(lineA.b, lineA.a));
+    var angA = Math.atan2(dA.y, dA.x) / DEG, angB = Math.atan2(u.y, u.x) / DEG;
     var delta = ((angB - angA + 540) % 360) - 180, start = delta >= 0 ? angA : angB, sweep = Math.abs(delta);
-    var radius = sw * 14;
-    var ray = function (deg, l) { return { x: vertex.x + Math.cos(deg * DEG) * l, y: vertex.y + Math.sin(deg * DEG) * l }; };
+    var radius = sw * 14, bis = (start + sweep / 2) * DEG;
     return {
-      at: ray(start + sweep / 2, radius * 1.8),
+      at: { x: vertex.x + Math.cos(bis) * radius * 1.8, y: vertex.y + Math.sin(bis) * radius * 1.8 },
+      clear: { vertex: vertex, dir: { x: Math.cos(bis), y: Math.sin(bis) }, t0: radius * 1.8, radius: radius, segs: [lineA, seg ? { a: seg[0], b: seg[1] } : null] },
       draw: function (ctx) {
         if (seg) strokeLine(ctx, seg[0], seg[1], color, sw, [5 * sw, 3 * sw]);
         strokeLine(ctx, lineA.a, lineA.b, color, sw * 1.4);
-        if (inside && !isOnSegment(vertex, lineA)) strokeLine(ctx, nearerEndpoint(vertex, lineA), vertex, color, sw * 0.6, [5 * sw, 3 * sw]);
-        if (!inside) strokeLine(ctx, vertex, ray(angB, radius * 2.2), color, sw * 0.6, [5 * sw, 3 * sw]);
-        ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = sw; ctx.setLineDash([]); ctx.beginPath(); ctx.arc(vertex.x, vertex.y, radius, start * DEG, (start + sweep) * DEG); ctx.stroke(); ctx.restore();
+        if (sweep > 0.05) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = sw; ctx.setLineDash([]); ctx.beginPath(); ctx.arc(vertex.x, vertex.y, radius, start * DEG, (start + sweep) * DEG); ctx.stroke(); ctx.restore(); }
         drawMarker(ctx, vertex, color, sw);
       },
     };
@@ -612,7 +683,14 @@ var FIXED = {
     if (seg) strokeLine(ctx, seg[0], seg[1], color, 2, [8, 5]);
     if (d > 0.5) { FIXED.tick(ctx, b, us, unit(sub(a, b)), 10, color, 1.5); strokeLine(ctx, a, b, color, 2.5); }
     drawMarker(ctx, a, color, 2.5); drawMarker(ctx, b, color, 2.5);
-    drawPill(ctx, d > 0.5 ? mid(a, b) : a, f.name || 'Dimension', color, fontPx, fontPx * 0.5);
+    FIXED.crossPill(ctx, f, a, b, len(sub(Amm, footMm)), color, fontPx, size, seg ? [{ a: seg[0], b: seg[1] }] : []);
+  },
+  // Cross-capture pill: name · mm length across the Capture Layout, beside the span.
+  crossPill: function (ctx, f, a, b, mmLen, color, fontPx, size, avoid) {
+    var text = FIXED.pillText(f, { mm: mmLen }), d = len(sub(a, b));
+    var at = d > 0.5 ? mid(a, b) : a;
+    if (d > 0.5) at = FIXED.pillBeside(at, unit(sub(a, b)), text, fontPx, size.width, size.height, FIXED.PILL_GAP, avoid, d / 2);
+    drawPill(ctx, at, text, color, fontPx, fontPx * 0.5);
   },
 };
 /* ======================= end of DECIDED CHANGE block ===================== */
@@ -620,7 +698,10 @@ var FIXED = {
 /* =========================================================================
  * Forms per state
  * ========================================================================= */
-var FORCED_LINE = { 'distance-vertical': 'vertical', 'distance-tilted': 'tilted', angle: 'tilted', cross: 'vertical' };
+var FORCED_LINE = { 'distance-vertical': 'vertical', 'distance-tilted': 'tilted', cross: 'vertical' };
+// The Ground Truth screens open on a set unit (gt-px: a px range that fits the 120 px sample span).
+var FORCED_UNIT = { gt: 'mm', 'gt-px': 'px' };
+var OWN_STATES = ['cross', 'pitch', 'edge', 'shape-value'];   // own sample dimensions: never read/written to the shared state
 function baseForm(S) {
   return {
     type: 'distance', angleMode: 'x', distanceAxis: 'euclidean',
@@ -639,6 +720,7 @@ function buildForm(st, S) {
     var useA = S.dimType === 'angle';
     f.type = 'angle'; f.angleMode = after ? 'fixed' : 'x';
     f.A = { cap: 'top', shape: 'line_edge', part: 'Line 1', point: null }; f.B = emptyFeature(null);
+    f.fixed.angle = numText(S.refAngle);
     f.name = useA && S.name.indexOf('Angle_') === 0 ? S.name : 'Angle_edge_to_ref';
     f.min = useA ? S.min : 44.5; f.max = useA ? S.max : 45.5; f.unit = 'deg';
   } else if (st === 'cross') {
@@ -647,6 +729,9 @@ function buildForm(st, S) {
     f.bKind = after ? 'fixed' : 'shape';
     f.fixed = { cap: 'side', mode: after ? 'vertical' : 'horizontal', y: '540', x: '960', cx: '960', cy: '540', angle: '30' };
     f.name = 'Distance_side_to_datum'; f.min = 105.9; f.max = 106.1; f.unit = 'mm';
+  } else if (st === 'shape-value') {
+    // A new single-capture Distance between two shapes: Circle_hole centre, perpendicular on Line_edge.
+    f.name = 'Distance_hole_to_edge'; f.min = 29.9; f.max = 30.1; f.unit = 'mm'; f.ratio = '0.05';
   } else if (st === 'pitch') {
     f.B = { cap: 'top', shape: 'circle_hole_2', part: 'Centre', point: null };
     f.name = 'Distance_hole_pitch'; f.min = 21.9; f.max = 22.1; f.unit = 'mm'; f.ratio = '0.05';
@@ -659,6 +744,10 @@ function buildForm(st, S) {
     f.bKind = after ? 'fixed' : 'shape';
     f.name = useD && S.name.indexOf('Distance_') === 0 ? S.name : SHARED_DEFAULTS.name;
     f.min = useD ? S.min : 5; f.max = useD ? S.max : 7; f.unit = useD && S.unit === 'px' ? 'px' : 'mm';
+    if (FORCED_UNIT[st]) {
+      f.unit = FORCED_UNIT[st];
+      if (!(useD && S.unit === f.unit)) { f.min = f.unit === 'px' ? 115 : 5; f.max = f.unit === 'px' ? 125 : 7; }
+    }
   }
   return f;
 }
@@ -668,7 +757,7 @@ function applySharedToForm(S) {
   var st = App.formState, fresh = buildForm(st, S);
   var forced = isAfter() && FORCED_LINE[st];
   f.okColor = S.okColor; f.ngColor = S.ngColor;
-  if (st === 'cross' || st === 'pitch' || st === 'edge') return;
+  if (OWN_STATES.indexOf(st) >= 0) return;
   ['y', 'x', 'cx', 'cy', 'angle'].forEach(function (k) { f.fixed[k] = fresh.fixed[k]; });
   if (!forced) f.fixed.mode = S.lineMode;
   f.name = fresh.name; f.min = fresh.min; f.max = fresh.max; f.ratio = fresh.ratio; if (f.type !== 'angle') f.unit = fresh.unit;
@@ -677,15 +766,15 @@ function applySharedToForm(S) {
 function pushShared(keys) {
   var f = App.form; if (!f) return;
   var st = App.formState;
-  if (st === 'cross' || st === 'pitch' || st === 'edge') return;
-  var patch = {}, fx = f.fixed;
+  if (OWN_STATES.indexOf(st) >= 0) return;
+  var patch = {}, fx = f.fixed, isAng = f.type === 'angle';
   var shapeUnit = function (u) { return u === 'deg' ? '°' : (u === 'px' ? 'px' : 'mm'); };
   keys.forEach(function (k) {
-    if (k === 'lineMode' && isAfter()) patch.lineMode = fx.mode;
+    if (k === 'lineMode') { if (isAfter() && !isAng) patch.lineMode = fx.mode; }
     else if (['y', 'x', 'cx', 'cy', 'angle'].indexOf(k) >= 0 && isAfter()) {
-      // only in-range values travel to the other screens
+      // only in-range values travel to the other screens; an Angle form owns only its line's angle
       var n = textToNum(fx[k]), sz = imgSizeOf(fx.cap), hi = { y: sz.h, x: sz.w, cx: sz.w, cy: sz.h, angle: 180 }[k];
-      if (n !== null && n >= 0 && n <= hi) patch[k] = n;
+      if (n !== null && n >= 0 && n <= hi) { if (!isAng) patch[k] = n; else if (k === 'angle') patch.refAngle = n; }
     }
     else if (k === 'okColor' || k === 'ngColor') patch[k] = f[k];
   });
@@ -807,7 +896,7 @@ function fieldLabel(text, tip) { return '<label class="fl">' + esc(text) + (tip 
 function selectField(key, label, o) { return '<div class="wfull min0">' + (label ? fieldLabel(label, o.tip) : '') + selectInput(key, Object.assign({ placeholder: 'Select' }, o)) + '</div>'; }
 function numberTextField(key, label, value, suffix, errKey, o) {
   o = o || {};
-  return '<div class="wfull min0">' + (label ? fieldLabel(label, o.tip) : '') + '<div class="rel"><div class="rel wfull"><input class="inp" type="text" inputmode="decimal" data-inp="' + key + '"' + (o.pattern ? ' data-pattern="' + o.pattern + '"' : '') + ' value="' + esc(value) + '" placeholder="' + esc(o.placeholder || '') + '"' + (suffix ? ' style="padding-right:2.25rem"' : '') + '></div>'
+  return '<div class="wfull min0">' + (label ? fieldLabel(label, o.tip) : '') + '<div class="rel"><div class="rel wfull"><input class="inp" type="text" inputmode="decimal" data-inp="' + key + '"' + (o.pattern ? ' data-pattern="' + o.pattern + '"' : '') + (o.disabled ? ' disabled' : '') + ' value="' + esc(value) + '" placeholder="' + esc(o.placeholder || '') + '"' + (suffix ? ' style="padding-right:2.25rem"' : '') + '></div>'
     + (suffix ? '<span class="sfx">' + esc(suffix) + '</span>' : '') + '</div>' + fieldError(errKey) + '</div>';
 }
 function shapeNumberField(key, label, value, errKey, o) {
@@ -873,9 +962,21 @@ function renderForm(f) {
   h += '<div class="col gap2">' + sectionHeading('Dimension Name', cross ? '<span class="badge purple">⇄ CROSS-CAPTURE</span>' : '')
     + '<div><div class="rel wfull"><input class="inp" type="text" data-inp="name" value="' + esc(f.name) + '" placeholder="Dimension name"></div>' + fieldError('name') + '</div></div>';
   // Ground truth
-  if (!quality) {
+  if (!quality && isAfter()) {
+    // DECIDED CHANGE: Min | Max | Unit, then Pixel to mm ratio | Offset. The ratio box follows the unit.
+    var ua = unitOptionsFor(f), ratioOn = f.unit === 'mm' || f.unit === 'mm2';
+    h += '<div class="col gap3" id="gtBlock">' + sectionHeading('Ground Truth')
+      + '<div class="g3 gap3">'
+      + shapeNumberField('min', 'Min Value', f.min, 'targetValue')
+      + shapeNumberField('max', 'Max Value', f.max, 'targetValueMax')
+      + selectField('unit', 'Unit', { options: ua.options, value: f.unit, errKey: 'units' })
+      + '</div><div class="g2 gap3">'
+      + (ua.showRatio ? numberTextField('ratio', 'Pixel to mm ratio', ratioOn ? f.ratio : '', '', 'ratio', { tip: 'mm per pixel for this dimension.', placeholder: ratioOn ? 'e.g. 0.05' : '', disabled: !ratioOn }) : '')
+      + shapeNumberField('offset', 'Offset', f.offset, 'offset', { tip: 'Offset is added to the measured value. The sum is checked against Ground Truth.', placeholder: '0' })
+      + '</div></div>';
+  } else if (!quality) {
     var u = unitOptionsFor(f);
-    h += '<div class="col gap3">' + sectionHeading('Ground Truth') + '<div class="g2 gap3">'
+    h += '<div class="col gap3" id="gtBlock">' + sectionHeading('Ground Truth') + '<div class="g2 gap3">'
       + shapeNumberField('min', 'Min Value', f.min, 'targetValue')
       + shapeNumberField('max', 'Max Value', f.max, 'targetValueMax')
       + (u.showRatio ? numberTextField('ratio', 'Pixel to mm ratio', f.ratio, '', 'ratio', { tip: 'mm per pixel for this dimension. Required to select mm.', placeholder: 'e.g. 0.05' }) : '')
@@ -917,10 +1018,13 @@ function tableRows() {
       B: FIXED.describe(line(dist, { mode: 'horizontal', y: 540 })),
       gt: 'Between ' + (dist ? S.min : 5) + ' and ' + (dist ? S.max : 7) + ' ' + dUnit + (dUnit === 'mm' ? ' (1 px = ' + (dist ? S.ratio : 0.05) + ' mm)' : ''), offset: '0', open: 'distance' });
     rows.push({ name: ang ? S.name : 'Angle_edge_to_ref', type: 'Angle', capture: 'Top Camera', A: 'Line_edge · Line 1',
-      B: FIXED.describe(line(ang, { mode: 'tilted', cx: 960, cy: 540, angle: 30 })),
+      B: FIXED.describeAngle(S.refAngle),
       gt: 'Between ' + (ang ? S.min : 44.5) + ' and ' + (ang ? S.max : 45.5) + ' °', offset: '0', open: 'angle' });
     rows.push({ name: 'Distance_side_to_datum', type: 'Distance', capture: 'Top Camera, Side Camera', cross: true, A: 'Top Camera · Circle_hole · Centre',
       B: FIXED.describe({ mode: 'vertical', x: 960 }, 'Side Camera'), gt: 'Between 105.9 and 106.1 mm', offset: '0', open: 'cross' });
+    // The shape-to-shape Distance, once saved from its own screen.
+    if (S.shape) rows.push({ name: S.shape.name, type: 'Distance', capture: 'Top Camera', A: 'Circle_hole · Centre', B: 'Line_edge · ' + DERIV_ON_LINE,
+      gt: 'Between ' + fmt2(S.shape.min) + ' and ' + fmt2(S.shape.max) + ' ' + S.shape.unit + (S.shape.unit === 'mm' && S.shape.ratio ? ' (1 px = ' + S.shape.ratio + ' mm)' : ''), offset: '0', open: 'shape-value' });
   }
   return rows;
 }
@@ -1048,7 +1152,9 @@ function measurementFor(f, sw) {
     if (fixedB(f)) return FIXED.distanceMeasurement(f, sw, color);
     var span = resolveDistanceSpan({ pointA: resolveFeaturePoint(shA, f.A), pointB: resolveFeaturePoint(shB, f.B), lineA: resolveFeatureLine(shA, f.A), lineB: resolveFeatureLine(shB, f.B), axis: f.distanceAxis, derivation: derivationOf(f) });
     if (!span) return null;
-    return { at: mid(span.from, span.to), draw: function (ctx) {
+    var spanLen = len(sub(span.to, span.from));
+    return { at: mid(span.from, span.to), px: spanLen, half: spanLen / 2, dir: spanLen > 0.5 ? unit(sub(span.to, span.from)) : null,
+      avoid: [span.extended, span.targetExtension, span.guide ? { a: span.guide.from, b: span.guide.to } : null], draw: function (ctx) {
       if (span.extended) strokeLine(ctx, span.extended.a, span.extended.b, color, sw * 0.6, dash);
       if (span.targetExtension) strokeLine(ctx, span.targetExtension.a, span.targetExtension.b, color, sw * 0.6, dash);
       if (span.guide) strokeLine(ctx, span.guide.from, span.guide.to, color, sw * 0.6, dash);
@@ -1111,7 +1217,15 @@ function drawSingle() {
   var sw = Math.max(0.5, 3 / v.scale), ref = referencedShapes(f);
   cap.shapes.forEach(function (s) { drawShapeLayer(ctx, s, sw, !!ref[capId + ':' + s.id]); });
   var m = measurementFor(f, sw);
-  if (m) { m.draw(ctx); if (m.at) drawPill(ctx, m.at, f.name || 'Dimension', f.okColor, LABEL_PX[f.labelSize] / v.scale, LABEL_PX[f.labelSize] * 0.5); }
+  if (m) {
+    m.draw(ctx);
+    if (m.at) {
+      var fs = LABEL_PX[f.labelSize] / v.scale, text = FIXED.pillText(f, m), at = m.at, gap = FIXED.PILL_GAP / v.scale;
+      if (isAfter() && m.clear) at = FIXED.pillClear(m.clear.vertex, m.clear.dir, m.clear.t0, m.clear.radius, m.clear.segs, text, fs, IMG_W, IMG_H, gap);
+      else if (isAfter() && m.dir) at = FIXED.pillBeside(m.at, m.dir, text, fs, IMG_W, IMG_H, gap, m.avoid, m.half);
+      drawPill(ctx, at, text, f.okColor, fs, LABEL_PX[f.labelSize] * 0.5);
+    }
+  }
   var ro = document.getElementById('readout');
   if (ro) ro.textContent = App.readout ? 'x ' + Math.round(App.readout.x) + ' · y ' + Math.round(App.readout.y) + ' px' : 'x — · y — px';
 }
@@ -1147,7 +1261,12 @@ function drawCross() {
     var from = on(span ? span.from : aMm), to = on(span ? span.to : bMm);
     if (from && to) { strokeLine(ctx, from, to, color, 2.5); }
     drawMarker(ctx, from, color, 2.5); drawMarker(ctx, to, color, 2.5);
-    if (from && to) drawPill(ctx, mid(from, to), f.name || 'Dimension', color, fs, fs * 0.5);
+    var av = [];
+    if (span && span.extended) av.push({ a: on(span.extended.a), b: on(span.extended.b) });
+    if (span && span.targetExtension) av.push({ a: on(span.targetExtension.a), b: on(span.targetExtension.b) });
+    if (span && span.guide) av.push({ a: on(span.guide.from), b: on(span.guide.to) });
+    if (from && to && isAfter()) FIXED.crossPill(ctx, f, from, to, span ? len(sub(span.to, span.from)) : len(sub(bMm, aMm)), color, fs, size, av);
+    else if (from && to) drawPill(ctx, mid(from, to), f.name || 'Dimension', color, fs, fs * 0.5);
   }
   // 100 mm scale bar
   var bw = 100 * T.zoom;
@@ -1248,7 +1367,8 @@ function openRowMenu(btn) {
   layer.innerHTML = '<div class="rowmenu" style="top:' + (rect.bottom + 4) + 'px;left:' + Math.max(8, rect.right - 120) + 'px"><button type="button" data-row-edit="' + open + '">' + ICON.edit2 + 'Edit</button><button type="button" class="danger" data-row-del="1">' + ICON.trash2 + 'Delete</button></div>';
   layer.firstChild.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; closeLayer(); if (b.hasAttribute('data-row-edit')) openRow(b.getAttribute('data-row-edit')); });
 }
-function openRow(open) { if (open === 'pitch' || open === 'edge') enterState(open, { local: false }); else goState(open); }
+var STEP_OF = { 'shape-value': 'edge-dim-shape-value', distance: 'edge-dim-distance', angle: 'edge-dim-angle', cross: 'edge-dim-cross' };
+function openRow(open) { if (open === 'pitch' || open === 'edge') enterState(open, { local: false }); else goState(open, isAfter() ? STEP_OF[open] : null); }
 
 var tipEl = null, tipTimer = null;
 function hideTip() { clearTimeout(tipTimer); if (tipEl) { tipEl.remove(); tipEl = null; } }
@@ -1298,7 +1418,7 @@ function onSelect(key, val) {
     var oldType = f.type, sfx = nameSuffix(f.name, oldType);
     f.type = val; f.name = PREFIX[val] + sfx;
     if (val === 'angle') f.angleMode = f.angleMode && f.angleMode !== 'fixed' ? f.angleMode : 'x';
-    var u = val === 'angle' ? 'deg' : (val === 'distance' || val === 'shapeFeatures') ? 'px' : null; f.unit = u;
+    var u = val === 'angle' ? 'deg' : (val === 'distance' && isAfter()) ? 'mm' : (val === 'distance' || val === 'shapeFeatures') ? 'px' : null; f.unit = u;
     var types = shapeTypesFor(val);
     var keep = function (feat) { var s = shapeOf(feat); return s && types.indexOf(s.type) >= 0 ? { cap: feat.cap, shape: feat.shape, part: null, point: null } : emptyFeature(feat.cap); };
     f.A = keep(f.A);
@@ -1312,7 +1432,7 @@ function onSelect(key, val) {
     f.angleMode = val;
     if (val !== 'two') f.B = emptyFeature(null); else if (!f.B.cap) f.B = emptyFeature(f.A.cap);
     var k = [];
-    if (val === 'fixed') { FIXED.applyDefaults(f.fixed, f.A.cap); k = ['lineMode', 'y']; }
+    if (val === 'fixed') { if (textToNum(f.fixed.angle) === null) f.fixed.angle = numText(readShared().refAngle); k = ['angle']; }
     renderMain(); afterFormChange(k); return;
   }
   if (key === 'distanceAxis') { f.distanceAxis = val; renderMain(); afterFormChange(); return; }
@@ -1366,7 +1486,7 @@ function onInput(el) {
   if (key === 'ratio') {
     if (v !== '' && !/^-?\d*\.?\d*$/.test(v)) { el.value = f.ratio; return; }
     var before = (textToNum(f.ratio) || 0) > 0; f.ratio = v;
-    if (before !== ((textToNum(v) || 0) > 0)) { renderMain(); }
+    if (!isAfter() && before !== ((textToNum(v) || 0) > 0)) { renderMain(); } else drawCurrent();
     afterFormChange(['ratio']); return;
   }
   if (key.indexOf('fixed.') === 0) {
@@ -1382,7 +1502,9 @@ function doSave() {
   var e = validate(App.form);
   if (hasErrors(e)) { updateErrors(); renderFooter(); toast('error', 'Fix the highlighted fields before saving.'); return; }
   toast('success', App.editingName ? 'Dimension updated' : 'Dimension created');
-  pushShared(['lineMode', 'y', 'x', 'cx', 'cy', 'angle', 'name', 'min', 'max', 'unit', 'ratio']);
+  var f = App.form;
+  if (App.formState === 'shape-value' && isAfter()) writeShared({ shape: { name: f.name, min: textToNum(f.min), max: textToNum(f.max), unit: f.unit === 'px' ? 'px' : 'mm', ratio: textToNum(f.ratio) } });
+  pushShared(f.type === 'angle' ? ['angle', 'name', 'min', 'max', 'unit', 'ratio'] : ['lineMode', 'y', 'x', 'cx', 'cy', 'angle', 'name', 'min', 'max', 'unit', 'ratio']);
   goState('saved', 'edge-dim-saved');
 }
 function zoomBy(factor) {
@@ -1402,7 +1524,7 @@ document.addEventListener('click', function (e) {
   if (a !== 'sb-toggle' && a !== 'sb-expand' && App.sidebarOpen && t.closest('#main')) { App.sidebarOpen = false; renderSidebar(); }
   if (a === 'sb-toggle') { App.sidebarOpen = !App.sidebarOpen; hideTip(); renderSidebar(); setTimeout(function () { if (App.view === 'form') layoutCanvas(); else renderMain(); }, 320); }
   else if (a === 'sb-expand') { if (!App.sidebarOpen) { App.sidebarOpen = true; hideTip(); renderSidebar(); setTimeout(function () { if (App.view === 'form') layoutCanvas(); else renderMain(); }, 320); } }
-  else if (a === 'add') goState('distance', 'edge-dim-distance');
+  else if (a === 'add') { if (isAfter()) goState('shape-value', 'edge-dim-shape-value'); else goState('distance', 'edge-dim-distance'); }
   else if (a === 'cross') goState('cross', 'edge-dim-cross');
   else if (a === 'back') goState('list', 'edge-dim-list');
   else if (a === 'save') { if (!act.disabled) doSave(); }
@@ -1476,6 +1598,7 @@ enterState(effState());
 // scroll=preview: bring the bottom of the preview column just above the footer (used for screenshots).
 function applyScroll() {
   if (SCROLL_TO === 'preview') { var pc = document.getElementById('previewCol'); if (pc) document.body.scrollTop = pc.getBoundingClientRect().bottom + document.body.scrollTop - (window.innerHeight - 64) + 12; }
+  else if (SCROLL_TO === 'gt') { var gb = document.getElementById('gtBlock'); if (gb) document.body.scrollTop = gb.getBoundingClientRect().bottom + document.body.scrollTop - (window.innerHeight - 64) + 16; }
   else if (Number(SCROLL_TO)) document.body.scrollTop = Number(SCROLL_TO);
 }
 applyScroll();

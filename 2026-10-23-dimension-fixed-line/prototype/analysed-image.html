@@ -302,11 +302,11 @@
   var qs = new URLSearchParams(location.search);
   var MODE = qs.get('mode') === 'today' ? 'today' : 'after';
   var STATE = ['ok', 'ng', 'angle', 'cross'].indexOf(qs.get('state')) >= 0 ? qs.get('state') : 'ok';
-  var KEY = 'fixedline-proto-v1';
-  var DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30,
+  var KEY = 'fixedline-proto-v2';
+  var DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, refAngle: 30,
     name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000' };
-  var ANGLE_DEFAULTS = { lineMode: 'tilted', y: 540, x: 960, cx: 960, cy: 540, angle: 30,
-    name: 'Angle_edge_to_ref', min: 25, max: 35, unit: 'degrees' };
+  // Angle → From a fixed line: the line's angle (refAngle) is its only setting.
+  var ANGLE_DEFAULTS = { refAngle: 30, name: 'Angle_edge_to_ref', min: 25, max: 35, unit: 'degrees' };
   var HEX = /^#[0-9a-fA-F]{6}$/;
 
   function readStored() {
@@ -319,7 +319,7 @@
     var raw = readStored() || {};
     var c = {};
     Object.keys(DEFAULTS).forEach(function (k) { c[k] = (raw[k] === undefined || raw[k] === null || raw[k] === '') ? DEFAULTS[k] : raw[k]; });
-    ['y', 'x', 'cx', 'cy', 'angle', 'min', 'max', 'ratio'].forEach(function (k) { c[k] = num(c[k], DEFAULTS[k]); });
+    ['y', 'x', 'cx', 'cy', 'angle', 'refAngle', 'min', 'max', 'ratio'].forEach(function (k) { c[k] = num(c[k], DEFAULTS[k]); });
     if (['horizontal', 'vertical', 'tilted'].indexOf(c.lineMode) < 0) c.lineMode = DEFAULTS.lineMode;
     if (!HEX.test(String(c.okColor))) c.okColor = DEFAULTS.okColor;
     if (!HEX.test(String(c.ngColor))) c.ngColor = DEFAULTS.ngColor;
@@ -512,6 +512,19 @@
     return Math.abs(deg(Math.atan2(v1[0] * v2[1] - v1[1] * v2[0], dot(v1, v2))));
   }
   function angleSuffix(unit) { return (unit === 'degrees' || unit === 'deg' || unit === '°') ? ' deg' : ' ' + unit; }
+  // px per reported unit: a px dimension reports camera pixels, an mm one pixels × ratio.
+  function scaleOf(c) { return c.unit === 'px' ? 1 : c.ratio; }
+  // Liang–Barsky: does segment p→q touch the box [x0, y0, x1, y1]?
+  function segHitsBox(p, q, b) {
+    var t0 = 0, t1 = 1, dx = q[0] - p[0], dy = q[1] - p[1];
+    var ps = [-dx, dx, -dy, dy], qs = [p[0] - b[0], b[2] - p[0], p[1] - b[1], b[3] - p[1]];
+    for (var i = 0; i < 4; i++) {
+      if (Math.abs(ps[i]) < 1e-12) { if (qs[i] < 0) return false; continue; }
+      var t = qs[i] / ps[i];
+      if (ps[i] < 0) { if (t > t1) return false; if (t > t0) t0 = t; } else { if (t < t0) return false; if (t < t1) t1 = t; }
+    }
+    return true;
+  }
 
   // ───────────────────────── synthetic camera images ─────────────────────────
   function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -621,7 +634,7 @@
   function drawTodayDistance(ctx, c, D) {
     var e1 = edgePt(S1, D), e2 = edgePt(S2, D);
     var foot = [HOLE[0] + NRM[0] * D, HOLE[1] + NRM[1] * D];
-    var value = round3(D * c.ratio), pass = within(value, c), color = pass ? c.okColor : c.ngColor;
+    var value = round3(D * scaleOf(c)), pass = within(value, c), color = pass ? c.okColor : c.ngColor;
     cvLine(ctx, e1, e2, color, 2);
     var t = dot(sub(foot, e1), sub(e2, e1)) / dot(sub(e2, e1), sub(e2, e1));
     if (t < 0) cvDashed(ctx, [e1, foot], color, 2); else if (t > 1) cvDashed(ctx, [e2, foot], color, 2);
@@ -636,12 +649,12 @@
   function drawAfterDistance(ctx, c, forceFail) {
     var L = fixedLine(c);
     var foot = footOn(L, HOLE), dpx = Math.hypot(HOLE[0] - foot[0], HOLE[1] - foot[1]);
-    var value = round3(dpx * c.ratio);
+    var k = scaleOf(c), value = round3(dpx * k);
     if (forceFail && within(value, c)) {
-      var target = (c.max + 2) / c.ratio;
+      var target = (c.max + 2) / k;
       var w = dpx > 1e-6 ? norm(sub(foot, HOLE)) : [-L.v[1], L.v[0]];
       L = { q: [HOLE[0] + w[0] * target, HOLE[1] + w[1] * target], v: L.v };
-      foot = footOn(L, HOLE); dpx = Math.hypot(HOLE[0] - foot[0], HOLE[1] - foot[1]); value = round3(dpx * c.ratio);
+      foot = footOn(L, HOLE); dpx = Math.hypot(HOLE[0] - foot[0], HOLE[1] - foot[1]); value = round3(dpx * k);
     }
     var pass = within(value, c), color = pass ? c.okColor : c.ngColor;
     var seg = clipLine(L);
@@ -674,32 +687,32 @@
     processLabel(ctx, IDS.todayAngle, 'ANGLE', pass, color);
     return pass;
   }
-  // After: Line_edge → fixed line (whole image), arc at the crossing, value in degrees
+  // After: the fixed line runs dashed across the whole image through the middle of Line_edge at the set
+  // angle (counter-clockwise from horizontal on screen); the arc at that point spans the measured opening.
   function drawAfterAngle(ctx, c) {
     var e1 = edgePt(S1, EDGE_OK), e2 = edgePt(S2, EDGE_OK), u = norm(sub(e2, e1));
-    var L = fixedLine(c), seg = clipLine(L);
+    var M = [(e1[0] + e2[0]) / 2, (e1[1] + e2[1]) / 2], ra = c.refAngle * Math.PI / 180;
+    var L = { q: M, v: [Math.cos(ra), -Math.sin(ra)] }, seg = clipLine(L);
     var angle = Math.abs(deg(Math.atan2(u[0] * L.v[1] - u[1] * L.v[0], dot(u, L.v))));
     var pass = within(Math.round(angle * 1000) / 1000, c), color = pass ? c.okColor : c.ngColor;
     cvLine(ctx, e1, e2, color, 2);
     if (seg) cvDashed(ctx, seg, color, 2);
-    var near = angle < 2 || angle > 178;
-    var v = near ? null : lineIntersection(e1, e2, L.q, [L.q[0] + L.v[0], L.q[1] + L.v[1]]), tp;
-    if (v) {
-      var far = Math.hypot(e1[0] - v[0], e1[1] - v[1]) > Math.hypot(e2[0] - v[0], e2[1] - v[1]) ? e1 : e2;
-      var d1v = norm(sub(far, v)); if (Math.hypot(d1v[0], d1v[1]) === 0) d1v = u;
-      var sgn = dot(d1v, u) >= 0 ? 1 : -1, d2v = [L.v[0] * sgn, L.v[1] * sgn];
-      var a1 = deg(Math.atan2(d1v[1], d1v[0])), a2 = deg(Math.atan2(d2v[1], d2v[0]));
-      var diff = ((a2 - a1 + 540) % 360) - 180, start = diff >= 0 ? a1 : a2, sweep = Math.abs(diff);
-      // keep the value clear of the arc: the label grows rightwards from its anchor
-      if (Math.cos((start + sweep / 2) * Math.PI / 180) < 0) start += 180;
-      cvArc(ctx, v, 30, start, start + sweep, color);
-      var b = (start + sweep / 2) * Math.PI / 180; tp = [v[0] + 40 * Math.cos(b), v[1] + 40 * Math.sin(b)];
-    } else {
-      var m1 = [(e1[0] + e2[0]) / 2, (e1[1] + e2[1]) / 2];
-      var m2 = seg ? [(seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2] : m1;
-      tp = [(m1[0] + m2[0]) / 2, (m1[1] + m2[1]) / 2];
+    // Opening between the two directions, never the reflex side; drawn on the side the value can grow away from.
+    var a1 = deg(Math.atan2(u[1], u[0])), a2 = deg(Math.atan2(L.v[1], L.v[0]));
+    var diff = ((a2 - a1 + 540) % 360) - 180, start = diff >= 0 ? a1 : a2, sweep = Math.abs(diff);
+    if (Math.cos((start + sweep / 2) * Math.PI / 180) < 0) start += 180;
+    var R = 30;
+    if (sweep > 0.05) cvArc(ctx, M, R, start, start + sweep, color);
+    // Value along the bisector, out until its box clears the arc and both lines.
+    var text = angle.toFixed(1) + angleSuffix(c.unit), tw = textSize(text, 0.6, 1).w, bis = (start + sweep / 2) * Math.PI / 180, pad = 4, tp = null;
+    for (var r = R + 10; r < 600 && !tp; r += 2) {
+      var p = [M[0] + r * Math.cos(bis), M[1] + r * Math.sin(bis)], box = [p[0] - 2 - pad, p[1] - 2 - pad, p[0] + tw + 2 + pad, p[1] + 20 + pad];
+      var nx = Math.max(box[0], Math.min(M[0], box[2])), ny = Math.max(box[1], Math.min(M[1], box[3]));
+      if (Math.hypot(nx - M[0], ny - M[1]) <= R + pad) continue;
+      if (segHitsBox(e1, e2, box) || (seg && segHitsBox(seg[0], seg[1], box))) continue;
+      tp = p;
     }
-    writeName(ctx, angle.toFixed(1) + angleSuffix(c.unit), tp, color);
+    writeName(ctx, text, tp || [M[0] + 40 * Math.cos(bis), M[1] + 40 * Math.sin(bis)], color);
     processLabel(ctx, IDS.afterAngle, 'ANGLE', pass, color);
     return pass;
   }
@@ -780,7 +793,7 @@
       var c = distanceConfig();
       if (MODE === 'today') {
         var D = EDGE_OK;
-        if (STATE === 'ng') { D = EDGE_NG; if (within(round3(D * c.ratio), c)) D = (c.max + 2) / c.ratio; }
+        if (STATE === 'ng') { D = EDGE_NG; if (within(round3(D * scaleOf(c)), c)) D = (c.max + 2) / scaleOf(c); }
         top = renderTop(D);
         pass = drawTodayDistance(top.getContext('2d'), c, D);
       } else {

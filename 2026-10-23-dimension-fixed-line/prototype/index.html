@@ -64,10 +64,12 @@
 
 <script>
 (function () {
-  const KEY = 'fixedline-proto-v1';
+  const KEY = 'fixedline-proto-v2';
   const STEPS = [
     { id: 'edge-dim-list', label: 'Dimensions table', file: 'dimension-config.html', state: 'list' },
+    { id: 'edge-dim-shape-value', label: 'Measured value', file: 'dimension-config.html', state: 'shape-value' },
     { id: 'edge-dim-distance', label: 'Distance to a fixed line', file: 'dimension-config.html', state: 'distance' },
+    { id: 'edge-dim-units', label: 'Ground Truth in px', file: 'dimension-config.html', state: 'gt-px' },
     { id: 'edge-dim-angle', label: 'Angle from a fixed line', file: 'dimension-config.html', state: 'angle' },
     { id: 'edge-dim-cross', label: 'Cross-capture fixed line', file: 'dimension-config.html', state: 'cross' },
     { id: 'edge-dim-saved', label: 'Saved dimensions', file: 'dimension-config.html', state: 'saved' },
@@ -89,7 +91,7 @@
     const q = [];
     if (step.state) q.push('state=' + step.state);
     q.push('mode=' + mode);
-    q.push('v=20261024a');
+    q.push('v=20261026a');
     if (extra) Object.keys(extra).forEach((k) => q.push(k + '=' + encodeURIComponent(extra[k])));
     return step.file + '?' + q.join('&');
   }
