@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Instance Testing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.1"></script>
+<script>
+  // Same theme as frinksedge-deployment-frontend/tailwind.config.js
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'f-primary': '#ff4301', 'f-secondary': '#d1d5dc', 'f-flat': '#e7e7ff', 'f-gray': '#312f2f',
+          'f-light-gray': '#d9d9d9', 'f-dark-gray': '#7a7e80', 'f-light-purple': '#c6c4ff', 'f-light': '#f7bda9',
+        },
+        fontFamily: { sans: ['Outfit', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  body { background: #fff; }
+  .viewer-tab[aria-selected="true"] { background: #ff4301; color: #fff; }
+  .note { display: block; }
+  body.hide-notes .note { display: none; }
+  input[type=range] { -webkit-appearance: none; appearance: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 9999px; background: #6B4EFF; border: 2px solid #fff; box-shadow: 0 0 0 1px #6B4EFF; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+</style>
+</head>
+<body class="font-sans text-gray-900">
+
+<!-- ───────────── Viewer bar (not part of the app) ───────────── -->
+<div class="sticky top-0 z-[200] flex flex-wrap items-center gap-2 border-b border-black bg-[#111] px-4 py-2 text-sm text-gray-300">
+  <span class="mr-2 font-semibold text-white">Edge · Instance Testing</span>
+  <button class="viewer-tab rounded px-3 py-1" data-screen="s1" aria-selected="true">1 · Testing tab (today)</button>
+  <button class="viewer-tab rounded px-3 py-1" data-screen="s2">2 · Run a new test</button>
+  <button class="viewer-tab rounded px-3 py-1" data-screen="s3">3 · Test history</button>
+  <button class="viewer-tab rounded px-3 py-1" data-screen="s4">4 · Test results</button>
+  <button class="viewer-tab rounded px-3 py-1" data-screen="s5">5 · Performance metrics</button>
+  <label class="ml-auto flex cursor-pointer items-center gap-2"><input id="notesToggle" type="checkbox" checked> Show "disabled" notes</label>
+</div>
+
+<div class="note border-b border-amber-300 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+  <b>What this is:</b> the Instance Testing feature of <code>frinksedge-deployment-frontend</code> (main), rebuilt from the real JSX and Tailwind classes with sample data.
+  Code: <code>src/modules/instance/components/instance-testing/*</code> + the Testing tab in <code>individual-instance/index.jsx</code>; route <code>/instances/:instanceId/testing</code> and <code>/testing/:testStartTime</code>; backend <code>frinksedge-deployment-backend</code> <code>/api/testing/*</code> (still live).
+  Amber boxes like this mark the parts that are switched off today.
+</div>
+
+<!-- ───────────── App shell: collapsed main sidebar ───────────── -->
+<div class="flex min-h-[calc(100vh-44px)]">
+  <aside class="sticky top-[44px] flex h-[calc(100vh-44px)] w-[114px] shrink-0 flex-col items-center border-r border-r-gray-300 bg-[#1e1c1c] px-2 py-6 shadow-md">
+    <div class="mb-10 mt-3 flex h-10 w-10 items-center justify-center rounded-md bg-f-primary text-xl font-bold text-white">F</div>
+    <ul class="mt-8 flex w-full flex-col gap-2 text-white">
+      <li class="flex justify-center rounded-md bg-white/10 py-2" title="Instances">
+        <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><path d="M29.3 16h-8l-2.6 4h-5.4L10.7 16H2.7m26.6 0v8a2.7 2.7 0 0 1-2.7 2.7H5.3A2.7 2.7 0 0 1 2.7 24v-8m26.6 0L24.7 6.8a2.7 2.7 0 0 0-2.4-1.5H9.7a2.7 2.7 0 0 0-2.4 1.5L2.7 16" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Integrations">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Deployments">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Health Monitoring">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Users &amp; Permissions">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </li>
+    </ul>
+    <div class="mt-auto flex h-10 w-10 items-center justify-center rounded-md text-white">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  </aside>
+
+  <main class="relative min-w-0 flex-1 overflow-x-auto bg-white">
+
+<!-- ═══════════════ Screen 1: Testing tab as it is today ═══════════════ -->
+<section id="s1" class="screen active">
+  <div class="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-3xl font-medium">Instances</div>
+    <div class="flex items-baseline gap-2 text-xl font-medium">
+      <span class="flex items-center gap-2"><span class="text-gray-400">›</span><span>Instance Details</span></span>
+      <span class="text-gray-400">›</span><span>Hinge Line A</span>
+    </div>
+  </div>
+
+  <div class="p-5">
+    <div class="mb-6 flex border-b border-gray-200">
+      <button class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700">Instance Overview</button>
+      <button class="border-b-2 border-f-primary px-6 py-3 font-medium text-f-primary">Testing</button>
+    </div>
+
+    <div class="flex flex-col gap-6">
+      <h1 class="text-xl font-bold">Testing Configuration</h1>
+
+      <div class="rounded-xl border border-gray-100 bg-gray-50/50 p-8 shadow-sm">
+        <h2 class="mb-6 text-xl font-semibold text-gray-800">Test Parameters</h2>
+        <div class="grid grid-cols-2 gap-y-8">
+          <div class="space-y-6">
+            <div><div class="mb-1 text-sm text-gray-500">Test Status</div><div class="text-lg font-bold text-gray-900">N/A</div></div>
+            <div><div class="mb-1 text-sm text-gray-500">Test Type</div><div class="text-lg font-bold text-gray-900">N/A</div></div>
+          </div>
+          <div class="space-y-6">
+            <div><div class="mb-1 text-sm text-gray-500">Last Test Run</div><div class="text-lg font-bold text-gray-900">10/09/2026 04:12 PM</div></div>
+            <div><div class="mb-1 text-sm text-gray-500">Success Rate</div><div class="text-lg font-bold text-gray-900">N/A</div></div>
+          </div>
+        </div>
+        <div class="mt-10 flex gap-4">
+          <button class="inline-flex items-center justify-center rounded-md border border-transparent bg-f-primary px-6 py-2 text-sm font-semibold text-white hover:bg-f-primary/90" data-go="s2">Run Test</button>
+          <button class="inline-flex items-center justify-center rounded-md border border-f-primary bg-transparent px-6 py-2 text-sm font-semibold text-f-primary hover:opacity-70">View Test History</button>
+        </div>
+      </div>
+
+      <div class="note rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
+        <b>Disabled here:</b>
+        <ul class="ml-5 mt-1 list-disc space-y-1">
+          <li><b>View Test History does nothing</b>: its <code>onClick</code> is commented out (<code>individual-instance/index.jsx:388</code>, commit <code>32f2c5d7</code>, 2026-02-09, "Replaced instance card display with a new instance table…"). The history table it would open is screen 3.</li>
+          <li><b>Test Status, Test Type and Success Rate are hard-coded "N/A"</b> (lines 338, 344, 373; commit <code>58e29042</code>, 2026-02-27, "…update instance test details to N/A"). They used to show <i>Active</i>, <i>Automated</i> and the success rate (passed tests ÷ all tests).</li>
+          <li>The old stand-alone page (<code>instance-testing/index.jsx</code>, "Instance Testing" with a "Run a new test" button above the history table) is no longer routed: <code>/testing</code> now renders this tab (same commit 32f2c5d7). The instance sidebar with an "Instance Testing" icon (<code>shared/layouts/instance/Sidebar.jsx</code>) is no longer imported anywhere.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ Screen 2: Run a new test drawer ═══════════════ -->
+<section id="s2" class="screen">
+  <div class="relative min-h-[calc(100vh-110px)]">
+    <!-- page behind the drawer -->
+    <div class="pointer-events-none select-none p-5 opacity-60">
+      <div class="mb-6 flex border-b border-gray-200">
+        <span class="px-6 py-3 font-medium text-gray-500">Instance Overview</span>
+        <span class="border-b-2 border-f-primary px-6 py-3 font-medium text-f-primary">Testing</span>
+      </div>
+      <h1 class="text-xl font-bold">Testing Configuration</h1>
+    </div>
+    <div class="absolute inset-0 bg-black/50"></div>
+
+    <!-- Drawer size="6xl" -->
+    <div class="absolute right-0 top-0 z-10 flex h-full w-full max-w-6xl flex-col bg-white shadow-2xl">
+      <div class="flex h-[50px] justify-between border border-b-[1px] px-4 pb-2 pt-3 text-lg font-semibold">
+        <span>Run a new test</span>
+        <button class="text-xl leading-none text-gray-600" data-go="s1" title="Close">×</button>
+      </div>
+      <div class="flex-1 overflow-y-auto">
+        <div class="relative flex flex-col justify-stretch overflow-auto bg-white">
+          <div class="flex min-h-[60vh]">
+            <div class="mx-auto overflow-y-auto p-6 pb-[50px]">
+              <div class="mx-auto my-2 w-[70%] overflow-auto">
+                <div class="text-md my-4">
+                  Choose one dataset folder for each of the configurations (that you’d like to test for) which should contain the test images and/or annotations for them (
+                  <span class="italic">with both the annotation filename and the image filename matching each other; if you choose to provide annotation file for one image, you need to provide the annotation files for all the images. You can also optionally include a 'masks' folder containing mask images for segmentation annotations</span>).
+                </div>
+                <div class="text-md my-4">If you choose to provide annotations, the test results will give you recommendations for each of the Module’s classes’ thresholds.</div>
+                <div class="my-10 text-lg font-medium">Choose dataset folders for each of the configurations which you want to test and start the testing</div>
+
+                <div class="my-4 flex flex-col gap-4">
+                  <table class="mb-10 w-full min-w-full divide-y divide-gray-300">
+                    <thead><tr class="relative bg-f-primary">
+                      <th class="px-2 py-2 pb-4 pt-4 text-center text-base font-medium text-white">Variant</th>
+                      <th class="px-2 py-2 pb-4 pt-4 text-center text-base font-medium text-white">Capture</th>
+                      <th class="px-2 py-2 pb-4 pt-4 text-center text-base font-medium text-white">Dataset Folder</th>
+                    </tr></thead>
+                    <tbody class="divide-y divide-gray-200 bg-white text-center">
+                      <tr class="text-md font-medium">
+                        <td class="px-2 py-2">Hinge U</td><td class="px-2 py-2">Right Part</td>
+                        <td class="px-2 py-2"><div class="mx-auto flex w-fit cursor-pointer items-center justify-between gap-3 rounded-md p-2 shadow-md">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg>
+                          hinge_u_ri...
+                          <span class="text-gray-500">✕</span></div></td>
+                      </tr>
+                      <tr class="text-md font-medium">
+                        <td class="px-2 py-2">Hinge U</td><td class="px-2 py-2">Left Part</td>
+                        <td class="px-2 py-2"><span class="cursor-pointer text-f-primary underline">Browse Folder</span></td>
+                      </tr>
+                      <tr class="text-md font-medium">
+                        <td class="px-2 py-2">Hinge Y</td><td class="px-2 py-2">Top View</td>
+                        <td class="px-2 py-2"><span class="cursor-pointer text-f-primary underline">Browse Folder</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex w-full justify-end overflow-hidden border-t-[1px] border-gray-400 bg-white pb-4 pr-4 pt-4">
+            <div class="flex max-w-md flex-1 items-center justify-end gap-4">
+              <button class="inline-flex w-full items-center justify-center rounded-md bg-f-primary px-6 py-2 text-sm font-semibold text-white">Start Testing</button>
+              <button class="inline-flex w-full items-center justify-center rounded-md border border-f-primary px-6 py-2 text-sm font-semibold text-f-primary" data-go="s1">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="note m-6 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
+          <b>Works today.</b> "Start Testing" uploads each chosen folder in batches of 25 (<code>POST /cameraConfig/upload-testing-data</code>, loader "Uploading (25/120) for Hinge U - Right Part"), then calls <code>POST /testing/start</code>. Progress then arrives over SSE (<code>testing-started</code> / <code>testing-updates</code> / <code>testing-completed</code>) as a full-screen percentage loader:
+          <div class="mt-3 flex h-32 w-64 items-center justify-center rounded bg-gray-200/75">
+            <div class="flex flex-col items-center"><div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-f-primary border-t-transparent text-sm font-semibold">42%</div><label class="mt-3 font-medium">Testing</label></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ Screen 3: Test history ═══════════════ -->
+<section id="s3" class="screen">
+  <div class="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-3xl font-medium">Instances</div>
+    <div class="flex items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><span>Instance Details</span><span class="text-gray-400">›</span><span>Hinge Line A</span></div>
+  </div>
+  <div class="p-5">
+    <div class="note mb-6 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
+      <b>Not reachable today.</b> This is what "View Test History" would show below the Test Parameters card (<code>AllTests.jsx</code>, data from <code>GET /testing/list?instanceId=…</code>). The button's <code>onClick</code> is commented out, so <code>showHistory</code> never turns true.
+    </div>
+
+    <div class="mt-2">
+      <h3 class="mb-4 text-xl font-semibold">Test History</h3>
+      <div class="mb-10 flex flex-col gap-4 rounded-lg bg-white pb-7 pl-16 pr-16 pt-7 md:max-w-[55%]">
+        <div class="rounded-lg border border-gray-400 bg-white p-4">
+          <div class="rounded-lg bg-white p-10 pb-0">
+            <table class="mb-10 w-full text-left text-sm text-gray-500">
+              <thead class="rounded-lg bg-white text-lg text-gray-700"><tr>
+                <th class="px-6 py-3 text-left">Test Name</th>
+                <th class="px-6 py-3 text-center">Test Date-Time</th>
+                <th class="px-6 py-3 text-center">Duration</th>
+                <th class="px-6 py-3 text-right">Test Status</th>
+              </tr></thead>
+              <tbody>
+                <tr><td colspan="4" class="p-0"><hr class="w-full border-t border-gray-400"><div class="w-full border-t-2 border-gray-400"></div></td></tr>
+                <tr class="text-md text-center font-medium"><td class="px-6 py-4 text-left">Test_4</td><td class="px-6 py-4">10/9/2026, 4:12:08 PM</td><td class="px-6 py-4">2 m 14 sec</td><td class="px-6 py-4 text-right text-[#6B4EFF]"><a href="#" data-go="s4">View Results</a></td></tr>
+                <tr><td colspan="4" class="p-0"><div class="w-full border-t-2 border-gray-400"></div></td></tr>
+                <tr class="text-md text-center font-medium"><td class="px-6 py-4 text-left">Test_3</td><td class="px-6 py-4">10/8/2026, 11:40:51 AM</td><td class="px-6 py-4">58 sec</td><td class="px-6 py-4 text-right text-[#ff000b]"><div>Errored</div></td></tr>
+                <tr><td colspan="4" class="p-0"><div class="w-full border-t-2 border-gray-400"></div></td></tr>
+                <tr class="text-md text-center font-medium"><td class="px-6 py-4 text-left">Test_2</td><td class="px-6 py-4">10/6/2026, 6:02:33 PM</td><td class="px-6 py-4">4 m 3 sec</td><td class="px-6 py-4 text-right text-[#6B4EFF]"><a href="#" data-go="s4">View Results</a></td></tr>
+                <tr><td colspan="4" class="p-0"><div class="w-full border-t-2 border-gray-400"></div></td></tr>
+                <tr class="text-md text-center font-medium"><td class="px-6 py-4 text-left">Test_1</td><td class="px-6 py-4">10/6/2026, 5:21:10 PM</td><td class="px-6 py-4">1 m 47 sec</td><td class="px-6 py-4 text-right text-[#6B4EFF]"><a href="#" data-go="s4">View Results</a></td></tr>
+                <tr><td colspan="4" class="p-0"><div class="w-full border-t-2 border-gray-400"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="mb-4 text-base font-semibold text-gray-500">Empty state (no tests yet)</h3>
+      <div class="mb-10 flex flex-col gap-4 rounded-lg bg-white pb-7 pl-16 pr-16 pt-7 md:max-w-[55%]">
+        <div class="rounded-lg border border-gray-400 bg-white p-4">
+          <div class="rounded-lg bg-white p-10 pb-0">
+            <div class="mb-10 flex flex-col items-center gap-4 rounded-md px-5 py-2">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.2"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 14h9"/></svg>
+              <button class="inline-flex items-center justify-center rounded-sm bg-f-primary px-2 py-1 text-xs text-white" data-go="s2">Run a new test</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ Screen 4: Test results ═══════════════ -->
+<section id="s4" class="screen">
+  <div class="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-3xl font-medium">Instances</div>
+    <div class="flex items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><span>Hinge Line A</span></div>
+  </div>
+  <div class="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-xl font-medium">Instance Testing</div>
+    <div class="flex items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><span>Test_4</span></div>
+  </div>
+
+  <div class="mx-auto mb-10 mt-2 flex w-[70%] flex-col items-center gap-4">
+    <div class="note w-full rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
+      Opened from "View Results" in the history (route <code>/instances/:id/testing/:testStartTime</code>, <code>TestResults.jsx</code> + <code>steps/Results.jsx</code>). Only reachable through the history, which is hidden, or by typing the URL.
+    </div>
+
+    <div class="mb-2 text-center text-4xl font-bold">Test Results</div>
+    <div class="mb-8 text-center text-xl text-gray-700">Review the test results below for each of the camera configurations selected for testing within this instance.</div>
+
+    <!-- CameraConfigsDropdown -->
+    <div class="mx-auto mt-1 w-full max-w-3xl"><div class="mb-8 flex justify-center"><div class="relative w-full max-w-lg">
+      <button class="relative flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-4 text-lg shadow">
+        <span class="font-semibold capitalize">Hinge U - Right Part</span>
+        <span class="absolute right-6"><svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></span>
+      </button>
+    </div></div></div>
+
+    <div class="mt-6 w-full">
+      <div class="mb-4 text-center text-2xl font-semibold">Prediction Visualization</div>
+      <div class="flex items-start justify-center gap-8">
+        <div class="flex flex-col items-center gap-2">
+          <div style="width:400px;height:400px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;background:#fff">
+            <svg viewBox="0 0 400 400" width="400" height="400" id="refImg"></svg>
+          </div>
+          <div class="text-lg font-medium text-gray-700">Reference Image</div>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <div style="width:400px;height:400px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;background:#fff">
+            <svg viewBox="0 0 400 400" width="400" height="400" id="visImg"></svg>
+          </div>
+          <div class="text-lg font-medium text-gray-700">Visualization (Pin Detection)</div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-4"><nav class="flex items-center"><ul class="mx-auto flex items-center gap-2 rounded-full border border-f-primary bg-white px-2 py-1.5 text-sm">
+        <li class="cursor-pointer px-1 text-f-primary">«</li><li class="cursor-pointer px-1 text-f-primary">‹</li>
+        <li class="cursor-pointer font-semibold">1</li><li class="cursor-pointer text-gray-400">2</li><li class="cursor-pointer text-gray-400">3</li><li class="cursor-pointer text-gray-400">4</li><li class="cursor-pointer text-gray-400">5</li>
+        <li class="cursor-pointer px-1 text-f-primary">›</li><li class="cursor-pointer px-1 text-f-primary">»</li>
+      </ul></nav></div>
+
+      <div class="mx-auto mt-6 flex w-full max-w-2xl flex-col gap-4">
+        <!-- ModulesDropDown -->
+        <div class="mx-auto mt-1 w-full max-w-3xl"><div class="mb-8 flex justify-center"><div class="relative w-full max-w-lg">
+          <button class="relative flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-6 py-4 text-lg shadow">
+            <span class="font-semibold capitalize">Pin Detection</span>
+            <span class="absolute right-6"><svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></span>
+          </button>
+        </div></div></div>
+
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div class="mb-3 text-center font-semibold text-gray-800">Adjust Thresholds for Pin Detection</div>
+          <div class="flex flex-col gap-4">
+            <div class="flex w-full max-w-xl items-center gap-4">
+              <label class="block min-w-[120px] text-[14px] font-semibold text-gray-900">Confidence:</label>
+              <div class="relative flex-1"><input id="conf" type="range" min="0" max="100" value="45" class="h-2 w-full cursor-pointer appearance-none rounded-lg"></div>
+              <input id="confNum" type="number" value="0.45" step="0.01" class="w-20 rounded-md border border-gray-300 px-2 py-1 text-center text-sm font-semibold">
+            </div>
+            <div class="flex w-full max-w-xl items-center gap-4">
+              <label class="block min-w-[120px] text-[14px] font-semibold text-gray-900">IOU:</label>
+              <div class="relative flex-1"><input id="iou" type="range" min="0" max="100" value="50" class="h-2 w-full cursor-pointer appearance-none rounded-lg"></div>
+              <input id="iouNum" type="number" value="0.50" step="0.01" class="w-20 rounded-md border border-gray-300 px-2 py-1 text-center text-sm font-semibold">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-center">
+          <button id="applyBtn" class="inline-flex items-center justify-center rounded-sm bg-f-primary px-2 py-1 text-xs text-white hover:bg-f-primary/90">Apply Thresholds (Conf: 45% | IOU: 50%)</button>
+        </div>
+        <p class="note text-center text-xs text-amber-800">Moving the sliders redraws the boxes. Apply saves them (<code>POST /testing/threshold-update</code>) after a purple "Confirmation Message" popup when a deployment is running.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ Screen 5: Performance metrics (removed) ═══════════════ -->
+<section id="s5" class="screen">
+  <div class="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-3xl font-medium">Instances</div>
+    <div class="flex items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><span>Hinge Line A</span></div>
+  </div>
+  <div class="note mx-5 mt-2 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
+    <b>Disabled:</b> this section sat under the Test Results page when the test had annotations. It is commented out in <code>steps/Results.jsx:588</code> (commit <code>02ed1713</code>, 2026-01-02, "…remove the performance metrics section from the results page"). Its parts still exist: <code>dashboard/creation-page/ui/ModulesImagesAndTable.jsx</code> and backend <code>/testing/image/score-threshold</code> + <code>/testing/image/confusion-matrix</code>.
+  </div>
+
+  <div class="mx-auto mb-10 mt-6 flex w-[60%] flex-col items-center gap-4">
+    <div class="flex flex-col gap-2">
+      <div class="mb-1 text-center text-4xl font-bold">Performance Metrics &amp; Recommendation Thresholds</div>
+      <div class="text-center text-xl text-gray-700">Review the graphs and metrics below to understand more about the model performance for this instance's selected camera config ROI wise.</div>
+      <div class="text-center text-xl text-gray-700">The threshold recommendations are shown in the table below. Use the sliders above to adjust thresholds and click "Apply Thresholds" to save.</div>
+    </div>
+
+    <div class="mx-auto w-full max-w-5xl">
+      <div class="mb-12">
+        <div class="mb-6 flex justify-center gap-6">
+          <svg viewBox="0 0 360 260" width="360" height="260" id="f1Chart" class="rounded border border-gray-200 bg-white"></svg>
+          <svg viewBox="0 0 300 260" width="300" height="260" id="cmChart" class="rounded border border-gray-200 bg-white"></svg>
+        </div>
+        <div class="bg-white p-6"><div class="overflow-x-auto">
+          <table class="min-w-full rounded-lg text-center">
+            <thead><tr class="bg-gray-100">
+              <th class="px-8 py-3 text-left font-bold text-gray-900">Model Name</th>
+              <th class="px-8 py-3 text-center font-bold text-gray-900">Class</th>
+              <th class="px-8 py-3 text-center font-bold text-gray-900">Confidence Threshold</th>
+              <th class="px-8 py-3 text-center font-bold text-gray-900">IOU Threshold</th>
+            </tr></thead>
+            <tbody>
+              <tr class="bg-white">
+                <td rowspan="3" class="px-8 py-3 text-left align-top">
+                  <div class="mb-2 flex items-center gap-3"><div class="font-semibold text-gray-900">hinge_pin_rfdetr_v3</div><span class="rounded-full bg-gray-400 px-3 py-1 text-sm font-medium text-white">Detection</span></div>
+                  <div class="mt-1 flex flex-wrap gap-2">
+                    <span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">pin</span>
+                    <span class="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">washer</span>
+                    <span class="rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800">missing_pin</span>
+                  </div>
+                </td>
+                <td class="w-full px-4 py-3 text-center">pin</td><td class="px-4 py-3 text-center">0.45</td><td class="px-4 py-3 text-center">0.5</td>
+              </tr>
+              <tr class="bg-white"><td class="w-full px-4 py-3 text-center">washer</td><td class="px-4 py-3 text-center">0.52</td><td class="px-4 py-3 text-center">0.5</td></tr>
+              <tr class="bg-white"><td class="w-full px-4 py-3 text-center">missing_pin</td><td class="px-4 py-3 text-center">NA</td><td class="px-4 py-3 text-center">NA</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+    </div>
+
+    <button class="inline-flex items-center justify-center rounded-sm bg-f-primary px-2 py-1 text-xs text-white">Apply Thresholds (Conf: 45% | IOU: 50%)</button>
+
+    <!-- ConfirmationPage (static preview) -->
+    <div class="mt-8 w-full max-w-md rounded-xl bg-white p-8 shadow-xl ring-1 ring-gray-200">
+      <div class="mb-4 flex items-center justify-between"><span class="text-lg font-semibold">Confirmation Message</span><button class="text-4xl text-gray-400">&times;</button></div>
+      <div class="mb-8 text-gray-700">There is an inferencing deployment running currently using the previous configuration details. Saving these new changes would also reload the configurations in the running deployment to reflect the new changes.</div>
+      <div class="flex justify-end gap-4">
+        <button class="rounded-full border border-purple-600 px-6 py-2 font-semibold text-purple-600">Cancel</button>
+        <button class="rounded-full bg-purple-600 px-6 py-2 font-semibold text-white">Confirm</button>
+      </div>
+    </div>
+    <p class="note text-xs text-amber-800">The confirmation popup above is still live; it opens from Apply Thresholds on screen 4 while a deployment is running.</p>
+  </div>
+</section>
+
+  </main>
+</div>
+
+<script>
+  // Screen switching
+  const show = (id) => {
+    document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
+    document.querySelectorAll('.viewer-tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.screen === id)));
+    window.scrollTo(0, 0);
+  };
+  document.querySelectorAll('.viewer-tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.screen)));
+  document.querySelectorAll('[data-go]').forEach((el) => el.addEventListener('click', (e) => { e.preventDefault(); show(el.dataset.go); }));
+  document.getElementById('notesToggle').addEventListener('change', (e) => document.body.classList.toggle('hide-notes', !e.target.checked));
+
+  // Embedded in the workflow shell (or ?clean=1): no viewer bar, no notes; ?state= picks the screen
+  const qs = new URLSearchParams(location.search);
+  if (window.self !== window.top || qs.get('clean') === '1') {
+    document.querySelector('body > .sticky').style.display = 'none';
+    document.body.classList.add('hide-notes');
+    const side = document.querySelector('aside');
+    side.style.top = '0'; side.style.height = '100vh';
+  }
+  const st = qs.get('state') || 's1';
+  if (st === 'running') {
+    show('s2');
+    document.body.insertAdjacentHTML('beforeend', '<div class="fixed inset-0 z-[300] flex items-center justify-center bg-gray-200/75"><div class="flex flex-col items-center"><div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-f-primary border-t-transparent text-sm font-semibold">42%</div><label class="mt-3 font-medium">Testing</label></div></div>');
+  } else if (document.getElementById(st)) show(st);
+  const STEP = { s1: 'edge-testing-tab', s2: 'edge-run-test', s4: 'edge-test-results' };
+  document.querySelectorAll('[data-go]').forEach((el) => el.addEventListener('click', () => {
+    if (window.self !== window.top && STEP[el.dataset.go]) parent.postMessage({ type: 'testing-v2-nav', to: STEP[el.dataset.go] }, '*');
+  }));
+
+  // Sample part image: a hinge plate with pins (stands in for the uploaded test image)
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v)); parent && parent.appendChild(n); return n; };
+  const drawPart = (svg) => {
+    const defs = el('defs', {}, svg);
+    const g = el('linearGradient', { id: svg.id + 'g', x1: 0, y1: 0, x2: 1, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#b8bcc2' }, g); el('stop', { offset: '1', 'stop-color': '#6b7077' }, g);
+    el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#1f2023' }, svg);
+    el('rect', { x: 60, y: 90, width: 280, height: 220, rx: 18, fill: `url(#${svg.id}g)` }, svg);
+    el('rect', { x: 60, y: 185, width: 280, height: 30, fill: '#585c62', opacity: 0.6 }, svg);
+    [[115, 140], [285, 140], [115, 260]].forEach(([cx, cy]) => {
+      el('circle', { cx, cy, r: 22, fill: '#2b2d31' }, svg);
+      el('circle', { cx, cy, r: 13, fill: '#d9dce0' }, svg);
+    });
+    el('circle', { cx: 285, cy: 260, r: 22, fill: '#2b2d31' }, svg); // empty hole: pin missing
+    el('circle', { cx: 200, cy: 200, r: 30, fill: '#9aa0a6', stroke: '#4b4f55', 'stroke-width': 4 }, svg);
+  };
+  drawPart(document.getElementById('refImg'));
+  const vis = document.getElementById('visImg');
+  drawPart(vis);
+
+  // Detections: [x, y, w, h, label, conf, iou] in a 400px canvas; colour from VisualizationImage's palette
+  const DETS = [
+    [90, 115, 50, 50, 'pin', 0.94, 0.88], [260, 115, 50, 50, 'pin', 0.91, 0.84], [90, 235, 50, 50, 'pin', 0.62, 0.71],
+    [258, 233, 54, 54, 'missing_pin', 0.57, 0.66], [165, 165, 70, 70, 'washer', 0.38, 0.52],
+  ];
+  const STROKE = '#50DFF3';
+  const boxes = el('g', {}, vis);
+  const redraw = () => {
+    const conf = Number(document.getElementById('conf').value) / 100;
+    const iou = Number(document.getElementById('iou').value) / 100;
+    while (boxes.firstChild) boxes.removeChild(boxes.firstChild);
+    DETS.filter((d) => d[5] >= conf && d[6] >= iou).forEach(([x, y, w, h, name, c, i]) => {
+      el('rect', { x, y, width: w, height: h, fill: 'none', stroke: STROKE, 'stroke-width': 2 }, boxes);
+      const t = el('text', { x, y: y - 4, 'font-size': 11, fill: STROKE, 'font-family': 'Outfit, sans-serif' }, boxes);
+      t.textContent = `${name} | Conf: ${(c * 100).toFixed(1)}% | IOU: ${(i * 100).toFixed(1)}%`;
+    });
+    ['conf', 'iou'].forEach((id) => {
+      const v = document.getElementById(id).value;
+      document.getElementById(id).style.background = `linear-gradient(to right, #6B4EFF ${v}%, #e5e7eb ${v}%)`;
+      document.getElementById(id + 'Num').value = (v / 100).toFixed(2);
+    });
+    document.getElementById('applyBtn').textContent = `Apply Thresholds (Conf: ${(conf * 100).toFixed(0)}% | IOU: ${(iou * 100).toFixed(0)}%)`;
+  };
+  ['conf', 'iou'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', redraw);
+    document.getElementById(id + 'Num').addEventListener('change', (e) => { document.getElementById(id).value = Math.round(Number(e.target.value) * 100); redraw(); });
+  });
+  redraw();
+
+  // F1 score vs threshold (matplotlib-style plot served by /testing/image/score-threshold)
+  const f1 = document.getElementById('f1Chart');
+  el('text', { x: 180, y: 20, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600 }, f1).textContent = 'F1 Score VS Threshold';
+  el('line', { x1: 40, y1: 225, x2: 340, y2: 225, stroke: '#333' }, f1); el('line', { x1: 40, y1: 35, x2: 40, y2: 225, stroke: '#333' }, f1);
+  [0, 0.25, 0.5, 0.75, 1].forEach((v) => {
+    el('text', { x: 40 + v * 300, y: 240, 'text-anchor': 'middle', 'font-size': 10 }, f1).textContent = v;
+    el('text', { x: 34, y: 228 - v * 190, 'text-anchor': 'end', 'font-size': 10 }, f1).textContent = v;
+  });
+  el('text', { x: 190, y: 256, 'text-anchor': 'middle', 'font-size': 11 }, f1).textContent = 'Confidence threshold';
+  const curve = (peak, height, color) => {
+    const pts = [];
+    for (let t = 0; t <= 1.0001; t += 0.05) pts.push([40 + t * 300, 225 - 190 * height * Math.exp(-((t - peak) ** 2) / 0.09)]);
+    el('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 2 }, f1);
+  };
+  curve(0.45, 0.93, '#1f77b4'); curve(0.52, 0.86, '#2ca02c'); curve(0.6, 0.55, '#d62728');
+  [['pin', '#1f77b4'], ['washer', '#2ca02c'], ['missing_pin', '#d62728']].forEach(([n, c], i) => {
+    el('line', { x1: 255, y1: 45 + i * 14, x2: 270, y2: 45 + i * 14, stroke: c, 'stroke-width': 2 }, f1);
+    el('text', { x: 274, y: 49 + i * 14, 'font-size': 10 }, f1).textContent = n;
+  });
+
+  // Confusion matrix (served by /testing/image/confusion-matrix)
+  const cm = document.getElementById('cmChart');
+  el('text', { x: 150, y: 20, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600 }, cm).textContent = 'Confusion Matrix';
+  const labels = ['pin', 'washer', 'missing', 'bg'];
+  const M = [[182, 2, 3, 6], [1, 57, 0, 4], [5, 0, 21, 3], [7, 3, 2, 0]];
+  const max = 182;
+  M.forEach((row, r) => row.forEach((v, c) => {
+    const shade = Math.round(255 - (v / max) * 200);
+    el('rect', { x: 70 + c * 50, y: 35 + r * 45, width: 50, height: 45, fill: `rgb(${shade},${shade},255)`, stroke: '#fff' }, cm);
+    el('text', { x: 95 + c * 50, y: 62 + r * 45, 'text-anchor': 'middle', 'font-size': 12, fill: v > 90 ? '#fff' : '#111' }, cm).textContent = v;
+  }));
+  labels.forEach((l, i) => {
+    el('text', { x: 64, y: 62 + i * 45, 'text-anchor': 'end', 'font-size': 10 }, cm).textContent = l;
+    el('text', { x: 95 + i * 50, y: 232, 'text-anchor': 'middle', 'font-size': 10 }, cm).textContent = l;
+  });
+  el('text', { x: 170, y: 250, 'text-anchor': 'middle', 'font-size': 11 }, cm).textContent = 'Predicted';
+</script>
+</body>
+</html>

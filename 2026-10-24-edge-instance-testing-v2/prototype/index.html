@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Instance Testing v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bar: #111; --ink: #e5e7eb; --muted: #9ca3af; --accent: #ff4301; --line: #2a2a2a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #fff; font-family: Outfit, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 14px; background: var(--bar); color: var(--ink); font-size: 13px; border-bottom: 1px solid #000; }
+  .title { font-weight: 600; color: #fff; margin-right: 6px; }
+  .group { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px; }
+  nav button, .ctl button { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+  nav button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ctl { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; }
+  .seg button[aria-pressed="true"] { background: #fff; color: #111; }
+  iframe { flex: 1; width: 100%; border: 0; }
+</style>
+</head>
+<body>
+<header>
+  <span class="title">Edge · Instance Testing v2</span>
+  <span class="group">Frinks Edge</span>
+  <nav id="steps" aria-label="Workflow steps"></nav>
+  <div class="ctl">
+    <div class="seg" role="group" aria-label="Today or after change">
+      <button data-mode="today">Today</button><button data-mode="after">After change</button>
+    </div>
+    <button id="back">‹ Back</button><button id="next">Next step ›</button>
+  </div>
+</header>
+<iframe id="screen" title="Screen"></iframe>
+<script>
+// Step list: id -> screen for each mode
+const STEPS = [
+  { id: 'edge-instances', label: 'Instance Details', today: 'after.html#vt=0&today=1', after: 'after.html#vt=0' },
+  { id: 'edge-testing-tab', label: 'Testing tab', today: 'today.html?state=s1', after: 'after.html#vt=1&hist=1' },
+  { id: 'edge-run-test', label: 'Run a new test', today: 'today.html?state=s2', after: 'after.html#vt=2' },
+  { id: 'edge-test-running', label: 'Test running', today: 'today.html?state=running', after: 'after.html#vt=3' },
+  { id: 'edge-test-results', label: 'Test results', today: 'today.html?state=s4', after: 'after.html#vt=4' },
+  { id: 'edge-performance-metrics', label: 'Performance metrics', today: 'today.html?state=s4', after: 'after.html#vt=4&tab=metrics&annot=1' },
+];
+const KEY = 'edge-testing-v2-shell';
+let st = { mode: 'after' };
+try { st = { ...st, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) {}
+const qp = new URLSearchParams(location.search);
+if (qp.get('mode') === 'today' || qp.get('mode') === 'after') st.mode = qp.get('mode');
+let cur = Math.max(0, STEPS.findIndex((s) => s.id === location.hash.slice(1)));
+const frame = document.getElementById('screen');
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+
+function paint() {
+  document.getElementById('steps').innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" ${i === cur ? 'aria-current="step"' : ''}>${i + 1} · ${s.label}</button>`).join('');
+  document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === st.mode)));
+  document.getElementById('back').disabled = cur === 0;
+  document.getElementById('next').disabled = cur === STEPS.length - 1;
+  history.replaceState(null, '', `${location.pathname}?mode=${st.mode}#${STEPS[cur].id}`);
+}
+function load() {
+  const src = STEPS[cur][st.mode];
+  // Same page, different hash: change the hash only so the screen keeps its state
+  const now = frame.getAttribute('src') || '';
+  if (now.split('#')[0] === src.split('#')[0] && src.includes('#') && frame.contentWindow) {
+    frame.setAttribute('src', src);
+    try { frame.contentWindow.location.hash = src.split('#')[1]; } catch (e) { frame.src = src; }
+  } else frame.src = src;
+  paint();
+}
+document.getElementById('steps').addEventListener('click', (e) => { const b = e.target.closest('[data-i]'); if (b) { cur = +b.dataset.i; load(); } });
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => { st.mode = b.dataset.mode; save(); load(); }));
+document.getElementById('back').addEventListener('click', () => { if (cur > 0) { cur--; load(); } });
+document.getElementById('next').addEventListener('click', () => { if (cur < STEPS.length - 1) { cur++; load(); } });
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'testing-v2-nav') return;
+  const i = STEPS.findIndex((s) => s.id === e.data.to);
+  if (i >= 0 && i !== cur) { cur = i; paint(); }
+});
+window.addEventListener('hashchange', () => { const i = STEPS.findIndex((s) => s.id === location.hash.slice(1)); if (i >= 0 && i !== cur) { cur = i; load(); } });
+load();
+</script>
+</body>
+</html>

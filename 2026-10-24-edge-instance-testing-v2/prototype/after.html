@@ -1,0 +1,1525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Instance Testing v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.1"></script>
+<script>
+  // Same theme as frinksedge-deployment-frontend/tailwind.config.js
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'f-primary': '#ff4301', 'f-secondary': '#d1d5dc', 'f-flat': '#e7e7ff', 'f-gray': '#312f2f',
+          'f-light-gray': '#d9d9d9', 'f-dark-gray': '#7a7e80', 'f-light-purple': '#c6c4ff', 'f-light': '#f7bda9',
+        },
+        fontFamily: { sans: ['Outfit', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  :root { --vb: 44px; }
+  body { background: #fff; }
+  .viewer-tab[aria-selected="true"] { background: #ff4301; color: #fff; }
+  input[type=range] { -webkit-appearance: none; appearance: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 9999px; background: #6B4EFF; border: 2px solid #fff; box-shadow: 0 0 0 1px #6B4EFF; }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 9999px; background: #6B4EFF; border: 2px solid #fff; box-shadow: 0 0 0 1px #6B4EFF; }
+  /* Overlay text: the line draws text with a black outline, then in colour */
+  .ov { font-family: Outfit, sans-serif; font-weight: 700; paint-order: stroke; stroke: #000; stroke-width: 3px; stroke-linejoin: round; }
+  .ovb { font-family: Outfit, sans-serif; font-weight: 600; }
+  .sw { position: relative; display: inline-block; width: 40px; height: 22px; border-radius: 9999px; background: #d1d5db; transition: background .15s; }
+  .sw > span { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: left .15s; }
+  .sw.on { background: #ff4301; }
+  .sw.on > span { left: 21px; }
+  .spin { width: 18px; height: 18px; border-radius: 9999px; border: 3px solid #ff4301; border-top-color: transparent; animation: spin 0.9s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .flash { animation: flash 1.4s ease-out; }
+  @keyframes flash { 0% { box-shadow: 0 0 0 4px rgba(255,67,1,.55); } 100% { box-shadow: 0 0 0 0 rgba(255,67,1,0); } }
+</style>
+</head>
+<body class="font-sans text-gray-900">
+
+<!-- ───────────── Viewer bar (not part of the app) ───────────── -->
+<div id="viewerBar" class="sticky top-0 z-[200] flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-black bg-[#111] px-4 py-2 text-sm text-gray-300">
+  <span class="mr-2 font-semibold text-white">Edge · Instance Testing <span class="font-normal text-gray-400">v2</span></span>
+  <button class="viewer-tab rounded px-3 py-1" data-vt="0">0 · Instance Details</button>
+  <button class="viewer-tab rounded px-3 py-1" data-vt="1">1 · Testing tab</button>
+  <button class="viewer-tab rounded px-3 py-1" data-vt="2">2 · Run a new test</button>
+  <button class="viewer-tab rounded px-3 py-1" data-vt="3">3 · Test running</button>
+  <button class="viewer-tab rounded px-3 py-1" data-vt="4">4 · Test results</button>
+  <div class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">
+    <label class="flex cursor-pointer items-center gap-1.5"><input id="tgDeploy" type="checkbox"> Deployment running on this device</label>
+    <label class="flex cursor-pointer items-center gap-1.5"><input id="tgOther" type="checkbox"> Another user's test running</label>
+    <label class="flex cursor-pointer items-center gap-1.5"><input id="tgRecipe" type="checkbox"> Recipe changed since test</label>
+    <label class="flex cursor-pointer items-center gap-1.5"><input id="tgAnnot" type="checkbox"> Annotations provided</label>
+  </div>
+</div>
+
+<!-- ───────────── App shell: collapsed main sidebar ───────────── -->
+<div class="flex min-h-[calc(100vh-var(--vb))]">
+  <aside class="sticky flex shrink-0 flex-col items-center border-r border-r-gray-300 bg-[#1e1c1c] px-2 py-6 shadow-md" style="top:var(--vb);height:calc(100vh - var(--vb));width:114px">
+    <div class="mb-10 mt-3 flex h-10 w-10 items-center justify-center rounded-md bg-f-primary text-xl font-bold text-white">F</div>
+    <ul class="mt-8 flex w-full flex-col gap-2 text-white">
+      <li class="flex justify-center rounded-md bg-white/10 py-2" title="Instances">
+        <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><path d="M29.3 16h-8l-2.6 4h-5.4L10.7 16H2.7m26.6 0v8a2.7 2.7 0 0 1-2.7 2.7H5.3A2.7 2.7 0 0 1 2.7 24v-8m26.6 0L24.7 6.8a2.7 2.7 0 0 0-2.4-1.5H9.7a2.7 2.7 0 0 0-2.4 1.5L2.7 16" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Integrations">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Deployments">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Health Monitoring">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </li>
+      <li class="flex justify-center rounded-md py-2 hover:bg-white/10" title="Users &amp; Permissions">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </li>
+    </ul>
+    <div class="mt-auto flex h-10 w-10 items-center justify-center rounded-md text-white">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  </aside>
+
+  <main class="relative min-w-0 flex-1 bg-white">
+    <div id="app"></div>
+  </main>
+</div>
+
+<div id="modal"></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[500] -translate-x-1/2 rounded-md bg-gray-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity"></div>
+
+<script>
+/* ════════════════════════ helpers ════════════════════════ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+const P = (pts) => pts.map((p) => `${(+p[0]).toFixed(1)},${(+p[1]).toFixed(1)}`).join(' ');
+const pct = (v) => `${Math.round(v * 100)}%`;
+const fmt = (s) => (s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`);
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rotP = (p, deg, c = [200, 200]) => { const a = (deg * Math.PI) / 180, dx = p[0] - c[0], dy = p[1] - c[1]; return [c[0] + dx * Math.cos(a) - dy * Math.sin(a), c[1] + dx * Math.sin(a) + dy * Math.cos(a)]; };
+const bbox = (pts) => { const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]); const x = Math.min(...xs), y = Math.min(...ys); return [x, y, Math.max(...xs) - x, Math.max(...ys) - y]; };
+const iou = (a, b) => { const ix = Math.max(0, Math.min(a[0] + a[2], b[0] + b[2]) - Math.max(a[0], b[0])); const iy = Math.max(0, Math.min(a[1] + a[3], b[1] + b[3]) - Math.max(a[1], b[1])); const i = ix * iy; return i / (a[2] * a[3] + b[2] * b[3] - i); };
+const circlePts = (cx, cy, r, n = 14) => Array.from({ length: n }, (_, k) => [cx + r * Math.cos((k / n) * 2 * Math.PI), cy + r * Math.sin((k / n) * 2 * Math.PI)]);
+
+const ICON = {
+  info: '<svg class="mt-[2px] h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  warn: '<svg class="mt-[2px] h-4 w-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+  err: '<svg class="mt-[2px] h-4 w-4 shrink-0 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>',
+  ok: '<svg class="mt-[2px] h-4 w-4 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>',
+  lock: '<svg class="mt-[2px] h-4 w-4 shrink-0 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  shield: '<svg class="mt-[2px] h-4 w-4 shrink-0 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
+  folder: '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fbbf24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg>',
+};
+
+/* ════════════════════════ sample data ════════════════════════ */
+// One fixed colour per module (today's testing palette, red and green left out): colour = module, never pass/fail
+const MARK = '#FFEF33';
+const MODS = {
+  pin: { name: 'Pin detection', type: 'det', typeName: 'Object detection', color: '#50DFF3', model: 'Pin detector v3', ms: 38,
+    classes: ['pin', 'washer', 'missing pin'],
+    saved: { pin: [0.45, 0.5], washer: [0.52, 0.5], 'missing pin': [0.4, 0.5] },
+    sugg: { pin: [0.41, 0.55], washer: [0.58, 0.5], 'missing pin': [0.47, 0.45] },
+    peak: { pin: 0.93, washer: 0.88, 'missing pin': 0.71 },
+    cm: { labels: ['pin', 'washer', 'missing pin', 'nothing'], m: [[331, 2, 4, 9], [1, 104, 0, 5], [6, 0, 38, 4], [11, 3, 2, 0]] } },
+  finish: { name: 'Surface finish', type: 'cls', typeName: 'Classification', color: '#FFC033', model: 'Plate finish classifier v2', ms: 11,
+    classes: ['clean', 'scratch', 'dent'],
+    saved: { clean: [0.6], scratch: [0.55], dent: [0.55] },
+    sugg: { clean: [0.55], scratch: [0.62], dent: [0.5] },
+    peak: { clean: 0.96, scratch: 0.84, dent: 0.74 },
+    cm: { labels: ['clean', 'scratch', 'dent'], m: [[84, 4, 2], [3, 13, 1], [1, 1, 5]] } },
+  plating: { name: 'Knuckle colour', type: 'color', typeName: 'Colour detection', color: '#33FFD0', ms: 6 },
+  hshapes: { name: 'Hole & edge shapes', type: 'shape', typeName: 'Shape extractor', color: '#FFEF33', ms: 24 },
+  weld: { name: 'Weld check', type: 'seg', typeName: 'Segmentation', color: '#E033FF', model: 'Weld segmenter v5', ms: 52,
+    classes: ['weld', 'spatter', 'porosity'],
+    saved: { weld: [0.5, 0.45], spatter: [0.4, 0.45], porosity: [0.35, 0.45] },
+    sugg: { weld: [0.48, 0.5], spatter: [0.46, 0.45], porosity: [0.3, 0.4] },
+    peak: { weld: 0.95, spatter: 0.79, porosity: 0.66 },
+    cm: { labels: ['weld', 'spatter', 'porosity', 'nothing'], m: [[62, 0, 1, 1], [0, 41, 3, 9], [0, 2, 17, 6], [0, 7, 4, 0]] } },
+  bshapes: { name: 'Bracket shapes', type: 'shape', typeName: 'Shape extractor', color: '#33A1FF', ms: 19 },
+  tilt: { name: 'Bracket tilt', type: 'tilt', typeName: 'Orientation & tilt check', color: '#FFEF33', ms: 8 },
+  bead: { name: 'Sealant bead', type: 'bead', typeName: 'Bead inspection', color: '#33A1FF', ms: 61 },
+  ocr: { name: 'Label text', type: 'ocr', typeName: 'OCR (Read & Match)', color: '#FFC033', model: 'Label text reader', ms: 45,
+    classes: ['text'], saved: { text: [0.7] }, sugg: { text: [0.62] }, peak: { text: 0.94 } },
+  qr: { name: 'Label QR code', type: 'code', typeName: 'Code reader', color: '#50DFF3', ms: 9 },
+};
+const HAS_IOU = (t) => t === 'det' || t === 'seg';
+
+const CAPS = {
+  hu: { v: 'Hinge U', c: 'Right Part', mods: ['pin', 'finish'] },
+  hy: { v: 'Hinge Y', c: 'Top View', mods: ['plating', 'hshapes'], uncal: true },
+  br: { v: 'Bracket', c: 'Weld View', mods: ['weld', 'bshapes', 'tilt'], noDims: true },
+  hs: { v: 'Housing', c: 'Sealant', mods: ['bead'] },
+  hl: { v: 'Housing', c: 'Label', mods: ['ocr', 'qr'] },
+};
+const cn = (id) => `${CAPS[id].v} · ${CAPS[id].c}`;
+const UNREADABLE = [7, 23, 41, 58, 77, 102]; // Hinge U · Right Part, Test 14
+
+const TESTS = [
+  { n: 14, started: '16 Oct 2026, 10:42 AM', took: '3 min 12 s', by: 'you', imgs: { hu: 120, hy: 88, br: 64, hs: 40, hl: 120 }, status: 'errors',
+    reason: '6 of 120 images for Hinge U · Right Part could not be read (the files are damaged). They were left out; everything else was tested.', results: true },
+  { n: 13, started: '15 Oct 2026, 4:20 PM', took: '1 min 05 s', by: 'Akshat', imgs: { hu: 40, hy: 24 }, status: 'done',
+    reason: '', results: true },
+  { n: 12, started: '15 Oct 2026, 2:02 PM', took: '12 s', by: 'you', imgs: { hs: 40, hl: 120 }, status: 'failed',
+    reason: 'The device ran out of storage space while saving results. Free up space, then run the test again.', results: false },
+  { n: 11, started: '14 Oct 2026, 6:10 PM', took: '40 s', by: 'Akshat', imgs: { hu: 30, br: 20, hs: 20, hl: 20 }, status: 'cancelled',
+    reason: 'Cancelled by Akshat after 30 of 90 images. Nothing was kept.', results: false },
+  { n: 10, started: '14 Oct 2026, 11:40 AM', took: '2 min 14 s', by: 'you', imgs: { hu: 120, hy: 88 }, status: 'done', reason: '', results: true },
+];
+const STATUS = {
+  running: { label: 'Running', cls: 'bg-blue-100 text-blue-800' },
+  done: { label: 'Completed', cls: 'bg-emerald-100 text-emerald-800' },
+  errors: { label: 'Completed with errors', cls: 'bg-amber-100 text-amber-900' },
+  failed: { label: 'Failed', cls: 'bg-red-100 text-red-800' },
+  cancelled: { label: 'Cancelled', cls: 'bg-gray-200 text-gray-700' },
+};
+const pill = (st, extra = '') => `<span class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS[st].cls}">${STATUS[st].label}${extra}</span>`;
+
+// Run drawer rows. warnC = config warnings (always shown); warnF = folder warnings (only once a folder is chosen)
+const ROWS = [
+  { id: 'hu', v: 'Hinge U', c: 'Right Part', pick: 'hinge_u_right', imgs: 120, annotated: true },
+  { id: 'hul', v: 'Hinge U', c: 'Left Part', err: "Can't be tested: this capture's model files are missing on this device. Upload the instance to the device again to restore them." },
+  { id: 'hy', v: 'Hinge Y', c: 'Top View', pick: 'hinge_y_top', imgs: 88,
+    warnF: ["Image size doesn't match this camera: your images are 1920 × 1080, but this camera takes 2448 × 2048 images. Search areas would land in the wrong place, so the results won't be reliable."] },
+  { id: 'br', v: 'Bracket', c: 'Weld View', pick: 'bracket_weld', imgs: 64, annotated: true, warnC: ['No dimensions set — the results will show shapes only.'] },
+  { id: 'hs', v: 'Housing', c: 'Sealant', pick: 'housing_sealant_oct', imgs: 640,
+    warnF: ['640 images is more than the suggested 500 per capture. The test will take longer; a smaller folder gives results sooner.',
+      'Not enough free space on the device: these images need about 2.4 GB and only 1.1 GB is free. Free up space or choose fewer images.'] },
+  { id: 'hl', v: 'Housing', c: 'Label', pick: 'housing_label', imgs: 120, annotated: true },
+  { id: 'hg', v: 'Housing', c: 'Gasket', err: "Can't be tested: bead inspection isn't set up for this capture yet (bead width and gap rules are missing).", link: 'Open Edit Module Configurations' },
+];
+const imgsOf = (id) => ROWS.find((r) => r.id === id).imgs;
+
+/* ════════════════════════ state ════════════════════════ */
+const S = {
+  vt: 0, screen: 'list', inst: 'Hinge Line A', instFilter: 'all', pick: false, noHistory: true,
+  deploy: false, other: false, recipe: false, annot: false,
+  myRun: null, deleted: [], today: false,
+  dr: { f: { hu: true, hy: true, br: true, hs: true, hl: false }, up: null },
+  res: { test: 14, tab: 'results', cap: 'hu', img: 2, mod: { hu: 'pin', hy: 'plating', br: 'weld', hs: 'bead', hl: 'ocr' } },
+  thr: {}, saved: {},
+};
+for (const [id, m] of Object.entries(MODS)) {
+  if (!m.classes) continue;
+  S.thr[id] = {}; S.saved[id] = {};
+  m.classes.forEach((c) => {
+    const [conf, iouv = null] = m.saved[c];
+    S.thr[id][c] = { conf, iou: iouv }; S.saved[id][c] = { conf, iou: iouv };
+  });
+}
+
+/* ════════════════════════ test / run model ════════════════════════ */
+function activeRun() {
+  if (S.other) return { n: 15, by: 'Akshat', pct: 42, state: 'running', caps: ['hu', 'br', 'hl'], started: '11:05 AM' };
+  if (S.myRun) return { by: 'you', ...S.myRun };
+  return null;
+}
+function runNumbers(r) {
+  const tot = r.caps.reduce((s, c) => s + imgsOf(c), 0);
+  const done = Math.round((tot * r.pct) / 100);
+  return { tot, done };
+}
+function runAsTest(r) {
+  const { tot, done } = runNumbers(r);
+  // Cancelled tests list what was actually tested, capture by capture
+  const imgs = {}; let rem = done;
+  r.caps.forEach((c) => {
+    if (r.state === 'cancelled') { const d = Math.min(imgsOf(c), rem); rem -= d; if (d > 0) imgs[c] = d; }
+    else imgs[c] = imgsOf(c);
+  });
+  const TOTAL = 240;
+  const reason = {
+    running: '',
+    done: '',
+    cancelled: `Cancelled by ${r.cancelledBy || r.by} after ${done} of ${tot} images. Nothing was kept.`,
+  }[r.state];
+  return { n: r.n, started: `16 Oct 2026, ${r.started}`, took: r.state === 'running' ? '—' : fmt(Math.round((TOTAL * r.pct) / 100)), by: r.by, imgs, status: r.state, reason,
+    results: r.state === 'done', pct: r.pct, live: true };
+}
+const allTests = () => { const past = S.noHistory ? [] : TESTS.filter((t) => !S.deleted.includes(t.n)); const r = activeRun(); return r ? [runAsTest(r), ...past] : [...past]; };
+const testById = (n) => allTests().find((t) => t.n === n) || TESTS[0];
+const curTest = () => testById(S.res.test);
+const isBad = (cap, i) => curTest().status === 'errors' && cap === 'hu' && UNREADABLE.includes(i);
+const nImgs = (cap) => curTest().imgs[cap] || 0;
+
+function runBlocks() {
+  const out = [];
+  if (S.deploy) out.push(`A deployment is running on this device. Stop it to run a test.`);
+  const r = activeRun();
+  if (r && r.state === 'running') {
+    out.push(r.by === 'you'
+      ? `Your test is running — ${r.pct}%. Only one test can run on a device at a time.`
+      : `Test running (by ${r.by}) — ${r.pct}%. Only one test can run on a device at a time.`);
+  }
+  return out;
+}
+
+/* ════════════════════════ page pieces ════════════════════════ */
+const INSTANCES = [
+  { id: '27836527-a2e4-4cbb-9541-78470fed74fe', name: 'Hinge Line A', created: '7/20/2026, 7:35:00 PM', updated: '10/14/2026, 1:33:21 PM', team: 'Quality Team' },
+  { id: 'a3a39f46-13ba-468a-b33c-8c6075ff1e08', name: 'Housing Line B', created: '8/14/2026, 11:28:19 AM', updated: '10/12/2026, 11:39:36 AM', team: 'AE TEAM' },
+  { id: 'ddeba5f2-ed69-4d06-b8b2-4ce448c8bb4e', name: 'Bracket Weld Cell', created: '7/7/2026, 4:24:39 PM', updated: '9/30/2026, 1:31:21 PM', team: 'AE TEAM' },
+  { id: 'e560395d-8b4a-4f64-81e9-4be747b788dd', name: 'Label Check Station', created: '5/27/2026, 11:58:39 AM', updated: '9/30/2026, 1:32:48 PM', team: 'Quality Team' },
+];
+function instanceList() {
+  const rows = INSTANCES.filter((x) => S.instFilter === 'all' || x.name === S.instFilter);
+  const th = (t, last = false) => `<th class="px-4 py-4 text-center text-base font-semibold text-white ${last ? '' : 'border-r-2 border-white/80'}">${t}</th>`;
+  return `<div class="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+      <div class="text-3xl font-medium">Instances</div>
+      <div class="flex items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><span>Instance Details</span></div>
+    </div>
+    <div class="px-5 pb-6">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <span class="relative inline-block">
+          <select id="instFilter" class="appearance-none bg-transparent py-1 pl-3 pr-7 text-sm font-medium text-gray-800">
+            <option value="all" ${S.instFilter === 'all' ? 'selected' : ''}>All Instances</option>
+            ${INSTANCES.map((x) => `<option value="${x.name}" ${S.instFilter === x.name ? 'selected' : ''}>${x.name}</option>`).join('')}
+          </select>
+          <svg class="pointer-events-none absolute right-1 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </span>
+        <div class="relative flex items-center gap-3">
+          ${S.today ? '' : `<button data-act="openTesting" class="inline-flex items-center gap-2 rounded-md border border-f-primary bg-white px-6 py-2 text-sm font-semibold text-f-primary hover:bg-f-primary/5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/></svg>Instance Testing</button>`}
+          <button data-act="toast" data-msg="Opens Add Instance (unchanged)." class="inline-flex items-center rounded-md bg-f-primary px-6 py-2 text-sm font-semibold text-white hover:bg-f-primary/90">Add Instance</button>
+          ${S.pick ? `<div class="absolute right-0 top-full z-50 mt-2 w-72 rounded-lg bg-white p-2 shadow-xl ring-1 ring-gray-200" role="menu">
+              <div class="px-2 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Which instance do you want to test?</div>
+              ${INSTANCES.map((x) => `<button data-act="pickInst" data-name="${x.name}" class="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-800 hover:bg-gray-100" role="menuitem">${x.name}</button>`).join('')}
+            </div>` : ''}
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[900px]">
+          <thead><tr class="bg-f-primary">${th('Instance ID')}${th('Instance Name')}${th('Created At')}${th('Updated At')}${th('Team')}${th('Actions', true)}</tr></thead>
+          <tbody class="divide-y divide-gray-200 text-center">${rows.map((x) => `<tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 text-gray-800">${x.id}</td>
+            <td class="px-4 py-3"><a href="#" data-act="toast" data-msg="Opens Instance Overview for ${x.name} (unchanged)." class="text-gray-900 hover:underline">${x.name}</a></td>
+            <td class="px-4 py-3 text-gray-800">${x.created}</td><td class="px-4 py-3 text-gray-800">${x.updated}</td><td class="px-4 py-3 text-gray-800">${x.team}</td>
+            <td class="px-4 py-3 text-xl text-gray-700">⋮</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+function pageHead() {
+  return `<div class="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-3xl font-medium">Instances</div>
+    <div class="flex items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><a href="#" data-act="goList" class="hover:underline">Instance Details</a><span class="text-gray-400">›</span><span>${S.inst}</span></div>
+  </div>`;
+}
+function tabsBar() {
+  return `<div class="mb-6 flex border-b border-gray-200">
+    <button class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700" data-act="toast" data-msg="Opens Instance Overview (unchanged).">Instance Overview</button>
+    <button class="border-b-2 border-f-primary px-6 py-3 font-medium text-f-primary" data-act="backToTests">Testing</button>
+  </div>`;
+}
+function reasonsHtml() {
+  const b = runBlocks();
+  if (!b.length) return '';
+  return `<div class="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800">
+      ${b.map((t) => `<div class="flex items-start gap-2">${ICON.lock}<span>${t}</span></div>`).join('')}
+    </div>
+    `;
+}
+
+/* ─── Screen: Testing tab ─── */
+function testingTab() {
+  const blocked = runBlocks().length > 0;
+  const r = activeRun();
+  return `${pageHead()}
+  <div class="p-5">${tabsBar()}
+    <div class="mx-auto flex max-w-6xl flex-col gap-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 class="text-xl font-bold">Testing</h1>
+          <p class="mt-1 text-gray-600">Try this instance's current setup on folders of saved images before you use it on the line.</p>
+        </div>
+        <button data-act="openDrawer" ${blocked ? 'disabled aria-disabled="true"' : ''} class="inline-flex items-center justify-center rounded-md border border-transparent bg-f-primary px-6 py-2 text-sm font-semibold text-white hover:bg-f-primary/90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600">Run Test</button>
+      </div>
+      <div id="reasons" class="flex flex-col gap-2 empty:hidden">${reasonsHtml()}</div>
+      <div id="runWrap" class="flex flex-col gap-2 empty:hidden">${r ? runCard(r) : ''}</div>
+      ${lastTestCard()}
+      ${historyCard()}
+    </div>
+  </div>`;
+}
+
+function runCard(r) {
+  const { tot, done } = runNumbers(r);
+  const TOTAL = 240, elapsed = Math.round((TOTAL * r.pct) / 100), left = TOTAL - elapsed;
+  let rem = done;
+  const tiles = r.caps.map((c) => { const n = imgsOf(c); const d = Math.max(0, Math.min(n, rem)); rem -= d; return { c, n, d }; });
+  const tile = ({ c, n, d }) => {
+    const st = d >= n ? `<span class="flex items-center gap-1 text-emerald-700">${ICON.ok}Done</span>` : d > 0 ? `${d} of ${n}` : '<span class="text-gray-400">Waiting</span>';
+    return `<div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div class="text-sm font-semibold text-gray-800">${cn(c)}</div>
+      <div class="mt-1 flex items-center justify-between text-xs text-gray-600"><span>${n} images</span>${st}</div>
+      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200"><div class="h-full rounded-full ${d >= n ? 'bg-emerald-500' : 'bg-f-primary'}" style="width:${(d / n) * 100}%"></div></div>
+    </div>`;
+  };
+  const who = r.by === 'you' ? 'you' : r.by;
+
+  if (r.state === 'running') {
+    return `<section class="rounded-xl border-2 border-blue-200 bg-white p-5 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3"><span class="spin"></span><h2 class="text-lg font-semibold">Test ${r.n} is running${r.by !== 'you' ? ` (by ${r.by})` : ''} — ${r.pct}%</h2></div>
+        <div class="flex items-center gap-3">${r.by !== 'you' ? `<span class="text-sm text-gray-500">Started by ${r.by}</span>` : ''}<button data-act="askCancel" class="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel test</button></div>
+      </div>
+      <div class="mt-3 h-2.5 overflow-hidden rounded-full bg-gray-200"><div class="h-full rounded-full bg-f-primary" style="width:${r.pct}%"></div></div>
+      <div class="mt-2 text-sm text-gray-600">Started ${r.started} by ${who} · ${fmt(elapsed)} so far · about ${fmt(left)} left · ${done} of ${tot} images tested</div>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">${tiles.map(tile).join('')}</div>
+      <p class="mt-3 text-sm text-gray-500">You can leave this page. The test keeps running, and its results appear here when it's done.</p>
+    </section>
+    `;
+  }
+  // Finished or cancelled tests show in the Last test card and the history
+  return '';
+}
+
+function lastTestCard() {
+  const t = allTests().find((x) => x.status !== 'running');
+  if (!t) return '';
+  const caps = Object.keys(t.imgs);
+  const rows = caps.map((c) => {
+    const n = t.imgs[c];
+    const bad = t.status === 'errors' && c === 'hu' ? UNREADABLE.length : 0;
+    const chips = CAPS[c].mods.map((m) => `<span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs text-gray-700 ring-1 ring-gray-200"><span class="inline-block h-2 w-2 rounded-sm" style="background:${MODS[m].color}"></span>${MODS[m].name} <b class="font-semibold text-gray-900">${MODS[m].ms} ms</b></span>`).join(' ');
+    return `<tr class="align-top">
+      <td class="py-2.5 pr-4 font-medium text-gray-900">${cn(c)}</td>
+      <td class="py-2.5 pr-4 text-gray-700">${bad ? `${n - bad} of ${n} <span class="text-xs text-amber-800">(${bad} couldn't be read)</span>` : n}</td>
+      <td class="py-2.5"><div class="flex flex-wrap gap-1.5">${chips}</div></td>
+    </tr>`;
+  }).join('');
+  const total = caps.reduce((s, c) => s + t.imgs[c], 0);
+  return `<section class="rounded-xl border border-gray-100 bg-gray-50/50 p-6 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Last test</div>
+          <h2 class="mt-1 flex flex-wrap items-center gap-2 text-xl font-semibold text-gray-800">Test ${t.n} ${pill(t.status)}</h2>
+          ${t.reason ? `<p class="mt-1 max-w-3xl text-sm text-gray-700">${t.reason}</p>` : ''}
+        </div>
+        ${t.results ? `<button data-act="viewResults" data-test="${t.n}" class="inline-flex items-center justify-center rounded-md border border-f-primary bg-transparent px-6 py-2 text-sm font-semibold text-f-primary hover:bg-f-primary/5">View results</button>` : ''}
+      </div>
+      <dl class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div><dt class="text-sm text-gray-500">Ran</dt><dd class="font-semibold text-gray-900">${t.started}<span class="block text-sm font-normal text-gray-600">by ${t.by}</span></dd></div>
+        <div><dt class="text-sm text-gray-500">Took</dt><dd class="font-semibold text-gray-900">${t.took}</dd></div>
+        <div><dt class="text-sm text-gray-500">Images</dt><dd class="font-semibold text-gray-900">${total} across ${caps.length} captures</dd></div>
+        <div><dt class="text-sm text-gray-500">Annotations</dt><dd class="font-semibold text-gray-900">${S.annot ? 'Added' : 'Not added'}</dd></div>
+      </dl>
+      ${S.recipe ? `<div class="mt-4 inline-flex items-center gap-2 rounded-md bg-yellow-50 px-3 py-1.5 text-sm text-yellow-900 ring-1 ring-yellow-300">${ICON.warn}Settings have changed since this test ran.</div>` : ''}
+      <table class="mt-5 w-full text-sm">
+        <thead><tr class="border-b border-gray-200 text-left text-gray-500"><th class="py-2 pr-4 font-medium">Variant – Capture</th><th class="py-2 pr-4 font-medium">Images tested</th><th class="py-2 font-medium">Average time per image, per module</th></tr></thead>
+        <tbody class="divide-y divide-gray-100">${rows}</tbody>
+      </table>
+    </section>
+    `;
+}
+
+function historyCard() {
+  if (!allTests().length) {
+    return `<section class="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 px-6 py-12 text-center">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.3"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 14h9"/></svg>
+      <h2 class="text-lg font-semibold text-gray-800">No tests yet</h2>
+      <p class="max-w-md text-sm text-gray-600">Run a test to check this instance's setup on saved images before using it on the line. Tests don't affect the line.</p>
+      <button data-act="openDrawer" class="mt-1 rounded-md bg-f-primary px-5 py-2 text-sm font-semibold text-white hover:bg-f-primary/90">Run a new test</button>
+    </section>`;
+  }
+  return `<section>
+      <h2 class="mb-3 text-lg font-semibold">All tests</h2>
+      <div class="overflow-x-auto rounded-lg border border-gray-200">
+        <table class="w-full min-w-[820px] text-left text-sm">
+          <thead class="bg-gray-50 text-gray-600"><tr>
+            <th class="px-4 py-3 font-medium">Test</th><th class="px-4 py-3 font-medium">Started</th><th class="px-4 py-3 font-medium">Took</th>
+            <th class="px-4 py-3 font-medium">What was tested</th><th class="w-[34%] px-4 py-3 font-medium">Status</th><th class="px-4 py-3"></th>
+          </tr></thead>
+          <tbody id="histBody" class="divide-y divide-gray-200">${histRows()}</tbody>
+        </table>
+      </div>
+    </section>
+    `;
+}
+function histRows() {
+  return allTests().map((t) => {
+    const caps = Object.keys(t.imgs);
+    const total = caps.reduce((s, c) => s + t.imgs[c], 0);
+    let status;
+    if (t.status === 'running') {
+      status = `<div class="flex items-center gap-2">${pill('running', ` — ${t.pct}%`)}<div class="h-1.5 w-24 overflow-hidden rounded-full bg-gray-200"><div class="h-full bg-f-primary" style="width:${t.pct}%"></div></div></div>`;
+    } else {
+      status = `${pill(t.status)}${t.reason ? `<div class="mt-1 text-xs leading-snug text-gray-600">${t.reason}</div>` : ''}`;
+    }
+    let action = '';
+    if (t.status === 'running') action = '<button data-act="askCancel" class="font-semibold text-gray-700 hover:underline">Cancel</button>';
+    else action = `<div class="flex items-center justify-end gap-4">${t.results ? `<a href="#" data-act="viewResults" data-test="${t.n}" class="whitespace-nowrap font-semibold text-[#6B4EFF] hover:underline">View results</a>` : ''}<button data-act="askDelete" data-test="${t.n}" class="font-semibold text-red-700 hover:underline">Delete</button></div>`;
+    return `<tr class="align-top ${t.live ? 'bg-blue-50/40' : ''}">
+      <td class="px-4 py-3 font-semibold text-gray-900">Test ${t.n}<div class="text-xs font-normal text-gray-500">by ${t.by}</div></td>
+      <td class="px-4 py-3 text-gray-700">${t.started}</td>
+      <td class="px-4 py-3 text-gray-700">${t.took}</td>
+      <td class="px-4 py-3 text-gray-700">${caps.map(cn).join(', ')}<div class="text-xs text-gray-500">${total} images</div></td>
+      <td class="px-4 py-3">${status}</td>
+      <td class="px-4 py-3 text-right">${action}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─── Screen: Run a new test (drawer) ─── */
+function drawerView() {
+  return `<div class="pointer-events-none select-none opacity-60" aria-hidden="true">${testingTab()}</div>
+  <div class="fixed inset-x-0 bottom-0 z-[100] bg-black/50" style="top:var(--vb)" data-act="closeDrawer"></div>
+  <div class="fixed bottom-0 right-0 z-[110] flex w-full max-w-5xl flex-col bg-white shadow-2xl" style="top:var(--vb)" role="dialog" aria-label="Run a new test">
+    <div class="flex h-[50px] items-center justify-between border-b px-4 text-lg font-semibold">
+      <span>Run a new test</span>
+      <button class="text-2xl leading-none text-gray-600" data-act="closeDrawer" aria-label="Close">×</button>
+    </div>
+    <div class="flex-1 overflow-y-auto">
+      <div class="mx-auto flex max-w-3xl flex-col gap-4 p-6">
+        <div class="flex flex-col gap-1.5 text-sm text-gray-700">
+          <p class="text-[15px] font-semibold text-gray-900">Choose a folder of test images for each capture you want to test.</p>
+          <p>Optional: add an annotation file for every image (same file name; segmentation masks in a "masks" folder) to also get model performance and suggested thresholds.</p>
+          <p class="flex items-start gap-1.5 text-gray-500">${ICON.shield}<span>Tests never send PLC signals, trigger integrations or change production reports.</span></p>
+        </div>
+        <table class="mt-2 w-full">
+          <thead><tr class="bg-f-primary">
+            <th class="px-3 py-3 text-left text-base font-medium text-white">Variant</th>
+            <th class="px-3 py-3 text-left text-base font-medium text-white">Capture</th>
+            <th class="px-3 py-3 text-left text-base font-medium text-white">Dataset folder</th>
+          </tr></thead>
+          <tbody class="divide-y divide-gray-200 bg-white">${ROWS.map(rowHtml).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div id="drFoot" class="border-t border-gray-300 bg-white px-6 py-4">${drFoot()}</div>
+  </div>`;
+}
+function rowHtml(r) {
+  const on = !r.err && S.dr.f[r.id];
+  const lines = [];
+  if (r.err) lines.push(`<div class="flex items-start gap-2 text-red-800">${ICON.err}<span>${r.err}${r.link ? ` <a href="#" data-act="openEMC" class="font-semibold text-f-primary underline">${r.link}</a>` : ''}</span></div>`);
+  if (on) {
+    const ann = S.annot && r.annotated ? `, each with an annotation file` : ', no annotation files';
+    lines.push(`<div class="flex items-start gap-2 text-gray-700">${ICON.ok}<span>${r.imgs} images${ann}.</span></div>`);
+  }
+  (r.warnC || []).forEach((w) => lines.push(`<div class="flex items-start gap-2 text-amber-900">${ICON.warn}<span>${w}</span></div>`));
+  if (on) (r.warnF || []).forEach((w) => lines.push(`<div class="flex items-start gap-2 text-amber-900">${ICON.warn}<span>${w}</span></div>`));
+  const folder = r.err
+    ? '<button disabled class="cursor-not-allowed rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-400">Choose folder</button>'
+    : on
+      ? `<div class="inline-flex items-center gap-2 rounded-md p-2 text-sm shadow-md ring-1 ring-gray-100">${ICON.folder}<span class="font-medium">${r.pick}</span><button data-act="clearFolder" data-row="${r.id}" class="px-1 text-gray-500 hover:text-gray-800" aria-label="Remove folder">✕</button></div>`
+      : `<button data-act="pickFolder" data-row="${r.id}" class="rounded-md border border-f-primary px-3 py-1.5 text-sm font-semibold text-f-primary hover:bg-f-primary/5">Choose folder</button>`;
+  const tone = r.err ? 'bg-red-50/40' : '';
+  return `<tr class="${tone}">
+    <td class="px-3 pt-3 align-top font-medium ${r.err ? 'text-gray-500' : ''}">${r.v}</td>
+    <td class="px-3 pt-3 align-top font-medium ${r.err ? 'text-gray-500' : ''}">${r.c}</td>
+    <td class="px-3 pt-3 align-top">${folder}</td>
+  </tr>
+  ${lines.length ? `<tr class="${tone} !border-t-0"><td colspan="3" class="px-3 pb-3 pt-2"><div class="flex flex-col gap-1 text-[13px] leading-snug">${lines.join('')}</div></td></tr>` : ''}`;
+}
+function drCounts() {
+  let ready = 0, warn = 0, blocked = 0;
+  ROWS.forEach((r) => {
+    if (r.err) { blocked++; return; }
+    const on = S.dr.f[r.id];
+    if (on) ready++;
+    if (on && ((r.warnC || []).length + (r.warnF || []).length)) warn++;
+  });
+  return { ready, warn, blocked };
+}
+function drFoot() {
+  const { ready, warn, blocked } = drCounts();
+  const blocks = runBlocks();
+  if (S.dr.up) {
+    const u = S.dr.up; let acc = 0; let cur = u.caps[0];
+    for (const c of u.caps) { acc += imgsOf(c); if (u.done < acc) { cur = c; break; } }
+    return `<div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between text-sm"><span class="flex items-center gap-2"><span class="spin"></span>Uploading images for <b>${cn(cur)}</b></span><span class="text-gray-600">${u.done} of ${u.total}</span></div>
+      <div class="h-2 overflow-hidden rounded-full bg-gray-200"><div class="h-full bg-f-primary" style="width:${(u.done / u.total) * 100}%"></div></div>
+    </div>`;
+  }
+  const canStart = !blocks.length && ready > 0;
+  const why = blocks.length ? 'Testing is blocked on this device right now. The Testing tab shows why.' : ready === 0 ? 'Choose at least one folder to start.' : '';
+  return `<div class="flex flex-wrap items-center justify-between gap-4">
+    <div class="text-sm text-gray-700"><b>${ready}</b> ${ready === 1 ? 'capture' : 'captures'} will be tested · <span class="text-amber-800">${warn} with warnings</span> · <span class="text-red-800">${blocked} can't be tested</span>
+      ${why ? `<div class="text-xs text-gray-500">${why}</div>` : ''}</div>
+    <div class="flex items-center gap-3">
+      <button data-act="closeDrawer" class="inline-flex items-center justify-center rounded-md border border-f-primary px-6 py-2 text-sm font-semibold text-f-primary">Cancel</button>
+      <button data-act="startTest" ${canStart ? '' : 'disabled'} class="inline-flex items-center justify-center rounded-md bg-f-primary px-6 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600">Start Testing</button>
+    </div>
+  </div>`;
+}
+
+/* ─── Screen: results (inside the Testing tab) ─── */
+function resultsView() {
+  const t = curTest();
+  const caps = Object.keys(t.imgs);
+  const total = caps.reduce((s, c) => s + t.imgs[c], 0);
+  const opts = caps.map((c) => `<option value="${c}" ${c === S.res.cap ? 'selected' : ''}>${cn(c)}</option>`).join('');
+  const tab = (key, label) => `<button data-act="resTab" data-tab="${key}" class="px-6 py-3 font-medium ${S.res.tab === key ? 'border-b-2 border-f-primary text-f-primary' : 'text-gray-500 hover:text-gray-700'}" ${S.res.tab === key ? 'aria-current="page"' : ''}>${label}</button>`;
+  const capSel = `<label class="flex flex-col gap-1"><span class="text-sm font-medium text-gray-600">Variant – Capture</span>
+          <span class="relative inline-block">
+            <select id="capSel" class="w-[340px] max-w-full appearance-none rounded-lg border border-gray-300 bg-white py-3 pl-5 pr-12 text-lg font-semibold shadow">${opts}</select>
+            <svg class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </span>
+        </label>`;
+  return `<div class="mt-1 flex min-h-[60px] flex-wrap items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-3xl font-medium">Instances</div>
+    <div class="flex flex-wrap items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><a href="#" data-act="goList" class="hover:underline">Instance Details</a><span class="text-gray-400">›</span><span>${S.inst}</span><span class="text-gray-400">›</span><a href="#" data-act="backToTests" class="text-f-primary hover:underline">Testing</a><span class="text-gray-400">›</span><span>Test ${t.n}</span></div>
+  </div>
+  <div class="p-5">
+    <div class="mx-auto flex max-w-6xl flex-col gap-5">
+      <div><button data-act="backToTests" class="inline-flex items-center gap-1 text-sm font-semibold text-f-primary hover:underline">← Back to all tests</button></div>
+      <div>
+        <h1 class="flex flex-wrap items-center gap-3 text-2xl font-bold">Test ${t.n} results ${pill(t.status)}</h1>
+        ${t.reason ? `<p class="mt-1 max-w-4xl text-sm text-gray-700">${t.reason}</p>` : ''}
+        <p class="mt-1 text-sm text-gray-500">Ran ${t.started} · took ${t.took} · ${caps.length} captures · ${total} images · annotations ${S.annot ? 'added' : 'not added'} · run by ${t.by}</p>
+      </div>
+      ${S.recipe ? `<div class="flex flex-wrap items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">${ICON.warn}<span class="flex-1">These results use the settings from when the test ran. Settings have changed since — run a new test to see the effect.</span><button data-act="openDrawer" class="rounded-md bg-f-primary px-4 py-1.5 text-sm font-semibold text-white">Run a new test</button></div>
+        ` : ''}
+      <div class="flex justify-center"><div class="inline-flex border-b border-gray-300">${tab('results', 'Test Results')}${tab('metrics', 'Performance Metrics')}</div></div>
+      ${S.res.tab === 'results' ? resultsTab(capSel) : metricsTab(capSel)}
+    </div>
+  </div>`;
+}
+function resultsTab(capSel) {
+  return `<div class="flex flex-wrap items-end justify-between gap-3">${capSel}<div id="capCount" class="flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-2.5 text-sm"></div></div>
+      ${imagesBlock()}
+      ${thrPanel()}
+      <section id="modResults" class="rounded-xl border border-gray-200 p-5"></section>`;
+}
+function metricsTab(capSel) {
+  const cap = S.res.cap, modelMods = CAPS[cap].mods.filter((k) => MODS[k].classes);
+  if (modelMods.length && !MODS[S.res.mod[cap]].classes) S.res.mod[cap] = modelMods[0];
+  const id = S.res.mod[cap];
+  const sel = modelMods.length
+    ? `<label class="flex flex-col gap-1 text-sm"><span class="font-medium text-gray-600">Model</span><select id="modSel" class="rounded-lg border border-gray-300 bg-white px-3 py-2 font-semibold shadow-sm">${modelMods.map((k) => `<option value="${k}" ${k === id ? 'selected' : ''}>${MODS[k].name} · ${MODS[k].typeName}</option>`).join('')}</select></label>`
+    : '';
+  return `<div class="flex flex-wrap items-end justify-between gap-3">${capSel}${sel}</div>
+      ${metricsHtml(modelMods.length > 0)}`;
+}
+
+function imagesBlock() {
+  const N = nImgs(S.res.cap), i = S.res.img;
+  return `<section id="imgSec" class="scroll-mt-24 rounded-xl border border-gray-200 p-4">
+    <div id="imgHead" class="mx-auto mb-3 flex max-w-[824px] flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-2.5 text-sm"></div>
+    <div class="flex flex-wrap items-start justify-center gap-6">
+      <figure class="flex w-[400px] max-w-full flex-col gap-2">
+        <div class="flex h-9 items-center justify-between"><figcaption class="text-lg font-medium text-gray-700">Raw image</figcaption><span class="text-sm text-gray-500">Image ${i + 1} of ${N}</span></div>
+        <div class="aspect-square overflow-hidden rounded-lg border border-[#e0e0e0] bg-white"><svg id="rawSvg" viewBox="0 0 400 400" class="block h-full w-full"></svg></div>
+      </figure>
+      <figure class="flex w-[400px] max-w-full flex-col gap-2">
+        <div class="flex h-9 items-center justify-between gap-3"><figcaption class="text-lg font-medium text-gray-700">Analysed image</figcaption></div>
+        <div id="anaWrap" class="relative aspect-square overflow-hidden rounded-lg border border-[#e0e0e0] bg-white"><svg id="anaSvg" viewBox="0 0 400 400" class="block h-full w-full"></svg><div id="anaTip" class="pointer-events-none absolute z-10 hidden max-w-[260px] rounded-md bg-gray-900/90 px-2.5 py-1.5 text-xs leading-snug text-white shadow"></div></div>
+      </figure>
+    </div>
+    <div id="under" class="mx-auto mt-3 flex max-w-[824px] flex-col gap-2"></div>
+    <div class="mt-4"><nav class="flex items-center" aria-label="Images"><ul id="pager" class="mx-auto flex items-center gap-2 rounded-full border border-f-primary bg-white px-2 py-1.5 text-sm"></ul></nav></div>
+  </section>`;
+}
+
+const okPill = (ok, big = false) => `<span class="inline-flex items-center rounded-full px-2.5 ${big ? 'py-1 text-sm' : 'py-0.5 text-xs'} font-bold ${ok === null ? 'bg-gray-200 text-gray-700' : ok ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700'}">${ok === null ? 'Not judged' : ok ? 'OK' : 'NG'}</span>`;
+const sw = (c) => `<span class="inline-block h-3 w-3 rounded-sm ring-1 ring-black/20" style="background:${c}"></span>`;
+function renderUnder() {
+  const cap = S.res.cap, c = CAPS[cap];
+  const lines = [];
+  if (c.noDims) lines.push('Shape Extractor: no dimensions configured, showing shapes only.');
+  if (c.uncal) lines.push('This camera isn\'t calibrated, so lengths are in pixels (px), not millimetres. Set its "Pixel to mm" value in Dimension Configuration to see millimetres.');
+  $('#under').innerHTML = `
+    <div class="text-sm text-gray-500">Hover over an item on the analysed image to see its label and confidence.</div>
+    ${lines.map((l) => `<div class="flex items-start gap-2 rounded-md bg-gray-100 px-3 py-1.5 text-sm text-gray-800">${ICON.info}<span>${l}</span></div>`).join('')}
+    `;
+}
+function capCounts(cap) {
+  let ok = 0, ng = 0;
+  for (let k = 0; k < nImgs(cap); k++) { if (isBad(cap, k)) continue; evaluate(cap, k).ok ? ok++ : ng++; }
+  return { ok, ng };
+}
+function renderImgHead() {
+  const cap = S.res.cap, i = S.res.img, cc = capCounts(cap);
+  $('#imgHead').innerHTML = `<div class="flex flex-wrap items-center gap-2"><span class="text-gray-500">Image name</span><span class="font-mono font-semibold text-gray-900">${imgName(cap, i)}</span></div>`;
+  const box = $('#capCount');
+  if (box) box.innerHTML = `<span class="text-gray-600">This capture at these thresholds</span><span class="rounded-full bg-emerald-100 px-2.5 py-1 font-bold text-emerald-800">${cc.ok} OK</span><span class="rounded-full bg-red-100 px-2.5 py-1 font-bold text-red-700">${cc.ng} NG</span>`;
+}
+function renderModResults() {
+  const box = $('#modResults'); if (!box) return;
+  const cap = S.res.cap, i = S.res.img;
+  if (isBad(cap, i)) {
+    box.innerHTML = `<h2 class="text-lg font-semibold">Module Results</h2><p class="mt-2 text-sm text-gray-600">${imgName(cap, i)} couldn't be read, so it has no results.</p>`;
+    return;
+  }
+  const res = evaluate(cap, i);
+  box.innerHTML = `
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div><h2 class="text-lg font-semibold">Module Results</h2><p class="text-sm text-gray-600">For <span class="font-mono">${imgName(cap, i)}</span>, using the ground truths in Edit Module Configurations and the thresholds above.</p></div>
+      <div class="flex items-center gap-2 text-sm"><span class="font-medium text-gray-700">Image result</span>${okPill(res.ok, true)}</div>
+    </div>
+    <div class="mt-3 overflow-x-auto"><table class="w-full min-w-[720px] text-sm">
+      <thead><tr class="border-b border-gray-200 text-left text-gray-500"><th class="py-2 pr-4 font-medium">Module</th><th class="py-2 pr-4 font-medium">Ground truth (EMC)</th><th class="py-2 pr-4 font-medium">Found in this image</th><th class="py-2 text-right font-medium">Result</th></tr></thead>
+      <tbody class="divide-y divide-gray-100">${res.rows.map((r) => `<tr class="align-top">
+        <td class="py-2.5 pr-4"><div class="font-semibold text-gray-900">${MODS[r.id].name}</div><div class="text-xs text-gray-500">${MODS[r.id].typeName}</div></td>
+        <td class="py-2.5 pr-4 text-gray-700">${r.rule}</td>
+        <td class="py-2.5 pr-4 text-gray-900">${r.found}</td>
+        <td class="py-2.5 text-right">${okPill(r.ok)}</td></tr>`).join('')}</tbody>
+    </table></div>
+    ${res.rows.some((r) => r.ok === null) ? '<p class="mt-2 text-xs text-gray-500">Not judged: the module has no ground truth set, so it doesn\'t count towards the image result.</p>' : ''}`;
+}
+function renderPager() {
+  const cap = S.res.cap, N = nImgs(cap), cur = S.res.img, win = 5;
+  const start = Math.max(0, Math.min(cur - 2, N - win));
+  const li = (act, label, aria) => `<li><button data-act="${act}" class="cursor-pointer px-1 text-f-primary" aria-label="${aria}">${label}</button></li>`;
+  let h = li('imgFirst', '«', 'First image') + li('imgPrev', '‹', 'Previous image');
+  for (let k = start; k < Math.min(N, start + win); k++) {
+    h += `<li><button data-act="imgGo" data-i="${k}" class="cursor-pointer px-1 ${k === cur ? 'font-semibold text-gray-900' : 'text-gray-400 hover:text-gray-700'}" ${k === cur ? 'aria-current="true"' : ''}>${k + 1}</button></li>`;
+  }
+  h += li('imgNext', '›', 'Next image') + li('imgLast', '»', 'Last image');
+  $('#pager').innerHTML = h;
+}
+function badImg(svg) {
+  el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#e5e7eb' }, svg);
+  const t1 = el('text', { x: 200, y: 192, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 600, fill: '#374151', 'font-family': 'Outfit' }, svg); t1.textContent = 'This image couldn\'t be read';
+  const t2 = el('text', { x: 200, y: 216, 'text-anchor': 'middle', 'font-size': 13, fill: '#6b7280', 'font-family': 'Outfit' }, svg); t2.textContent = 'The file may be damaged. It was left out of the results.';
+}
+function drawImages() {
+  const cap = S.res.cap, i = S.res.img;
+  const raw = $('#rawSvg'); raw.innerHTML = '';
+  if (isBad(cap, i)) { badImg(raw); } else RAW[cap](raw, i, 'r');
+  redrawAna();
+}
+function redrawAna() {
+  const cap = S.res.cap, i = S.res.img, ana = $('#anaSvg');
+  if (!ana) return;
+  ana.innerHTML = '';
+  if ($('#imgHead')) renderImgHead();
+  renderModResults();
+  if (isBad(cap, i)) { badImg(ana); return; }
+  RAW[cap](ana, i, 'a');
+  ANA[cap](el('g', {}, ana), i);
+  if (!ana.dataset.hover) {
+    ana.dataset.hover = '1';
+    ana.addEventListener('mousemove', (e) => {
+      const t = e.target.closest('[data-tip]'), box = $('#anaTip'), wrap = $('#anaWrap');
+      if (!t) { box.classList.add('hidden'); return; }
+      const r = wrap.getBoundingClientRect();
+      box.textContent = t.dataset.tip;
+      box.classList.remove('hidden');
+      const x = e.clientX - r.left + 12, y = e.clientY - r.top + 12;
+      box.style.left = `${Math.min(x, r.width - box.offsetWidth - 4)}px`;
+      box.style.top = `${y + box.offsetHeight > r.height ? y - box.offsetHeight - 20 : y}px`;
+    });
+    ana.addEventListener('mouseleave', () => $('#anaTip').classList.add('hidden'));
+  }
+}
+
+/* ─── Thresholds panel ─── */
+const trackBg = (p) => `background:linear-gradient(to right,#6B4EFF ${p}%,#e5e7eb ${p}%)`;
+function slider(id, c, k) {
+  const v = S.thr[id][c][k], p = Math.round(v * 100);
+  return `<div class="flex items-center gap-3">
+      <input type="range" min="0" max="100" value="${p}" data-thr="${id}|${c}|${k}" class="h-2 min-w-[100px] flex-1 cursor-pointer rounded-lg" style="${trackBg(p)}" aria-label="${c} ${k === 'conf' ? 'confidence' : 'IOU'}">
+      <input type="number" min="0" max="1" step="0.01" value="${v.toFixed(2)}" data-thrn="${id}|${c}|${k}" class="w-20 rounded-md border border-gray-300 px-2 py-1 text-center text-sm font-semibold" aria-label="${c} ${k === 'conf' ? 'confidence' : 'IOU'} value">
+    </div>`;
+}
+const emcText = (id, c) => { const t = S.saved[id][c]; return t.iou != null ? `${t.conf.toFixed(2)} / ${t.iou.toFixed(2)}` : t.conf.toFixed(2); };
+function changes(id) {
+  const out = [];
+  MODS[id].classes.forEach((c) => ['conf', 'iou'].forEach((k) => {
+    const s = S.saved[id][c][k], v = S.thr[id][c][k];
+    if (s != null && Math.abs(s - v) > 0.001) out.push({ c, k, s, v });
+  }));
+  return out;
+}
+function thrPanel() {
+  const cap = S.res.cap, id = S.res.mod[cap], m = MODS[id];
+  const opts = CAPS[cap].mods.map((k) => `<option value="${k}" ${k === id ? 'selected' : ''}>${MODS[k].name} · ${MODS[k].typeName}</option>`).join('');
+  let body;
+  if (!m.classes) {
+    body = `<p class="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700"><b>${m.name}</b> (${m.typeName}) has no model thresholds to adjust. Its settings are in Edit Module Configurations.</p>`;
+  } else {
+    const hasIou = HAS_IOU(m.type);
+    body = `<table class="mt-4 w-full text-sm">
+        <thead><tr class="border-b border-gray-200 text-left text-gray-500"><th class="w-32 py-2 pr-3 font-medium">Class</th><th class="py-2 pr-6 font-medium">Confidence</th>${hasIou ? '<th class="py-2 pr-6 font-medium">IOU</th>' : ''}<th class="w-32 py-2 text-right font-medium">In EMC now</th></tr></thead>
+        <tbody class="divide-y divide-gray-200">${m.classes.map((c) => `<tr><td class="py-2.5 pr-3 font-semibold text-gray-900">${c}</td><td class="py-2.5 pr-6">${slider(id, c, 'conf')}</td>${hasIou ? `<td class="py-2.5 pr-6">${slider(id, c, 'iou')}</td>` : ''}<td class="py-2.5 text-right text-gray-500" data-emc="${c}">${emcText(id, c)}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        <span id="chgText" class="mr-auto text-sm text-gray-600"></span>
+        <button data-act="resetThr" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Reset to EMC values</button>
+        <button id="applyBtn" data-act="applyThr" class="rounded-md bg-f-primary px-5 py-2 text-sm font-semibold text-white hover:bg-f-primary/90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600">Apply thresholds to EMC</button>
+      </div>`;
+  }
+  return `<section id="thrPanel" class="scroll-mt-28 rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div><h2 class="text-lg font-semibold">Thresholds</h2><p class="text-sm text-gray-600">Try thresholds here to see how the analysed image looks. Nothing changes unless you apply them to EMC.</p></div>
+        <label class="flex flex-col gap-1 text-sm"><span class="font-medium text-gray-600">Module</span>
+          <select id="modSel" class="rounded-lg border border-gray-300 bg-white px-3 py-2 font-semibold shadow-sm">${opts}</select></label>
+      </div>
+      ${body}
+    </section>
+    `;
+}
+function updChg() {
+  const id = S.res.mod[S.res.cap];
+  if (!MODS[id].classes || !$('#chgText')) return;
+  const ch = changes(id);
+  $('#chgText').innerHTML = ch.length ? `${ch.length} ${ch.length === 1 ? 'value differs' : 'values differ'} from EMC.` : 'Same as EMC.';
+  $('#applyBtn').disabled = ch.length === 0;
+}
+function setThr(id, c, k, v) {
+  v = Math.round(Math.max(0, Math.min(1, v)) * 100) / 100;
+  S.thr[id][c][k] = v;
+  const key = `${id}|${c}|${k}`;
+  const r = $(`[data-thr="${key}"]`), n = $(`[data-thrn="${key}"]`);
+  if (r) { r.value = Math.round(v * 100); r.setAttribute('style', trackBg(Math.round(v * 100))); }
+  if (n && document.activeElement !== n) n.value = v.toFixed(2);
+  updChg(); redrawAna(); updF1(); updSuggCur();
+}
+
+/* ─── Performance metrics ─── */
+const CAT = ['#2a78d6', '#eb6834', '#1baf7a'];
+function metricsHtml(hasModel = true) {
+  const cap = S.res.cap, id = S.res.mod[cap], m = MODS[id];
+  const n = nImgs(cap) - (isBad(cap, UNREADABLE[0]) ? UNREADABLE.length : 0);
+  let inner;
+  if (!S.annot) {
+    inner = `<div class="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white px-6 py-8 text-center">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>
+      <h3 class="text-lg font-semibold">No annotations in this test</h3>
+      <p class="max-w-2xl text-gray-600">Add an annotation file for each test image next time to see how often the model was right, what it mixed up, and suggested thresholds.</p>
+    </div>`;
+  } else if (!hasModel) {
+    inner = `<div class="rounded-xl border border-gray-200 bg-white p-6 text-gray-700">This capture's modules don't use a model, so there's nothing to measure.</div>`;
+  } else {
+    const hasIou = HAS_IOU(m.type);
+    const leg = m.classes.map((c, k) => `<span class="inline-flex items-center gap-1.5"><span class="inline-block h-[3px] w-4 rounded" style="background:${CAT[k]}"></span>${c}</span>`).join('');
+    const rows = m.classes.map((c, k) => `<tr class="border-t border-gray-100">
+        ${k === 0 ? `<td rowspan="${m.classes.length}" class="px-4 py-3 align-top"><div class="flex flex-wrap items-center gap-2"><span class="font-semibold text-gray-900">${m.model}</span><span class="rounded-full bg-gray-400 px-2.5 py-0.5 text-xs font-medium text-white">${m.typeName}</span></div><div class="mt-1 text-xs text-gray-500">${m.name}</div></td>` : ''}
+        <td class="px-4 py-3">${c}</td>
+        <td class="px-4 py-3 text-center font-semibold">${m.sugg[c][0].toFixed(2)}</td>
+        ${hasIou ? `<td class="px-4 py-3 text-center font-semibold">${m.sugg[c][1].toFixed(2)}</td>` : ''}
+        <td class="px-4 py-3 text-center text-gray-600" data-cur="${c}">${emcText(id, c)}</td>
+      </tr>`).join('');
+    inner = `<div class="grid gap-4 lg:grid-cols-2">
+        <figure class="rounded-xl border border-gray-200 bg-white p-4">
+          <h3 class="font-semibold">Accuracy at each confidence level</h3>
+          <p class="text-sm text-gray-600">Accuracy (F1) at each setting. The highest point has the fewest mistakes.</p>
+          <svg id="f1Svg" viewBox="0 0 460 290" class="mt-2 w-full" role="img" aria-label="Accuracy (F1) against confidence setting, one line per class"></svg>
+          <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-700">${leg}<span>● best setting</span><span>○ your setting</span></div>
+        </figure>
+        <figure class="rounded-xl border border-gray-200 bg-white p-4">
+          <h3 class="font-semibold">What the model got right and wrong</h3>
+          <p class="text-sm text-gray-600">Rows: what was really there. Columns: what the model said. Diagonal: correct.</p>
+          ${m.cm ? '<svg id="cmSvg" class="mx-auto mt-2 block w-full max-w-[440px]" role="img" aria-label="Confusion matrix"></svg>' : '<p class="mt-6 rounded-md bg-gray-50 p-3 text-sm text-gray-600">Not shown for text reading (no classes to mix up).</p>'}
+        </figure>
+      </div>
+      <div class="rounded-xl border border-gray-200 bg-white p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div><h3 class="font-semibold">Suggested thresholds</h3>
+            <p class="max-w-3xl text-sm text-gray-600">Settings with the fewest mistakes for each class in this test.</p></div>
+          <button data-act="useSugg" class="rounded-md border border-f-primary px-4 py-2 text-sm font-semibold text-f-primary hover:bg-f-primary/5">Apply suggested thresholds to EMC</button>
+        </div>
+        <div class="mt-3 overflow-x-auto"><table class="w-full text-sm">
+          <thead><tr class="bg-gray-100 text-left"><th class="px-4 py-2 font-bold">Model</th><th class="px-4 py-2 font-bold">Class</th><th class="px-4 py-2 text-center font-bold">Suggested confidence</th>${hasIou ? '<th class="px-4 py-2 text-center font-bold">Suggested IOU</th>' : ''}<th class="px-4 py-2 text-center font-bold">In EMC now</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+  }
+  return `<section id="metrics" class="flex scroll-mt-28 flex-col gap-4">
+      <div><h2 class="text-2xl font-semibold">How well the model performed</h2>
+        <p class="text-gray-600">${S.annot ? `Compared with your annotation files · ${n} images.` : 'Needs annotation files in the test folder.'}</p></div>
+      ${inner}
+    </section>
+    `;
+}
+function curText(id, c) {
+  const t = S.thr[id][c];
+  return t.iou != null ? `${t.conf.toFixed(2)} / ${t.iou.toFixed(2)}` : t.conf.toFixed(2);
+}
+function updSuggCur() {
+  const id = S.res.mod[S.res.cap];
+  $$('[data-cur]').forEach((td) => { const c = td.dataset.cur; if (S.saved[id] && S.saved[id][c]) td.textContent = emcText(id, c); });
+}
+
+function f1(t, s, peak) {
+  if (t <= s) { const u = (s - t) / Math.max(s, 0.05); return peak * (1 - 0.42 * u * u); }
+  const u = (t - s) / (1.0 - s + 0.001); return Math.max(0, peak * (1 - Math.pow(u, 1.7)));
+}
+const F1G = { W: 460, H: 290, L: 58, R: 14, T: 22, B: 46 };
+const fx = (t) => F1G.L + t * (F1G.W - F1G.L - F1G.R);
+const fy = (v) => F1G.T + (1 - v) * (F1G.H - F1G.T - F1G.B);
+function drawF1() {
+  const svg = $('#f1Svg'); if (!svg) return; svg.innerHTML = '';
+  const id = S.res.mod[S.res.cap], m = MODS[id];
+  const tx = (x, y, s, a = {}) => { const t = el('text', { x, y, 'font-size': 11, fill: '#52514e', 'font-family': 'Outfit', ...a }, svg); t.textContent = s; return t; };
+  [0, 0.25, 0.5, 0.75, 1].forEach((v) => {
+    el('line', { x1: fx(0), x2: fx(1), y1: fy(v), y2: fy(v), stroke: v === 0 ? '#9ca3af' : '#eceae6', 'stroke-width': 1 }, svg);
+    tx(F1G.L - 8, fy(v) + 4, v.toFixed(2), { 'text-anchor': 'end' });
+    tx(fx(v), F1G.H - F1G.B + 18, v.toFixed(2), { 'text-anchor': 'middle' });
+  });
+  tx((fx(0) + fx(1)) / 2, F1G.H - 6, 'Confidence setting', { 'text-anchor': 'middle', 'font-size': 12, fill: '#0b0b0b' });
+  tx(13, (fy(0) + fy(1)) / 2, 'Accuracy (F1)', { 'text-anchor': 'middle', 'font-size': 12, fill: '#0b0b0b', transform: `rotate(-90 13 ${(fy(0) + fy(1)) / 2})` });
+  m.classes.forEach((c, k) => {
+    const s = m.sugg[c][0], pk = m.peak[c], col = CAT[k];
+    const pts = []; for (let t = 0; t <= 1.0001; t += 0.02) pts.push([fx(t), fy(f1(t, s, pk))]);
+    el('polyline', { points: P(pts), fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+    el('circle', { cx: fx(s), cy: fy(pk), r: 5, fill: col, stroke: '#fff', 'stroke-width': 2 }, svg);
+    const order = [...m.classes].sort((a, b) => m.sugg[a][0] - m.sugg[b][0]), pos = order.indexOf(c), lab = `${c} · best ${s.toFixed(2)}`;
+    if (order.length > 1 && pos === 0) tx(fx(s) - 9, fy(pk) - 7, lab, { fill: '#0b0b0b', 'font-weight': 600, 'text-anchor': 'end' });
+    else if (pos === order.length - 1) tx(fx(s) + 9, fy(pk) - 7, lab, { fill: '#0b0b0b', 'font-weight': 600 });
+    else tx(fx(s), fy(pk) - 11, lab, { fill: '#0b0b0b', 'font-weight': 600, 'text-anchor': 'middle' });
+    el('circle', { id: `cur${k}`, r: 5.5, fill: '#fff', stroke: col, 'stroke-width': 2.2 }, svg);
+  });
+  // Hover read-out (the same numbers are in the table below, so nothing is hover-only)
+  const hl = el('line', { y1: fy(1), y2: fy(0), stroke: '#9ca3af', 'stroke-dasharray': '3 3', visibility: 'hidden' }, svg);
+  const tip = el('g', { visibility: 'hidden' }, svg);
+  const tipBg = el('rect', { rx: 4, fill: '#111', opacity: 0.88 }, tip);
+  const tipTx = el('text', { 'font-size': 11, fill: '#fff', 'font-family': 'Outfit' }, tip);
+  const hit = el('rect', { x: fx(0), y: fy(1), width: fx(1) - fx(0), height: fy(0) - fy(1), fill: 'transparent' }, svg);
+  hit.addEventListener('mousemove', (e) => {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const t = Math.max(0, Math.min(1, (p.x - fx(0)) / (fx(1) - fx(0))));
+    hl.setAttribute('x1', fx(t)); hl.setAttribute('x2', fx(t)); hl.setAttribute('visibility', 'visible');
+    tipTx.innerHTML = '';
+    const lines = [`Confidence ${t.toFixed(2)}`, ...m.classes.map((c) => `${c}: ${f1(t, m.sugg[c][0], m.peak[c]).toFixed(2)}`)];
+    lines.forEach((l, k) => { const ts = el('tspan', { x: 0, dy: k ? 14 : 0 }, tipTx); ts.textContent = l; });
+    const w = 120, h = lines.length * 14 + 8; const x0 = fx(t) + (t > 0.6 ? -w - 8 : 8), y0 = fy(1) + 4;
+    tipBg.setAttribute('x', x0); tipBg.setAttribute('y', y0); tipBg.setAttribute('width', w); tipBg.setAttribute('height', h);
+    tipTx.setAttribute('transform', `translate(${x0 + 8} ${y0 + 15})`); tip.setAttribute('visibility', 'visible');
+  });
+  hit.addEventListener('mouseleave', () => { hl.setAttribute('visibility', 'hidden'); tip.setAttribute('visibility', 'hidden'); });
+  updF1();
+}
+function updF1() {
+  const id = S.res.mod[S.res.cap], m = MODS[id];
+  if (!$('#f1Svg') || !m.classes) return;
+  m.classes.forEach((c, k) => {
+    const cur = S.thr[id][c].conf, d = $('#cur' + k);
+    if (d) { d.setAttribute('cx', fx(cur)); d.setAttribute('cy', fy(f1(cur, m.sugg[c][0], m.peak[c]))); }
+  });
+}
+function mix(a, b, t) {
+  const h = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16));
+  const [A, B] = [h(a), h(b)];
+  return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
+}
+function drawCM() {
+  const svg = $('#cmSvg'); if (!svg) return; svg.innerHTML = '';
+  const m = MODS[S.res.mod[S.res.cap]], lab = m.cm.labels, M = m.cm.m, n = lab.length;
+  const cell = n > 3 ? 62 : 74, L = 104, T = 30;
+  const W = L + n * cell + 12, H = T + n * cell + 62;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const max = Math.max(...M.flat());
+  const tx = (x, y, s, a = {}) => { const t = el('text', { x, y, 'font-size': 11, fill: '#52514e', 'font-family': 'Outfit', ...a }, svg); t.textContent = s; return t; };
+  tx(L + (n * cell) / 2, 16, 'What the model said →', { 'text-anchor': 'middle', 'font-size': 12, fill: '#0b0b0b' });
+  M.forEach((row, r) => row.forEach((v, c) => {
+    const s = Math.sqrt(v / max);
+    el('rect', { x: L + c * cell + 1, y: T + r * cell + 1, width: cell - 2, height: cell - 2, rx: 4, fill: mix('#eef4fc', '#1d4f91', s), ...(r === c ? { stroke: '#0b0b0b', 'stroke-width': 1.2 } : {}) }, svg);
+    tx(L + c * cell + cell / 2, T + r * cell + cell / 2 + 5, v, { 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 600, fill: s > 0.55 ? '#fff' : '#0b0b0b' });
+  }));
+  lab.forEach((l, k) => {
+    tx(L - 8, T + k * cell + cell / 2 + 4, l, { 'text-anchor': 'end', fill: '#0b0b0b' });
+    const words = l.split(' ');
+    words.forEach((w, j) => tx(L + k * cell + cell / 2, T + n * cell + 16 + j * 13, w, { 'text-anchor': 'middle', fill: '#0b0b0b' }));
+  });
+  tx(4, T + n * cell + 50, '↑ What was really there (rows)', { 'font-size': 12, fill: '#0b0b0b' });
+}
+
+/* ════════════════════════ sample part images (raw) ════════════════════════ */
+const DATA = {};
+const dat = (cap, i) => (DATA[cap + i] ??= GEN[cap](i));
+const GEN = {
+  hu(i) {
+    const r = rng(1000 + i);
+    const holes = [[115, 140], [285, 140], [115, 260], [285, 260]].map(([x, y]) => [x + Math.round((r() - 0.5) * 6), y + Math.round((r() - 0.5) * 6)]);
+    const missing = i % 9 === 4 ? [3, 1, 2, 0][i % 4] : null;
+    const finish = i % 11 === 2 ? 'scratch' : i % 13 === 6 ? 'dent' : 'clean';
+    const score = finish === 'clean' ? 0.93 + r() * 0.06 : finish === 'scratch' ? 0.66 + r() * 0.1 : 0.53 + r() * 0.08;
+    const low = Math.floor(r() * 4);
+    const dets = [];
+    holes.forEach(([x, y], k) => {
+      if (k === missing) dets.push({ cls: 'missing pin', b: [x - 27, y - 27, 54, 54], c: +(0.52 + r() * 0.2).toFixed(2) });
+      else dets.push({ cls: 'pin', b: [x - 25, y - 25, 50, 50], c: +(k === low ? 0.55 + r() * 0.12 : 0.86 + r() * 0.11).toFixed(2) });
+    });
+    const wx = 200 + Math.round((r() - 0.5) * 4), wy = 200 + Math.round((r() - 0.5) * 4);
+    dets.push({ cls: 'washer', b: [wx - 35, wy - 35, 70, 70], c: +(0.74 + r() * 0.15).toFixed(2) });
+    dets.push({ cls: 'washer', b: [wx - 20, wy - 28, 70, 70], c: +(0.6 + r() * 0.08).toFixed(2) }); // duplicate box: the overlap setting merges it
+    const blemish = i % 3 === 0;
+    if (blemish) dets.push({ cls: 'pin', b: [176, 262, 40, 40], c: 0.27 }); // false mark, shows only at low confidence
+    return { holes, missing, finish, score, dets, wx, wy, blemish };
+  },
+  hy(i) {
+    const r = rng(2000 + i);
+    const c1 = [145 + (r() - 0.5) * 4, 214 + (r() - 0.5) * 3];
+    const sp = 110 + (r() - 0.5) * 3.2;
+    const c2 = [c1[0] + sp, c1[1] + (r() - 0.5) * 1.4];
+    const dx = i === 2 ? 3.5 : (r() - 0.5) * 2.4;
+    return { c1, c2, dist: Math.hypot(c2[0] - c1[0], c2[1] - c1[1]), dx, ang: (Math.acos(dx / Math.hypot(dx, 170)) * 180) / Math.PI, silver: i % 15 === 3 };
+  },
+  br(i) {
+    const r = rng(3000 + i);
+    const tilt = [1.2, 0.8, 3.1, 1.6, 0.3, 1.0, 1.1, 0.7, 0.6, 1.9][i % 10];
+    const top = [], bot = [];
+    for (let x = 55; x <= 345; x += 10) { top.push([x, 182 + Math.sin(x / 9 + i) * 2.2 + (r() - 0.5) * 2]); bot.push([x, 208 + Math.sin(x / 11 + i) * 2 + (r() - 0.5) * 2]); }
+    const spc = [[0.62, 0.44, 0.38], [0.44, 0.62, 0.38], [0.38, 0.44, 0.62]][i % 3];
+    const spatter = (i % 6 === 2 ? [[110, 160, 5], [238, 234, 4], [302, 166, 6]] : []).map(([x, y, rr], k) => ({ x: x + (r() - 0.5) * 8, y: y + (r() - 0.5) * 6, r: rr, c: spc[k] }));
+    const pores = i % 8 === 2 ? [{ x: 170 + (r() - 0.5) * 10, y: 196, r: 3.5, c: 0.57 }, { x: 276 + (r() - 0.5) * 10, y: 194, r: 2.6, c: 0.31 }] : [];
+    return { tilt, top, bot, spatter, pores, weldC: +(0.9 + r() * 0.08).toFixed(2) };
+  },
+  hs(i) {
+    const g0 = (0.12 + 0.13 * i) % 1;
+    return { gap: i % 7 === 2 ? [g0, 0.045] : null, thin: i % 9 === 5 ? [(g0 + 0.47) % 1, 0.07] : null };
+  },
+  hl(i) {
+    const r = rng(5000 + i);
+    const lot = 1187, smudge = i % 10 === 4;
+    return {
+      rot: (r() - 0.5) * 3, lot, smudge, qr: `FRX-HSG-0042-${String(5301 + i).padStart(5, '0')}`,
+      lines: [
+        { read: smudge ? 'LOT 24A-11B7' : `LOT 24A-${lot}`, c: smudge ? 0.58 : +(0.95 + r() * 0.04).toFixed(2), box: [72, 150, 170, 30] },
+        { read: 'EXP 10/2027', c: +(0.9 + r() * 0.07).toFixed(2), box: [72, 192, 150, 28] },
+        { read: 'FRINKS H0USING H-42', c: +(0.41 + r() * 0.06).toFixed(2), box: [72, 240, 140, 18] },
+      ],
+    };
+  },
+};
+function grad(defs, id, a, b, vertical = false) {
+  const g = el('linearGradient', { id, x1: 0, y1: 0, x2: vertical ? 0 : 1, y2: 1 }, defs);
+  el('stop', { offset: 0, 'stop-color': a }, g); el('stop', { offset: 1, 'stop-color': b }, g);
+  return `url(#${id})`;
+}
+// Sealant path: a rounded rectangle, sampled evenly by length
+function rrLoop(x, y, w, h, r, N) {
+  const line = (ax, ay, bx, by) => { const L = Math.hypot(bx - ax, by - ay); return { len: L, at: (u) => [ax + (bx - ax) * u, ay + (by - ay) * u, (bx - ax) / L, (by - ay) / L] }; };
+  const arc = (cx, cy, a0) => ({ len: (Math.PI * r) / 2, at: (u) => { const a = ((a0 + 90 * u) * Math.PI) / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a), -Math.sin(a), Math.cos(a)]; } });
+  const segs = [line(x + r, y, x + w - r, y), arc(x + w - r, y + r, -90), line(x + w, y + r, x + w, y + h - r), arc(x + w - r, y + h - r, 0),
+    line(x + w - r, y + h, x + r, y + h), arc(x + r, y + h - r, 90), line(x, y + h - r, x, y + r), arc(x + r, y + r, 180)];
+  const L = segs.reduce((s, g) => s + g.len, 0);
+  const pts = [];
+  for (let k = 0; k < N; k++) {
+    let d = (k / N) * L, j = 0;
+    while (j < segs.length - 1 && d > segs[j].len) { d -= segs[j].len; j++; }
+    const [px, py, tx, ty] = segs[j].at(Math.min(1, d / segs[j].len));
+    pts.push({ x: px, y: py, tx, ty, nx: -ty, ny: tx, s: k / N });
+  }
+  return pts;
+}
+const HSP = rrLoop(85, 100, 230, 200, 34, 300);
+const inR = (s, R) => R && ((s - R[0] + 1) % 1) < R[1];
+const beadW = (d, s) => (inR(s, d.gap) ? 0 : inR(s, d.thin) ? 3.2 : 9);
+const QR = (() => { const r = rng(77); const g = []; for (let y = 0; y < 21; y++) { g.push([]); for (let x = 0; x < 21; x++) g[y].push(r() > 0.52); } const fin = (ox, oy) => { for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) { const e = x === 0 || y === 0 || x === 6 || y === 6, c = x >= 2 && x <= 4 && y >= 2 && y <= 4; g[oy + y][ox + x] = e || c; } for (let k = 0; k < 8; k++) { if (oy + 7 < 21 && ox + k < 21) g[oy + 7][ox + k] = false; if (ox + 7 < 21 && oy + k < 21) g[oy + k][ox + 7] = false; } }; fin(0, 0); fin(14, 0); fin(0, 14); return g; })();
+
+const RAW = {
+  hu(svg, i, u) {
+    const d = dat('hu', i);
+    const defs = el('defs', {}, svg);
+    el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#1f2023' }, svg);
+    el('rect', { x: 60, y: 90, width: 280, height: 220, rx: 18, fill: grad(defs, u + 'g', '#b8bcc2', '#6b7077') }, svg);
+    el('rect', { x: 60, y: 185, width: 280, height: 30, fill: '#585c62', opacity: 0.6 }, svg);
+    if (d.finish === 'scratch') el('path', { d: 'M92 118 L176 168 M98 110 L150 144', stroke: '#eef0f2', 'stroke-width': 1.6, opacity: 0.85 }, svg);
+    if (d.finish === 'dent') el('ellipse', { cx: 248, cy: 112, rx: 18, ry: 8, fill: '#555a61', opacity: 0.85 }, svg);
+    if (d.blemish) el('circle', { cx: 196, cy: 282, r: 7, fill: '#eceff2', opacity: 0.9 }, svg);
+    d.holes.forEach(([cx, cy], k) => {
+      el('circle', { cx, cy, r: 22, fill: '#2b2d31' }, svg);
+      if (k !== d.missing) el('circle', { cx, cy, r: 13, fill: '#d9dce0' }, svg);
+    });
+    el('circle', { cx: d.wx, cy: d.wy, r: 30, fill: '#9aa0a6', stroke: '#4b4f55', 'stroke-width': 4 }, svg);
+    el('circle', { cx: d.wx, cy: d.wy, r: 10, fill: '#3a3d42' }, svg);
+  },
+  hy(svg, i, u) {
+    const d = dat('hy', i);
+    const defs = el('defs', {}, svg);
+    el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#1d1f22' }, svg);
+    el('polygon', { points: P([[70, 130], [330, 130], [330 + d.dx, 300], [68, 300]]), fill: grad(defs, u + 'p', '#b3b8be', '#6c7178') }, svg);
+    el('rect', { x: 90, y: 92, width: 220, height: 40, rx: 9, fill: d.silver ? grad(defs, u + 'k', '#eef0f3', '#8e949b', true) : grad(defs, u + 'k', '#f0cf6a', '#94711c', true) }, svg);
+    [163, 237].forEach((x) => el('line', { x1: x, y1: 94, x2: x, y2: 130, stroke: '#000', opacity: 0.25 }, svg));
+    [d.c1, d.c2].forEach(([cx, cy]) => el('circle', { cx, cy, r: 21, fill: '#141518', stroke: '#4f545b', 'stroke-width': 3 }, svg));
+  },
+  br(svg, i, u) {
+    const d = dat('br', i);
+    const defs = el('defs', {}, svg);
+    el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#1c1d20' }, svg);
+    const g = el('g', { transform: `rotate(${d.tilt} 200 200)` }, svg);
+    el('rect', { x: 40, y: 90, width: 320, height: 210, rx: 5, fill: grad(defs, u + 's', '#a9afb6', '#6d737a') }, g);
+    el('circle', { cx: 322, cy: 262, r: 14, fill: '#202226', stroke: '#555a60', 'stroke-width': 3 }, g);
+    el('polygon', { points: P([...d.top, ...[...d.bot].reverse()]), fill: '#c4b8a0', stroke: '#8f846f', 'stroke-width': 1 }, g);
+    for (let x = 62; x < 345; x += 11) el('path', { d: `M${x} 186 Q${x + 7} 195 ${x} 205`, stroke: '#978b74', 'stroke-width': 1, fill: 'none', opacity: 0.8 }, g);
+    d.spatter.forEach((s) => el('circle', { cx: s.x, cy: s.y, r: s.r, fill: '#dcd5c6' }, g));
+    d.pores.forEach((p) => el('ellipse', { cx: p.x, cy: p.y, rx: p.r, ry: p.r * 0.8, fill: '#2a2622' }, g));
+  },
+  hs(svg, i, u) {
+    const d = dat('hs', i);
+    const defs = el('defs', {}, svg);
+    el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#18191b' }, svg);
+    el('rect', { x: 45, y: 55, width: 310, height: 290, rx: 38, fill: grad(defs, u + 'h', '#979da4', '#5a5f65') }, svg);
+    el('rect', { x: 128, y: 148, width: 144, height: 104, rx: 16, fill: '#3a3e43', stroke: '#2a2d31', 'stroke-width': 3 }, svg);
+    [[72, 82], [328, 82], [72, 318], [328, 318]].forEach(([cx, cy]) => el('circle', { cx, cy, r: 9, fill: '#2c2f33', stroke: '#a4aab1', 'stroke-width': 2 }, svg));
+    // sealant bead, drawn in chunks of equal width
+    let chunk = [], w0 = null;
+    const flush = () => { if (chunk.length > 1 && w0 > 0) el('polyline', { points: P(chunk), fill: 'none', stroke: '#d9dfe7', 'stroke-width': w0, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, svg); };
+    for (let k = 0; k <= HSP.length; k++) {
+      const p = HSP[k % HSP.length], w = beadW(d, p.s);
+      if (w !== w0) { flush(); chunk = w0 != null && w > 0 && w0 > 0 ? [chunk[chunk.length - 1]] : []; w0 = w; }
+      chunk.push([p.x, p.y]);
+    }
+    flush();
+  },
+  hl(svg, i, u) {
+    const d = dat('hl', i);
+    el('rect', { x: 0, y: 0, width: 400, height: 400, fill: '#61666c' }, svg);
+    for (let y = 8; y < 400; y += 9) el('line', { x1: 0, y1: y, x2: 400, y2: y + 3, stroke: '#000', opacity: 0.06 }, svg);
+    const g = el('g', { transform: `rotate(${d.rot} 200 200)` }, svg);
+    el('rect', { x: 60, y: 118, width: 280, height: 166, rx: 6, fill: '#f5f5f2', stroke: '#cfcfca' }, g);
+    const t = (x, y, s, size, a = {}) => { const n = el('text', { x, y, 'font-size': size, 'font-family': '"Courier New", monospace', 'font-weight': 700, fill: '#111', ...a }, g); n.textContent = s; };
+    t(76, 173, `LOT 24A-${d.lot}`, 22, d.smudge ? { fill: '#555', opacity: 0.6 } : {});
+    if (d.smudge) el('ellipse', { cx: 196, cy: 166, rx: 26, ry: 10, fill: '#9a9a96', opacity: 0.45 }, g);
+    t(76, 214, 'EXP 10/2027', 22);
+    t(76, 254, 'FRINKS HOUSING H-42', 11, { fill: '#555', 'font-weight': 400 });
+    const s = 70 / 21;
+    el('rect', { x: 252, y: 146, width: 74, height: 74, fill: '#fff' }, g);
+    QR.forEach((row, y) => row.forEach((on, x) => { if (on) el('rect', { x: 254 + x * s, y: 148 + y * s, width: s + 0.2, height: s + 0.2, fill: '#111' }, g); }));
+  },
+};
+
+/* ════════════════════════ analysed-image overlays ════════════════════════ */
+// Sample Analysed Image Configuration (Inferencing Customization): Pass / Fail colour per module, all "Show" on.
+// Shape extractor and dimensions have no row there; the line draws them green / red.
+const PASS = '#39FF14', FAIL = '#FF0000';
+const AIC = { pin: [PASS, FAIL], finish: ['#3B9CFF', '#FF069B'], plating: [PASS, FAIL], weld: [PASS, FAIL], tilt: [PASS, FAIL], bead: [PASS, FAIL], ocr: [PASS, FAIL], qr: [PASS, FAIL] };
+const colOf = (id, ok) => (AIC[id] || [PASS, FAIL])[ok === false ? 1 : 0];
+// Sample ground truths set in Edit Module Configurations
+const GT = {
+  pin: { pin: 4, washer: 1, 'missing pin': 0 },
+  weld: { weld: 1, spatter: 0, porosity: 0 },
+  dims: [{ key: 'dist', name: 'Hole spacing', min: 108, max: 112, unit: 'px' }, { key: 'ang', name: 'Edge angle', min: 89, max: 91, unit: '°' }],
+  ocr: ['LOT 24A-1187', 'EXP 10/2027'],
+};
+const FOLDER = { hu: 'hinge_u_right', hy: 'hinge_y_top', br: 'bracket_weld', hs: 'housing_sealant_oct', hl: 'housing_label' };
+const imgName = (cap, i) => `${FOLDER[cap]}/IMG_${String(i + 1).padStart(4, '0')}.png`;
+
+function oBox(g, [x, y, w, h], col, o = {}) {
+  return el('rect', { x, y, width: w, height: h, fill: 'none', stroke: col, 'stroke-width': o.sw || 2 }, g);
+}
+function oPoly(g, pts, col, o = {}) {
+  return el('polygon', { points: P(pts), fill: 'none', stroke: col, 'stroke-width': o.sw || 2, 'stroke-linejoin': 'round' }, g);
+}
+function oLine(g, a, b, col, o = {}) {
+  return el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: col, 'stroke-width': o.sw || 2, 'stroke-linecap': 'round', ...(o.dash ? { 'stroke-dasharray': o.dash } : {}) }, g);
+}
+// Labels and confidence show on hover: the shape carries its text, a wider invisible line makes thin marks easy to hover
+function tip(node, text) {
+  node.setAttribute('data-tip', text);
+  if (node.getAttribute('fill') === 'none') node.setAttribute('fill', 'transparent');
+  return node;
+}
+function tipStroke(g, pts, text, closed = false) {
+  const n = el(closed ? 'polygon' : 'polyline', { points: P(pts), fill: 'none', stroke: 'transparent', 'stroke-width': 14, 'pointer-events': 'stroke' }, g);
+  n.setAttribute('data-tip', text);
+  return n;
+}
+const okWord = (ok) => (ok === null ? 'not judged' : ok ? 'OK' : 'NG');
+
+// Confidence filter + overlap merging (non-max suppression), per class
+function filterDet(items, modId) {
+  const shown = [], hidden = [];
+  const by = {};
+  items.forEach((d) => (by[d.cls] = by[d.cls] || []).push(d));
+  for (const [cls, arr] of Object.entries(by)) {
+    const t = S.thr[modId][cls];
+    arr.slice().sort((a, b) => b.c - a.c).forEach((d) => {
+      if (d.c < t.conf) { hidden.push(d); return; }
+      if (t.iou != null && shown.some((s) => s.cls === cls && iou(s.b, d.b) > t.iou)) { hidden.push(d); return; }
+      shown.push(d);
+    });
+  }
+  return { shown, hidden };
+}
+const brItems = (d) => {
+  const R = (p) => rotP(p, d.tilt);
+  const items = [{ cls: 'weld', pts: [...d.top, ...[...d.bot].reverse()].map(R), c: d.weldC }];
+  d.spatter.forEach((s) => items.push({ cls: 'spatter', pts: circlePts(s.x, s.y, s.r + 2).map(R), c: s.c }));
+  d.pores.forEach((p) => items.push({ cls: 'porosity', pts: circlePts(p.x, p.y, p.r + 1.6).map(R), c: p.c }));
+  items.forEach((it) => (it.b = bbox(it.pts)));
+  return items;
+};
+const countRule = (gt) => Object.entries(gt).map(([c, n]) => `${c} ${n}`).join(' · ');
+function counts(shown, gt) {
+  const n = {}; Object.keys(gt).forEach((c) => (n[c] = 0));
+  shown.forEach((x) => (n[x.cls] = (n[x.cls] || 0) + 1));
+  const clsOk = {}; Object.keys(gt).forEach((c) => (clsOk[c] = n[c] === gt[c]));
+  return { n, clsOk, ok: Object.values(clsOk).every(Boolean), found: Object.keys(gt).map((c) => `${c} ${n[c]}`).join(' · ') };
+}
+function beadCalipers(d) {
+  const K = 72, N = HSP.length, cal = [];
+  for (let k = 0; k < K; k++) {
+    const p = HSP[Math.round((k / K) * N) % N];
+    cal.push({ p, kind: inR(p.s, d.gap) ? 'gap' : inR(p.s, d.thin) ? 'too thin' : null });
+  }
+  const run = (kind) => { let best = 0, cur = 0; cal.concat(cal).forEach((c) => { cur = c.kind === kind ? cur + 1 : 0; best = Math.max(best, Math.min(cur, K)); }); return best; };
+  return { cal, gap: run('gap'), thin: run('too thin') };
+}
+
+// Module results for one image: rule from EMC, what was found, OK / NG (null = no rule set, not judged)
+function evaluate(cap, i) {
+  const rows = [];
+  if (cap === 'hu') {
+    const d = dat('hu', i), c = counts(filterDet(d.dets, 'pin').shown, GT.pin);
+    rows.push({ id: 'pin', rule: `Count: ${countRule(GT.pin)}`, found: c.found, ok: c.ok, clsOk: c.clsOk });
+    const sure = d.score >= S.thr.finish[d.finish].conf;
+    rows.push({ id: 'finish', rule: 'Correct class: clean', found: sure ? `${d.finish} (${d.score.toFixed(3)})` : `No class above its threshold (best: ${d.finish} ${d.score.toFixed(3)})`, ok: sure && d.finish === 'clean', sure });
+  } else if (cap === 'hy') {
+    const d = dat('hy', i);
+    rows.push({ id: 'plating', rule: 'Expected colour: Gold', found: d.silver ? 'Silver' : 'Gold', ok: !d.silver });
+    const v = { dist: d.dist, ang: d.ang };
+    const dims = GT.dims.map((g) => ({ ...g, v: v[g.key], ok: v[g.key] >= g.min && v[g.key] <= g.max }));
+    rows.push({ id: 'hshapes', rule: dims.map((g) => `${g.name} ${g.min}–${g.max} ${g.unit}`).join(' · '), found: dims.map((g) => `${g.name} ${g.v.toFixed(g.unit === 'px' ? 2 : 1)} ${g.unit}`).join(' · '), ok: dims.every((g) => g.ok), dims });
+  } else if (cap === 'br') {
+    const d = dat('br', i), c = counts(filterDet(brItems(d), 'weld').shown, GT.weld);
+    rows.push({ id: 'weld', rule: `Count: ${countRule(GT.weld)}`, found: c.found, ok: c.ok, clsOk: c.clsOk });
+    rows.push({ id: 'bshapes', rule: 'No dimensions set', found: '2 edges, 1 hole fitted', ok: null });
+    rows.push({ id: 'tilt', rule: 'Tilt within ±2.0°', found: `${d.tilt.toFixed(1)}°`, ok: d.tilt <= 2 });
+  } else if (cap === 'hs') {
+    const b = beadCalipers(dat('hs', i));
+    const parts = [b.gap ? `gap over ${b.gap} calipers` : '', b.thin ? `too thin over ${b.thin} calipers` : ''].filter(Boolean);
+    rows.push({ id: 'bead', rule: 'Width 2.5–4.0 px · fewer than 3 defective calipers in a row', found: parts.length ? parts.join(' · ') : 'No gaps or thin spots', ok: b.gap < 3 && b.thin < 3, b });
+  } else if (cap === 'hl') {
+    const d = dat('hl', i), t = S.thr.ocr.text.conf;
+    const read = d.lines.filter((ln) => ln.c >= t).map((ln) => ln.read);
+    const missing = GT.ocr.filter((x) => !read.includes(x));
+    rows.push({ id: 'ocr', rule: `Read & Match: ${GT.ocr.join(' · ')}`, found: read.length ? read.join(' · ') : 'Nothing read', ok: missing.length === 0, missing });
+    rows.push({ id: 'qr', rule: 'Any code readable', found: d.qr, ok: true });
+  }
+  const judged = rows.filter((r) => r.ok !== null);
+  return { rows, ok: judged.every((r) => r.ok) };
+}
+
+const ANA = {
+  hu(g, i) {
+    const d = dat('hu', i), res = evaluate('hu', i), pin = res.rows[0], fin = res.rows[1];
+    // Classification: box over the whole search area
+    tip(oBox(g, [60, 90, 280, 220], colOf('finish', fin.ok)), fin.sure
+      ? `Surface finish: ${d.finish} · confidence ${d.score.toFixed(3)} · ${okWord(fin.ok)}`
+      : `Surface finish: no class above its threshold · ${okWord(fin.ok)}`);
+    // Object detection: one colour per class, from its count rule
+    filterDet(d.dets, 'pin').shown.forEach((det) => tip(oBox(g, det.b, colOf('pin', pin.clsOk[det.cls])), `${det.cls} · confidence ${pct(det.c)} · ${okWord(pin.clsOk[det.cls])}`));
+  },
+  hy(g, i) {
+    const d = dat('hy', i), res = evaluate('hy', i), col = res.rows[0], dims = res.rows[1].dims;
+    tip(oBox(g, [88, 90, 224, 44], colOf('plating', col.ok)), `Knuckle colour: ${col.found} · ${okWord(col.ok)}`);
+    // Distance (axis x): engineering bracket
+    const [dist, ang] = dims, dc = dist.ok ? PASS : FAIL, ac = ang.ok ? PASS : FAIL;
+    const yb = 170, [a, b] = [d.c1, d.c2];
+    [a, b].forEach((c) => { el('circle', { cx: c[0], cy: c[1], r: 4, fill: dc }, g); oLine(g, [c[0], c[1] - 24], [c[0], yb - 7], dc, { sw: 1.5, dash: '4 3' }); });
+    oLine(g, [a[0], yb], [b[0], yb], dc);
+    [[a[0], 1], [b[0], -1]].forEach(([x, s]) => el('polygon', { points: P([[x, yb], [x + 8 * s, yb - 4], [x + 8 * s, yb + 4]]), fill: dc }, g));
+    tipStroke(g, [[a[0], yb], [b[0], yb]], `Hole spacing: ${dist.v.toFixed(2)} px (x) · set ${dist.min}–${dist.max} px · ${okWord(dist.ok)}`);
+    // Angle at the bottom-right corner: two edges + arc
+    const BR = [330 + d.dx, 300], ul = Math.hypot(-d.dx, -170), u2 = [-d.dx / ul, -170 / ul];
+    oLine(g, BR, [BR[0] - 70, 300], ac); oLine(g, BR, [BR[0] + u2[0] * 70, BR[1] + u2[1] * 70], ac);
+    el('path', { d: `M${BR[0] - 30} ${BR[1]} A30 30 0 0 1 ${BR[0] + u2[0] * 30} ${BR[1] + u2[1] * 30}`, fill: 'none', stroke: ac, 'stroke-width': 2 }, g);
+    tipStroke(g, [[BR[0] - 70, 300], BR, [BR[0] + u2[0] * 70, BR[1] + u2[1] * 70]], `Edge angle: ${ang.v.toFixed(1)}° · set ${ang.min}–${ang.max}° · ${okWord(ang.ok)}`);
+    // Fitted shapes
+    [a, b].forEach((c) => tip(el('circle', { cx: c[0], cy: c[1], r: 21, fill: 'none', stroke: '#fff', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, g), 'Fitted circle (hole)'));
+    tipStroke(g, [[40, 300], [BR[0] - 72, 300]], 'Fitted line (bottom edge)');
+    oLine(g, [40, 300], [BR[0] - 72, 300], '#fff', { sw: 1.3, dash: '6 4' });
+  },
+  br(g, i) {
+    const d = dat('br', i), R = (p) => rotP(p, d.tilt), res = evaluate('br', i), seg = res.rows[0], tilt = res.rows[2];
+    // Segmentation: outlines, coloured per class rule
+    filterDet(brItems(d), 'weld').shown.forEach((it) => tip(oPoly(g, it.pts, colOf('weld', seg.clsOk[it.cls])), `${it.cls} · confidence ${pct(it.c)} · ${okWord(seg.clsOk[it.cls])}`));
+    // Orientation & tilt: reference line (cyan, fixed) + measured line
+    const c = R([200, 300]);
+    oLine(g, [45, c[1]], [355, c[1]], '#00FFFF');
+    oLine(g, R([45, 300]), R([355, 300]), colOf('tilt', tilt.ok));
+    tipStroke(g, [R([45, 300]), R([355, 300])], `Bracket tilt: ${tilt.found} · allowed ±2.0° · ${okWord(tilt.ok)}`);
+    // Fitted shapes (Shape extractor without dimensions: not judged)
+    const bc = '#33A1FF';
+    oLine(g, R([30, 90]), R([370, 90]), bc, { sw: 1.5, dash: '6 4' }); tipStroke(g, [R([30, 90]), R([370, 90])], 'Fitted line (top edge)');
+    oLine(g, R([40, 80]), R([40, 312]), bc, { sw: 1.5, dash: '6 4' }); tipStroke(g, [R([40, 80]), R([40, 312])], 'Fitted line (left edge)');
+    const h = R([322, 262]);
+    tip(el('circle', { cx: h[0], cy: h[1], r: 15, fill: 'none', stroke: bc, 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, g), 'Fitted circle (mounting hole)');
+  },
+  hs(g, i) {
+    const d = dat('hs', i), N = HSP.length, res = evaluate('hs', i), bead = res.rows[0];
+    // Edges of the bead that was found (broken where there is no bead)
+    [1, -1].forEach((side) => {
+      let cur = [];
+      const flush = () => { if (cur.length > 1) el('polyline', { points: P(cur), fill: 'none', stroke: colOf('bead', true), 'stroke-width': 1.4 }, g); cur = []; };
+      for (let k = 0; k <= N; k++) {
+        const p = HSP[k % N], w = beadW(d, p.s);
+        if (w === 0) { flush(); continue; }
+        cur.push([p.x + (side * p.nx * w) / 2, p.y + (side * p.ny * w) / 2]);
+      }
+      flush();
+    });
+    // Reference path
+    el('polyline', { points: P([...HSP, HSP[0]].map((p) => [p.x, p.y])), fill: 'none', stroke: '#fff', 'stroke-width': 1, 'stroke-dasharray': '4 4', opacity: 0.6 }, g);
+    tipStroke(g, HSP.map((p) => [p.x, p.y]), `bead1 · ${bead.found} · ${okWord(bead.ok)}`, true);
+    // A box on every failing caliper, turned to follow the bead
+    bead.b.cal.forEach(({ p, kind }) => {
+      if (!kind) return;
+      const c = (u, v) => [p.x + p.tx * u + p.nx * v, p.y + p.ty * u + p.ny * v];
+      tip(oPoly(g, [c(-4.5, -12), c(4.5, -12), c(4.5, 12), c(-4.5, 12)], colOf('bead', false), { sw: 1.3 }), `Defective caliper: ${kind}`);
+    });
+  },
+  hl(g, i) {
+    const d = dat('hl', i), t = S.thr.ocr.text.conf, R = (p) => rotP(p, d.rot);
+    d.lines.forEach((ln) => {
+      if (ln.c < t) return;
+      const [x, y, w, h] = ln.box, pts = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]].map(R);
+      const ok = GT.ocr.includes(ln.read) ? true : GT.ocr.some((x2) => x2.slice(0, 3) === ln.read.slice(0, 3)) ? false : null;
+      tip(oPoly(g, pts, ok === null ? '#3B9CFF' : colOf('ocr', ok)), `Read: ${ln.read} · confidence ${pct(ln.c)} · ${ok === null ? 'not in the match list' : ok ? 'matches · OK' : 'doesn\'t match · NG'}`);
+    });
+    const q = [[250, 144], [328, 144], [328, 222], [250, 222]].map(R);
+    tip(oPoly(g, q, colOf('qr', true)), `Code: ${d.qr} · OK`);
+  },
+};
+
+/* ════════════════════════ render + navigation ════════════════════════ */
+function render() {
+  const app = $('#app');
+  if (S.screen === 'list') app.innerHTML = instanceList();
+  else if (S.screen === 'tab') app.innerHTML = testingTab();
+  else if (S.screen === 'drawer') app.innerHTML = drawerView();
+  else app.innerHTML = resultsView();
+  if (S.screen === 'results') { if (S.res.tab === 'results') { drawImages(); renderUnder(); renderPager(); updChg(); } else { drawF1(); drawCM(); } }
+  $$('.viewer-tab').forEach((t) => t.setAttribute('aria-selected', String(+t.dataset.vt === S.vt)));
+  if (window.self !== window.top) parent.postMessage({ type: 'testing-v2-nav', to: stepOf() }, '*');
+}
+function stepOf() {
+  if (S.screen === 'results') return S.res.tab === 'metrics' ? 'edge-performance-metrics' : 'edge-test-results';
+  return ['edge-instances', 'edge-testing-tab', 'edge-run-test', 'edge-test-running', 'edge-test-results'][S.vt];
+}
+function goScreen(name, keepScroll = false) {
+  S.screen = name;
+  S.vt = name === 'list' ? 0 : name === 'drawer' ? 2 : name === 'results' ? 4 : S.myRun && S.myRun.state === 'running' ? 3 : 1;
+  render();
+  if (!keepScroll) window.scrollTo(0, 0);
+}
+function openResults(n) {
+  S.res.test = n;
+  const caps = Object.keys(testById(n).imgs);
+  if (!caps.includes(S.res.cap)) S.res.cap = caps[0];
+  S.res.img = Math.min(2, (testById(n).imgs[S.res.cap] || 1) - 1);
+  S.res.tab = 'results';
+  S.vt = 4;
+  goScreen('results');
+}
+function goVT(n) {
+  S.vt = n;
+  if (n === 0) { S.myRun = null; S.pick = false; S.noHistory = true; S.screen = 'list'; }
+  if (n === 1) { S.myRun = null; S.noHistory = true; S.screen = 'tab'; }
+  if (n === 2) { S.myRun = null; S.dr = { f: { hu: true, hy: true, br: true, hs: true, hl: false }, up: null }; S.screen = 'drawer'; }
+  if (n === 3) { S.noHistory = false; S.myRun = { n: 15, state: 'running', pct: 42, caps: ['hu', 'hy', 'br', 'hs'], started: '11:05 AM' }; S.screen = 'tab'; }
+  if (n === 4) { S.noHistory = false; S.res.test = 14; S.res.tab = 'results'; S.screen = 'results'; }
+  render();
+  window.scrollTo(0, 0);
+}
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(toast.h); toast.h = setTimeout(() => (t.style.opacity = '0'), 2800);
+}
+function modal(html) {
+  $('#modal').innerHTML = `<div class="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 p-4" data-act="closeModalBg">${html}</div>`;
+}
+const closeModal = () => ($('#modal').innerHTML = '');
+
+function openApply(src = 'table') {
+  const id = S.res.mod[S.res.cap], m = MODS[id], hasIou = HAS_IOU(m.type);
+  const nv = (c, k) => (src === 'sugg' ? m.sugg[c][k === 'conf' ? 0 : 1] : S.thr[id][c][k]);
+  const cell = (c, k) => { const s = S.saved[id][c][k], v = nv(c, k); return Math.abs(s - v) < 0.001 ? `<span class="text-gray-500">${s.toFixed(2)} (no change)</span>` : `${s.toFixed(2)} → <b class="text-f-primary">${v.toFixed(2)}</b>`; };
+  const title = src === 'sugg' ? 'Apply suggested thresholds to EMC?' : 'Apply these thresholds to EMC?';
+  const lead = src === 'sugg'
+    ? `${m.name} · ${m.typeName}. Saves the thresholds suggested by this test to this module in Edit Module Configurations. Only ${S.inst} changes; other instances that use this model keep their values.`
+    : `${m.name} · ${m.typeName}. Saves the values from the Thresholds table to this module in Edit Module Configurations. Only ${S.inst} changes; other instances that use this model keep their values.`;
+  modal(`<div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl" role="dialog" aria-label="${title}">
+    <div class="flex items-start justify-between gap-4"><h3 class="text-lg font-semibold">${title}</h3><button data-act="closeModal" class="text-2xl leading-none text-gray-400" aria-label="Close">×</button></div>
+    <p class="mt-1 text-sm text-gray-600">${lead}</p>
+    <table class="mt-4 w-full text-sm">
+      <thead><tr class="border-b text-left text-gray-500"><th class="py-2 font-medium">Class</th><th class="py-2 font-medium">Confidence (EMC → new)</th>${hasIou ? '<th class="py-2 font-medium">IOU (EMC → new)</th>' : ''}</tr></thead>
+      <tbody class="divide-y">${m.classes.map((c) => `<tr><td class="py-2 font-semibold">${c}</td><td class="py-2">${cell(c, 'conf')}</td>${hasIou ? `<td class="py-2">${cell(c, 'iou')}</td>` : ''}</tr>`).join('')}</tbody>
+    </table>
+    ${S.deploy ? `<div class="mt-4 flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-900">${ICON.warn}<span><b>A deployment is running on this device.</b> It keeps using the old values until it restarts.</span></div>` : ''}
+    <div class="mt-6 flex flex-wrap justify-end gap-3">
+      <button data-act="closeModal" class="rounded-md border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+      <button data-act="doApply" data-src="${src}" class="rounded-md bg-f-primary px-5 py-2 text-sm font-semibold text-white hover:bg-f-primary/90">Apply</button>
+    </div>
+  </div>`);
+}
+
+/* ─── events ─── */
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-act]');
+  if (!a) return;
+  const act = a.dataset.act;
+  if (act === 'closeModalBg') { if (e.target === a) closeModal(); return; }
+  if (a.tagName === 'A') e.preventDefault();
+  switch (act) {
+    case 'toast': toast(a.dataset.msg); break;
+    case 'openDrawer': {
+      const b = runBlocks();
+      if (b.length) { toast(b[0]); break; }
+      S.dr = { f: { hu: true, hy: true, br: true, hs: true, hl: false }, up: null };
+      goScreen('drawer', true); break;
+    }
+    case 'closeDrawer': if (!S.dr.up) goScreen('tab'); break;
+    case 'openEMC': toast('Prototype: opens Edit Module Configurations at Housing · Gasket › bead inspection.'); break;
+    case 'pickFolder': S.dr.f[a.dataset.row] = true; render(); break;
+    case 'clearFolder': S.dr.f[a.dataset.row] = false; render(); break;
+    case 'startTest': {
+      const caps = ROWS.filter((r) => !r.err && S.dr.f[r.id]).map((r) => r.id);
+      const total = caps.reduce((s, c) => s + imgsOf(c), 0);
+      S.dr.up = { done: 0, total, caps };
+      $('#drFoot').innerHTML = drFoot();
+      const iv = setInterval(() => {
+        S.dr.up.done = Math.min(total, S.dr.up.done + 25);
+        if (S.dr.up.done >= total) {
+          clearInterval(iv);
+          S.myRun = { n: 15, state: 'running', pct: 0, caps, started: '11:05 AM' };
+          S.dr.up = null; goScreen('tab'); toast('Test 15 started.');
+        } else $('#drFoot').innerHTML = drFoot();
+      }, 60);
+      break;
+    }
+    case 'askCancel':
+      modal(`<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" role="dialog" aria-label="Cancel test">
+        <h3 class="text-lg font-semibold">Cancel Test 15?</h3>
+        <p class="mt-2 text-sm text-gray-700">The images tested so far won't be kept. You can run the test again later.</p>
+        <div class="mt-6 flex justify-end gap-3"><button data-act="closeModal" class="rounded-md border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700">Keep running</button>
+        <button data-act="confirmCancel" class="rounded-md bg-red-600 px-5 py-2 text-sm font-semibold text-white">Cancel test</button></div></div>`);
+      break;
+    case 'confirmCancel': {
+      const r = activeRun();
+      if (r) S.myRun = { ...r, state: 'cancelled', cancelledBy: 'you' };
+      if (S.other) { S.other = false; $('#tgOther').checked = false; }
+      closeModal(); render(); break;
+    }
+    case 'askDelete':
+      modal(`<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" role="dialog" aria-label="Delete test">
+        <h3 class="text-lg font-semibold">Delete Test ${a.dataset.test}?</h3>
+        <p class="mt-2 text-sm text-gray-700">Its images and results are removed from this device. This can't be undone.</p>
+        <div class="mt-6 flex justify-end gap-3"><button data-act="closeModal" class="rounded-md border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700">Keep test</button>
+        <button data-act="confirmDelete" data-test="${a.dataset.test}" class="rounded-md bg-red-600 px-5 py-2 text-sm font-semibold text-white">Delete test</button></div></div>`);
+      break;
+    case 'confirmDelete': S.deleted.push(+a.dataset.test); closeModal(); render(); toast(`Test ${a.dataset.test} deleted.`); break;
+    case 'dismissRun': S.myRun = null; goScreen('tab', true); break;
+    case 'viewResults': openResults(+a.dataset.test); break;
+    case 'backToTests': goScreen('tab'); break;
+    case 'goList': S.pick = false; goScreen('list'); break;
+    case 'openTesting':
+      if (S.instFilter !== 'all') { S.inst = S.instFilter; S.myRun = null; goScreen('tab'); }
+      else { S.pick = !S.pick; render(); }
+      break;
+    case 'pickInst': S.inst = a.dataset.name; S.pick = false; S.myRun = null; goScreen('tab'); break;
+    case 'resTab': S.res.tab = a.dataset.tab; render(); break;
+    case 'imgFirst': case 'imgLast': case 'imgPrev': case 'imgNext': case 'imgGo': {
+      const N = nImgs(S.res.cap);
+      S.res.img = act === 'imgGo' ? +a.dataset.i : act === 'imgFirst' ? 0 : act === 'imgLast' ? N - 1
+        : Math.max(0, Math.min(N - 1, S.res.img + (act === 'imgNext' ? 1 : -1)));
+      $('#rawSvg').closest('figure').querySelector('span.text-sm').textContent = `Image ${S.res.img + 1} of ${N}`;
+      drawImages(); renderPager(); break;
+    }
+    case 'resetThr': {
+      const id = S.res.mod[S.res.cap];
+      MODS[id].classes.forEach((c) => ['conf', 'iou'].forEach((k) => { if (S.saved[id][c][k] != null) setThr(id, c, k, S.saved[id][c][k]); }));
+      break;
+    }
+    case 'applyThr': openApply(); break;
+    case 'doApply': {
+      const id = S.res.mod[S.res.cap], m = MODS[id], sugg = a.dataset.src === 'sugg';
+      m.classes.forEach((c) => {
+        S.saved[id][c] = sugg ? { conf: m.sugg[c][0], iou: m.sugg[c][1] ?? null } : { ...S.thr[id][c] };
+      });
+      closeModal();
+      $$('[data-emc]').forEach((td) => (td.textContent = emcText(id, td.dataset.emc)));
+      updChg(); updSuggCur();
+      const what = sugg ? 'Suggested thresholds saved to EMC.' : 'Thresholds saved to EMC.';
+      toast(S.deploy ? `${what} The running deployment uses them after it restarts.` : what);
+      break;
+    }
+    case 'useSugg': openApply('sugg'); break;
+    case 'closeModal': closeModal(); break;
+  }
+});
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.dataset.thr) { const [id, c, k] = t.dataset.thr.split('|'); setThr(id, c, k, t.value / 100); }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.thrn) { const [id, c, k] = t.dataset.thrn.split('|'); setThr(id, c, k, Number(t.value) || 0); t.value = S.thr[id][c][k].toFixed(2); }
+  if (t.id === 'instFilter') { S.instFilter = t.value; S.pick = false; render(); }
+  if (t.id === 'capSel') { S.res.cap = t.value; S.res.img = Math.min(2, nImgs(t.value) - 1); render(); }
+  if (t.id === 'modSel') { S.res.mod[S.res.cap] = t.value; const y = window.scrollY; render(); window.scrollTo(0, y); }
+});
+document.addEventListener('keydown', (e) => {
+  if (S.screen !== 'results' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#modal').innerHTML) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const N = nImgs(S.res.cap);
+    S.res.img = Math.max(0, Math.min(N - 1, S.res.img + (e.key === 'ArrowRight' ? 1 : -1)));
+    $('#rawSvg').closest('figure').querySelector('span.text-sm').textContent = `Image ${S.res.img + 1} of ${N}`;
+    drawImages(); renderPager();
+  }
+});
+
+// Viewer bar
+$$('.viewer-tab').forEach((t) => t.addEventListener('click', () => goVT(+t.dataset.vt)));
+[['tgDeploy', 'deploy'], ['tgOther', 'other'], ['tgRecipe', 'recipe'], ['tgAnnot', 'annot']].forEach(([id, k]) =>
+  $('#' + id).addEventListener('change', (e) => {
+    const r = activeRun();
+    if (k === 'deploy' && e.target.checked && r && r.state === 'running') {
+      e.target.checked = false;
+      toast('A test is already running on this device. Wait for it to finish or cancel it, then start the deployment.');
+      return;
+    }
+    if (k === 'other' && e.target.checked && S.deploy) {
+      e.target.checked = false;
+      toast('A deployment is running on this device, so no test can start.');
+      return;
+    }
+    S[k] = e.target.checked; const y = window.scrollY; render(); window.scrollTo(0, y);
+  }));
+const setVB = () => document.documentElement.style.setProperty('--vb', $('#viewerBar').offsetHeight + 'px');
+window.addEventListener('resize', setVB); setVB();
+
+// Simulated progress for "your" running test
+setInterval(() => {
+  if (S.screen !== 'tab' || !S.myRun || S.myRun.state !== 'running' || S.deploy || S.other) return;
+  S.myRun.pct = Math.min(100, S.myRun.pct + 1);
+  if (S.myRun.pct >= 100) { S.myRun.state = 'done'; render(); toast('Test 15 finished.'); return; }
+  const r = activeRun();
+  $('#runWrap').innerHTML = runCard(r);
+  $('#histBody').innerHTML = histRows();
+  $('#reasons').innerHTML = reasonsHtml();
+}, 400);
+
+// Deep links for screenshots, e.g. #vt=4&cap=hy&deploy=1&tab=metrics
+if (window.self !== window.top) $$('#viewerBar > span, .viewer-tab').forEach((t) => (t.style.display = 'none'));
+function applyHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  [['deploy', 'tgDeploy'], ['other', 'tgOther'], ['recipe', 'tgRecipe'], ['annot', 'tgAnnot']].forEach(([k, id]) => { S[k] = q.get(k) === '1'; $('#' + id).checked = S[k]; });
+  S.today = q.get('today') === '1';
+  if (q.get('cap') && CAPS[q.get('cap')]) S.res.cap = q.get('cap');
+  if (q.get('img')) S.res.img = +q.get('img');
+  if (q.get('mod') && MODS[q.get('mod')]) S.res.mod[S.res.cap] = q.get('mod');
+  const vt = q.has('vt') ? Math.max(0, Math.min(4, +q.get('vt'))) : 0;
+  goVT(vt);
+  // A deployment and a test can't run on the device at the same time
+  if (S.deploy && activeRun() && activeRun().state === 'running') { S.deploy = false; $('#tgDeploy').checked = false; render(); }
+  if (q.get('tab') === 'metrics' && S.screen === 'results') { S.res.tab = 'metrics'; render(); }
+  if (q.get('pct') && S.myRun) { S.myRun.pct = +q.get('pct'); render(); }
+  if (q.get('apply') === '1' && S.screen === 'results') { const id = S.res.mod[S.res.cap]; const c = MODS[id].classes[0]; setThr(id, c, 'conf', S.thr[id][c].conf - 0.04); openApply(); }
+  if (q.get('hist') === '1') { S.noHistory = false; render(); }
+  if (q.get('scroll')) { const t = $('#' + q.get('scroll')); if (t) t.scrollIntoView({ block: 'start' }); }
+}
+applyHash();
+window.addEventListener('hashchange', applyHash);
+</script>
+</body>
+</html>
