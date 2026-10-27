@@ -306,6 +306,23 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
     return out;
   }
   const win2d = (g, w, h, P, op) => win1d(win1d(g, w, h, (P.cols - 1) >> 1, true, op), w, h, (P.rows - 1) >> 1, false, op);
+  // True median of the Rows x Columns box (edges repeated), from a running histogram of the 256 grey levels.
+  function median2d(g, w, h, P) {
+    const rr = (P.rows - 1) >> 1, rc = (P.cols - 1) >> 1, half = ((2 * rr + 1) * (2 * rc + 1)) >> 1;
+    const out = new Float32Array(g.length), hist = new Int32Array(256);
+    const lvl = (x, y) => clamp(Math.round(g[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)]), 0, 255);
+    for (let y = 0; y < h; y++) {
+      hist.fill(0);
+      for (let k = -rr; k <= rr; k++) for (let x = -rc; x <= rc; x++) hist[lvl(x, y + k)]++;
+      for (let x = 0; x < w; x++) {
+        if (x) for (let k = -rr; k <= rr; k++) { hist[lvl(x - rc - 1, y + k)]--; hist[lvl(x + rc, y + k)]++; }
+        let v = 0, n = hist[0];
+        while (n <= half) n += hist[++v];
+        out[y * w + x] = v;
+      }
+    }
+    return out;
+  }
   function sobel(g, w, h) {
     const gx = new Float32Array(g.length), gy = new Float32Array(g.length);
     const at = (x, y) => g[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)];
@@ -344,8 +361,8 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
       case 'lowpass': return win2d(g, w, h, P, 'mean');
       case 'highpass': lp = win2d(g, w, h, P, 'mean'); return map((v, i) => v - lp[i] + 128);
       case 'sharpen': lp = win2d(g, w, h, P, 'mean'); return map((v, i) => v + (v - lp[i]));
-      case 'localmedian': return win2d(g, w, h, P, 'median');
-      case 'localmediannorm': md = win2d(g, w, h, P, 'median'); return map((v, i) => v - md[i] + 128);
+      case 'localmedian': return median2d(g, w, h, P);
+      case 'localmediannorm': md = median2d(g, w, h, P); return map((v, i) => v - md[i] + 128);
       case 'clip': return map((v) => clamp(v, P.low, P.high));
       case 'thresholdrange': return map((v) => (v >= P.low && v <= P.high ? 255 : 0));
       case 'greydist': return map((v) => Math.abs(v - P.grey));
@@ -357,10 +374,12 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
         const c0 = cdf.find((v) => v > 0); return map((v) => ((cdf[v | 0] - c0) / Math.max(1, n - c0)) * 255);
       }
       case 'stretch': { const s2 = Array.from(g).sort((a, b) => a - b), lo = s2[Math.floor(n * 0.01)], hi = s2[Math.floor(n * 0.99)]; return map((v) => ((v - lo) / Math.max(1, hi - lo)) * 255); }
-      case 'gradh': gg = sobel(g, w, h); return gg[0].map((v) => Math.abs(v) / 4);
-      case 'gradv': gg = sobel(g, w, h); return gg[1].map((v) => Math.abs(v) / 4);
+      // Named as in the reference tool: Gradient Horizontal lights up horizontal edges (grey changing top to bottom), Gradient Vertical upright ones.
+      case 'gradh': gg = sobel(g, w, h); return gg[1].map((v) => Math.abs(v) / 4);
+      case 'gradv': gg = sobel(g, w, h); return gg[0].map((v) => Math.abs(v) / 4);
       case 'gradfull': gg = sobel(g, w, h); return gg[0].map((v, i) => Math.hypot(v, gg[1][i]) / 4);
-      case 'edgemag': gg = sobel(g, w, h); return gg[0].map((v, i) => Math.hypot(v, gg[1][i]) / 2);
+      // Edge Magnitude: dilation minus erosion over the box (lightest minus darkest grey), as in the reference tool.
+      case 'edgemag': o = win2d(g, w, h, P, 'max'); c = win2d(g, w, h, P, 'min'); return o.map((v, i) => v - c[i]);
       case 'filldark': return fillDark(g, w, h);
       case 'filllight': { const f = fillDark(map((v) => 255 - v), w, h); return f.map((v) => 255 - v); }
       default: return g;
@@ -371,8 +390,8 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
   // is missing or empty: Local Median Normalization 15 x 15 -> Binarize -> Invert.
   const KEY = 'ie-proto:v1';
   const DEFAULT_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'invert' }];
-  const KERNEL = ['bothat', 'close', 'dilate', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
-  const PLAIN = ['binarize', 'edgemag', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
+  const KERNEL = ['bothat', 'close', 'dilate', 'edgemag', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
+  const PLAIN = ['binarize', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
   const DEFAULT_P = (f) => (KERNEL.includes(f) ? { rows: 5, cols: 5 } : f === 'clip' ? { low: 40, high: 200 } : f === 'thresholdrange' ? { low: 0, high: 110 } : f === 'greydist' ? { grey: 128 } : {});
   const known = (f) => KERNEL.includes(f) || PLAIN.includes(f) || ['clip', 'thresholdrange', 'greydist'].includes(f);
   const validChain = (c) => Array.isArray(c) && c.length > 0 && c.every((x) => x && known(x.f));

@@ -500,6 +500,23 @@ body.in-shell .pctl{display:none!important}
     return out;
   }
   function win2d(g, w, h, P, op) { return win1d(win1d(g, w, h, (P.cols - 1) >> 1, true, op), w, h, (P.rows - 1) >> 1, false, op); }
+  // True median of the Rows x Columns box (edges repeated), from a running histogram of the 256 grey levels.
+  function median2d(g, w, h, P) {
+    var rr = (P.rows - 1) >> 1, rc = (P.cols - 1) >> 1, half = ((2 * rr + 1) * (2 * rc + 1)) >> 1;
+    var out = new Float32Array(g.length), hist = new Int32Array(256), x, y, k, v, n;
+    function lvl(xx, yy) { return clamp(Math.round(g[clamp(yy, 0, h - 1) * w + clamp(xx, 0, w - 1)]), 0, 255); }
+    for (y = 0; y < h; y++) {
+      hist.fill(0);
+      for (k = -rr; k <= rr; k++) for (x = -rc; x <= rc; x++) hist[lvl(x, y + k)]++;
+      for (x = 0; x < w; x++) {
+        if (x) for (k = -rr; k <= rr; k++) { hist[lvl(x - rc - 1, y + k)]--; hist[lvl(x + rc, y + k)]++; }
+        v = 0; n = hist[0];
+        while (n <= half) n += hist[++v];
+        out[y * w + x] = v;
+      }
+    }
+    return out;
+  }
   function sobel(g, w, h) {
     var gx = new Float32Array(g.length), gy = new Float32Array(g.length);
     function at(x, y) { return g[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)]; }
@@ -539,8 +556,8 @@ body.in-shell .pctl{display:none!important}
       case 'lowpass': return win2d(g, w, h, P, 'mean');
       case 'highpass': lp = win2d(g, w, h, P, 'mean'); return map(function (v, i) { return v - lp[i] + 128; });
       case 'sharpen': lp = win2d(g, w, h, P, 'mean'); return map(function (v, i) { return v + (v - lp[i]); });
-      case 'localmedian': return win2d(g, w, h, P, 'median');
-      case 'localmediannorm': md = win2d(g, w, h, P, 'median'); return map(function (v, i) { return v - md[i] + 128; });
+      case 'localmedian': return median2d(g, w, h, P);
+      case 'localmediannorm': md = median2d(g, w, h, P); return map(function (v, i) { return v - md[i] + 128; });
       case 'clip': return map(function (v) { return clamp(v, P.low, P.high); });
       case 'thresholdrange': return map(function (v) { return v >= P.low && v <= P.high ? 255 : 0; });
       case 'greydist': return map(function (v) { return Math.abs(v - P.grey); });
@@ -552,10 +569,12 @@ body.in-shell .pctl{display:none!important}
         var c0 = cdf.find(function (v) { return v > 0; }); return map(function (v) { return ((cdf[v | 0] - c0) / Math.max(1, n - c0)) * 255; });
       }
       case 'stretch': { var s2 = Array.from(g).sort(function (a, b) { return a - b; }), lo = s2[Math.floor(n * 0.01)], hi = s2[Math.floor(n * 0.99)]; return map(function (v) { return ((v - lo) / Math.max(1, hi - lo)) * 255; }); }
-      case 'gradh': gg = sobel(g, w, h); return gg[0].map(function (v) { return Math.abs(v) / 4; });
-      case 'gradv': gg = sobel(g, w, h); return gg[1].map(function (v) { return Math.abs(v) / 4; });
+      // Named as in the reference tool: Gradient Horizontal lights up horizontal edges (grey changing top to bottom), Gradient Vertical upright ones.
+      case 'gradh': gg = sobel(g, w, h); return gg[1].map(function (v) { return Math.abs(v) / 4; });
+      case 'gradv': gg = sobel(g, w, h); return gg[0].map(function (v) { return Math.abs(v) / 4; });
       case 'gradfull': gg = sobel(g, w, h); return gg[0].map(function (v, i) { return Math.hypot(v, gg[1][i]) / 4; });
-      case 'edgemag': gg = sobel(g, w, h); return gg[0].map(function (v, i) { return Math.hypot(v, gg[1][i]) / 2; });
+      // Edge Magnitude: dilation minus erosion over the box (lightest minus darkest grey), as in the reference tool.
+      case 'edgemag': o = win2d(g, w, h, P, 'max'); c = win2d(g, w, h, P, 'min'); return o.map(function (v, i) { return v - c[i]; });
       case 'filldark': return fillDark(g, w, h);
       case 'filllight': { var f = fillDark(map(function (v) { return 255 - v; }), w, h); return f.map(function (v) { return 255 - v; }); }
       default: return g;
@@ -567,8 +586,8 @@ body.in-shell .pctl{display:none!important}
   // is missing or empty: Local Median Normalization 15 x 15 -> Binarize -> Invert.
   var KEY = 'ie-proto:v1';
   var DEFAULT_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'invert' }];
-  var KERNEL = ['bothat', 'close', 'dilate', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
-  var PLAIN = ['binarize', 'edgemag', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
+  var KERNEL = ['bothat', 'close', 'dilate', 'edgemag', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
+  var PLAIN = ['binarize', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
   function defaultP(f) { return KERNEL.indexOf(f) >= 0 ? { rows: 5, cols: 5 } : f === 'clip' ? { low: 40, high: 200 } : f === 'thresholdrange' ? { low: 0, high: 110 } : f === 'greydist' ? { grey: 128 } : {}; }
   function known(f) { return KERNEL.indexOf(f) >= 0 || PLAIN.indexOf(f) >= 0 || f === 'clip' || f === 'thresholdrange' || f === 'greydist'; }
   function validChain(c) { return Array.isArray(c) && c.length > 0 && c.every(function (x) { return x && known(x.f); }); }
