@@ -2,9 +2,9 @@
 
 **Prototype:** None — no new screens or layouts; only names and wording change (PM decision, 27 Oct 2026)
 **Product:** Vision + Edge
-**Status:** In review
+**Status:** Approved
 **Date:** 27 October 2026
-**Owner:** Tanay Deo
+**Owner:** Swayam (SDE), Shreyas (AI)
 **Related:** Original module build: FP-2454 (epic) with FP-2343, FP-2349, FP-2352, FP-2356 and stories FP-2344 to FP-2363. Same principle: FP-3473 (model names removed from logs and screens). Full place-by-place list: matting-exposure-audit.xlsx (shared separately).
 **Code checked:** 27 October 2026 — 34 repos at their latest default-branch commit, plus the live branches of Auto-annotation, Segmentation-Training and Segmentation-Evaluation (list in Appendix B)
 
@@ -279,6 +279,7 @@ Repos checked (27 Oct 2026): frinksvision-frontend @ df358e8, frinksvision-backe
 Every line names the US / AC ids it touched.
 - 27 Oct 2026 — First draft, US1–US12 (AC1.1–AC12.9). Decisions: name Edge Refinement, prefix ER, internal name edgeRefinement; ViTMatte code left as-is; one release with no old-name support; database table renamed too; stakeholders Swayam (SDE) and Shreyas (AI); prototype not needed (Tanay Deo)
 - 27 Oct 2026 — Duplicate pass: AC12.6 (removed): covered by AC6.2, which now names the schema-mismatch refusal; AC12.9 trimmed to the staging test (the one-release switch is AC6.2); AC11.5 trimmed (MODELLOAD_005 detail is AC5.4); AC11.1 trimmed (scripts bundle is AC11.3). Contradictions settled by earlier decisions: AC6.4 allows the image's unused model step until its next rebuild (default e) and covers shipped repos only (client repos not shipped) (Tanay Deo)
+- 27 Oct 2026 — Approved. Owner set to Swayam (SDE) and Shreyas (AI); no AC changes (Tanay Deo)
 
 ## Checked, not affected
 - vision-projects, vision-variants: the module has no project or variant setting.
