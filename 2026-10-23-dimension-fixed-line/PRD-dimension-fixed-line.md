@@ -3,10 +3,10 @@
 **Prototype:** [Interactive workflow, Today vs After change](https://vbv-fr.github.io/dimension-fixed-line-prototype/)
 **Product:** Frinks Edge
 **Status:** In review
-**Date:** 26 October 2026
+**Date:** 27 October 2026
 **Owner:** Tanay Deo
 **Related:** FP-3228 Dimension Configuration (Edge), FP-3404 Canvas for Dimension Configuration, FP-3456 Capture Layout, FP-3230 Keys for Shapes and Dimensions (all Done); PRD "Module Outputs in Reports & Analytics" (In review: its setup window lists every single-capture dimension's keys, fixed-line dimensions included, with no change there)
-**Code checked:** 26 October 2026 (re-synced for the round 4 changes) — 34 repos at their latest default-branch commit (list in Appendix B)
+**Code checked:** 27 October 2026 (re-synced for the round 5 changes) — 34 repos at their latest default-branch commit (list in Appendix B)
 
 ---
 
@@ -15,15 +15,15 @@ None. Every decision is made and written into the user stories.
 
 ## 1. Summary
 - On Edge's **Dimension Configuration** page, a Distance's Feature B can now be a **Fixed line** that the user types in, instead of a shape. "Fixed line" is the last entry of Feature B's Shape dropdown.
-- A **Line type** dropdown offers three kinds of line: **Horizontal (y =)**, **Vertical (x =)** and **Tilted** (a centre point and an angle).
+- A distance's fixed line is set by its **Angle** (0°–180°) and its centre, **Centre x** and **Centre y** in px. At 0° and 180° Centre x is greyed out, and at 90° Centre y is, because the line doesn't depend on them.
 - The Angle form's "Angle from" dropdown is renamed **Angle type**, and its "Two features" mode is renamed **Between two features**. It gets a new type, **From a fixed line**, where the user types only the line's angle.
-- While the dimension is being set up, the preview canvas draws the line across the whole image and shows the measured span. A live cursor read-out helps the user find the numbers to type.
+- While a Distance is being set up, the preview canvas draws the line across the whole image and shows the measured span. An Angle's fixed line is not drawn on the setup canvas. A live cursor read-out helps the user find the numbers to type.
 - A distance's line is typed in camera pixels, counted from the image's top-left corner, and stays fixed to the camera image on every cycle, wherever the part sits.
 - For every Distance, not only fixed-line ones, the setup canvas now shows the length measured on the master image, in the Ground Truth unit.
 - A new dimension starts as a Distance in mm. Ground Truth puts Min, Max and Unit in one row, and the Unit picked turns the Pixel to mm ratio box on or off.
 - The distance is the shortest distance from Feature A's point to the line. It is always positive and is judged against Ground Truth like any other distance, in px or mm.
 - Fixed lines also work in cross-capture distances, measured through Capture Layout.
-- A **Show the fixed line on inferenced image** toggle under Inference Line Colours (off to start) draws the line on the analysed image, in a colour picked from the usual list (yellow to start). For a cross-capture distance, the line is drawn on its own camera's analysed image. The setup canvas always draws the line.
+- A **Show the fixed line on inferenced image** toggle under Inference Line Colours (off to start) draws the line on the analysed image, in a colour picked from the usual list (yellow to start). For a cross-capture distance, the line is drawn on its own camera's analysed image. The setup canvas always draws a distance's line.
 - No role or permission changes, no Vision changes, and no Docker image or installer change.
 
 ## 2. Why we are making this
@@ -33,9 +33,9 @@ None. Every decision is made and written into the user stories.
 
 ## 3. Goals and non-goals
 **Goals**
-- G1. Measure the distance from any Feature A point to a typed-in horizontal, vertical or tilted line, in one capture or across two captures.
+- G1. Measure the distance from any Feature A point to a typed-in line (an angle and a centre point), in one capture or across two captures.
 - G2. Measure the angle between a Feature A line and a typed-in line.
-- G3. Show the line on the setup canvas while it is being typed, and, when the integrator turns it on, on the analysed image in a colour they pick.
+- G3. Show a distance's line on the setup canvas while it is being typed, and, when the integrator turns it on, on the analysed image in a colour they pick.
 - G4. Fixed-line dimensions save, list, deploy and report like every other dimension, and nothing that works today changes.
 - G5. Set Ground Truth without a trial run: the measured length shows on the setup canvas, and a new dimension starts as a Distance in mm.
 
@@ -46,7 +46,7 @@ None. Every decision is made and written into the user stories.
 - Any change in Frinks Vision.
 
 ## 4. Key concepts
-- **Fixed line:** a reference line the user types in on the Dimension Configuration page. For a Distance it is horizontal (y = value), vertical (x = value) or tilted (centre x, centre y and an angle). For an Angle only its angle is typed, and it is drawn through the middle of Feature A's line. It has no length: it runs across the whole image.
+- **Fixed line:** a reference line the user types in on the Dimension Configuration page. For a Distance it is an angle from 0° to 180° and a centre point (Centre x, Centre y). For an Angle only its angle is typed, and it is measured through the middle of Feature A's line. It has no length: it runs across the whole image.
 - **Camera pixels:** positions in the capture's full-size image, counted from the top-left corner, with y growing downward. The preview canvas shows a smaller copy of the image but works in camera pixels.
 
 ## 5. Impact map
@@ -55,7 +55,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Part | What will happen | User stories |
 |---|---|---|
 | Shape Extractor (mod-shape-extractor) | Dimensions no longer need a second shape: Feature B's Shape dropdown offers a typed-in Fixed line, shown in the table as "Fixed line · …". The line's analysed-image toggle and colour are stored with the dimension | US1, US2, US4, US5, US9, US15 |
-| Edit Module Configurations and Dimension Configuration page (edge-emc) | Feature B's Shape dropdown gets "Fixed line" and a Line type dropdown. "Angle from" becomes "Angle type" with "From a fixed line" (angle only) and "Between two features". Inference Line Colours gets the analysed-image toggle and Fixed line colour. The canvas draws the line with a cursor read-out and shows every distance's measured length. A new dimension starts as a Distance in mm, and Ground Truth's Unit turns the ratio box on or off | US1, US2, US3, US5, US8, US9, US13, US14, US15 |
+| Edit Module Configurations and Dimension Configuration page (edge-emc) | Feature B's Shape dropdown gets "Fixed line" with Angle, Centre x and Centre y boxes (one centre box greyed out at 0°, 90° and 180°). "Angle from" becomes "Angle type" with "From a fixed line" (angle only) and "Between two features". Inference Line Colours gets the analysed-image toggle and Fixed line colour. The canvas draws a distance's line with a cursor read-out (an Angle's fixed line isn't drawn) and shows every distance's measured length. A new dimension starts as a Distance in mm, and Ground Truth's Unit turns the ratio box on or off | US1, US2, US3, US5, US8, US9, US13, US14, US15 |
 | Master image (mod-input-master-image) | The canvas places the typed camera-pixel values on the smaller preview copy of the master image | US2 |
 | Result module (mod-result) | The engine measures and judges point-to-line distances and line-to-line angles against the fixed line. It draws the line on the analysed image only when the toggle is on, in the picked colour, including a cross-capture line on its own camera's image | US3, US4, US6, US7, US10 |
 | Search Area (mod-search-area) | No change to areas. Fixed lines are measured in the full camera image, whatever area Feature A's shape sits under | US6 |
@@ -90,19 +90,23 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Prototype:** [Distance to a fixed line](https://vbv-fr.github.io/dimension-fixed-line-prototype/#edge-dim-distance)
 
 ![Today: Distance with Feature B picked on a shape](prototype/dimension-config-distance-today.png)
-![After: Distance with Feature B as a horizontal fixed line](prototype/dimension-config-distance-after.png)
+![After: fixed line at 0°, Centre x greyed out](prototype/dimension-config-distance-after.png)
 
 - **AC1.1** In a Distance dimension, Feature B's Shape dropdown lists the capture's shapes, then "Fixed line" as its last entry. Picking a shape shows today's Part and Point dropdowns unchanged.
-- **AC1.2** Picking Fixed line hides the Part and Point dropdowns and shows a "Line type" dropdown in their place, with Horizontal (y =), Vertical (x =) and Tilted. Below it are the boxes for the chosen type: "y" in px for Horizontal, "x" in px for Vertical, and "Centre x" px, "Centre y" px and "Angle" ° for Tilted.
-- **AC1.3** Picking Fixed line starts on Horizontal, with y on the middle row of the capture's image (540 on a 1080-row image).
+- **AC1.2** Picking Fixed line hides the Part and Point dropdowns and shows three boxes in one row: "Angle" in °, "Centre x" in px and "Centre y" in px. There is no line-type choice.
+- **AC1.3** Picking Fixed line starts at Angle 90°, with Centre x on the middle column of the capture's image (960 on a 1920-column image).
 - **AC1.4** While Feature B is a fixed line, the Distance axis field is hidden.
-- **AC1.5** y, x, Centre x and Centre y take up to 2 decimals and must lie inside the capture's image: y and Centre y from 0 to the image height, x and Centre x from 0 to the image width. After a Save attempt, a value outside these limits shows "Enter a value between 0 and <limit> px." under its box, and the dimension is not saved.
+- **AC1.5** Centre x and Centre y take up to 2 decimals and must lie inside the capture's image: Centre x from 0 to the image width, Centre y from 0 to the image height. After a Save attempt, a value outside these limits shows "Enter a value between 0 and <limit> px." under its box, and the dimension is not saved.
 - **AC1.6** Angle takes 0° to 180°, counted counter-clockwise from horizontal as seen on screen. After a Save attempt, a value outside this range shows "Enter an angle between 0° and 180°." and the dimension is not saved.
-- **AC1.7** Saving a Distance with a fixed-line Feature B succeeds. Opening it again with Edit shows Fixed line with the same line type and values.
-- **AC1.8** Edge's server refuses a fixed-line dimension with a missing or out-of-range value even when it is sent without the page, and stores nothing.
-- **AC1.9** Picking a shape in Feature B's Shape dropdown after Fixed line, or Fixed line after a shape, and saving keeps only the last pick. Picking Fixed line again later starts from the defaults in AC1.3, with the toggle off and the colour on yellow.
+- **AC1.7** Saving a Distance with a fixed-line Feature B succeeds. Opening it again with Edit shows Fixed line with the same angle and the centre value(s) it uses.
+- **AC1.8** Edge's server refuses a fixed-line dimension with a missing or out-of-range angle, or a missing or out-of-range centre value its angle needs (Centre y at 0° and 180°, Centre x at 90°, both at any other angle), even when it is sent without the page, and stores nothing.
+- **AC1.9** Picking a shape in Feature B's Shape dropdown after Fixed line, or Fixed line after a shape, and saving keeps only the last pick. Picking Fixed line again later starts from the defaults in AC1.3.
 - **AC1.10** Feature A's Shape dropdown, and the shape dropdowns of other dimension types, never list Fixed line.
 - **AC1.11** When Feature B's capture has no shape a Distance can use, its Shape dropdown still offers Fixed line, and the note "This capture has no shape that a point of this kind can use." no longer shows under Feature B.
+- **AC1.12** At exactly 0° or 180°, Centre x is greyed out; at exactly 90°, Centre y is greyed out. Any other angle, 89.9° included, keeps both centre boxes active.
+- **AC1.13** A greyed-out centre box shows no value and can't be typed in.
+- **AC1.14** When the angle moves away from 0°, 90° or 180°, the box that was greyed out comes back with the value typed earlier for this fixed line, or with the image's middle column (Centre x) or middle row (Centre y) if none was typed.
+- **AC1.15** Saving skips a greyed-out box: it is neither checked nor stored.
 
 ### US2 — See the fixed line on the canvas while setting it up
 *As an integrator, I want to see the fixed line on the master image as I type it, so that I place it where I mean to without trial deployments.*
@@ -113,14 +117,14 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Today:** The canvas draws only shapes and the span between two picked features. There is no cursor position read-out anywhere on the page.
 - **Prototype:** [Distance to a fixed line](https://vbv-fr.github.io/dimension-fixed-line-prototype/#edge-dim-distance)
 
-![After: vertical fixed line across the full image height](prototype/dimension-config-distance-vertical-after.png)
-![After: tilted fixed line edge to edge of the image](prototype/dimension-config-distance-tilted-after.png)
+![After: fixed line at 90°, Centre y greyed out, across the full image height](prototype/dimension-config-distance-vertical-after.png)
+![After: fixed line at 30° through (960, 540), edge to edge of the image](prototype/dimension-config-distance-tilted-after.png)
 
-- **AC2.1** On a single-capture Distance, the preview canvas draws the fixed line dashed, in the dimension's OK colour: across the full image width for Horizontal, the full image height for Vertical, and from image edge to image edge for Tilted.
+- **AC2.1** On a single-capture Distance, the preview canvas draws the fixed line dashed, in the dimension's OK colour, from image edge to image edge through its centre at its angle (for example across the full image width at 0° and 180°, and the full image height at 90°).
 - **AC2.2** The line moves on the canvas as each value is typed, before saving.
 - **AC2.3** The canvas draws the span from Feature A's point to the fixed line solid, with today's end markers and a right-angle mark where it meets the line.
 - **AC2.4** Moving the cursor over the image shows its position as "x <n> · y <n> px", in camera pixels, at the bottom-left of the canvas.
-- **AC2.5** At every zoom level, a line typed at y = 540 sits exactly on row 540 of the camera image.
+- **AC2.5** At every zoom level, a line at 0° with Centre y 540 sits exactly on row 540 of the camera image.
 
 ### US3 — Measure an angle from a fixed line
 *As an integrator, I want to measure the angle of a detected edge against a line I type in, so that I can check tilt against a reference that is not horizontal or vertical.*
@@ -136,8 +140,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: Angle type From a fixed line at 30°](prototype/dimension-config-angle-after.png)
 
 - **AC3.1** The Angle form's mode dropdown is labelled "Angle type" (was "Angle from") and lists From X axis, From Y axis, From a fixed line, Between two features (was "Two features").
-- **AC3.2** From a fixed line shows a single Angle box in °, with the limits and message in AC1.6. It has no capture picker and no Line type dropdown: the line sits on Feature A's capture.
-- **AC3.3** The canvas draws the fixed line dashed across the whole image, through the middle of Feature A's line at the typed angle, plus an arc at that point for the opening between the two lines.
+- **AC3.2** From a fixed line shows a single Angle box in °, with the limits and message in AC1.6. It has no capture picker and no Centre x or Centre y box: the line sits on Feature A's capture.
+- **AC3.3** For From a fixed line, the setup canvas draws no fixed line, no arc and no label. The capture's shapes still show, as for every dimension.
 - **AC3.4** The result is the angle between Feature A's line and the fixed line, from 0° to 180°, like other Angle results.
 
 ### US4 — Use a fixed line in a cross-capture distance
@@ -174,7 +178,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![Today: dimensions table](prototype/dimension-config-list-today.png)
 ![After: table with fixed-line rows](prototype/dimension-config-saved-after.png)
 
-- **AC5.1** The Feature B cell reads "Fixed line · y = 540 px", "Fixed line · x = 960 px" or "Fixed line · Tilted (960, 540) at 30°" for a Distance, and "Fixed line · 30°" for an Angle. On a cross-capture row the capture name comes first, for example "Side Camera · Fixed line · x = 960 px".
+- **AC5.1** The Feature B cell names the angle first and only the centre values that count: "Fixed line · 0° at y = 540 px" (0° or 180°), "Fixed line · 90° at x = 960 px" (90°) or "Fixed line · 30° at (960, 540) px" (any other angle) for a Distance, and "Fixed line · 30°" for an Angle. On a cross-capture row the capture name comes first, for example "Side Camera · Fixed line · 90° at x = 960 px".
 - **AC5.2** A fixed-line dimension is never marked errored for having no Feature B shape: no red "errored" badge, no list banner and no form banner.
 - **AC5.3** On Deployments, a variant whose dimensions use fixed lines counts as configured, and its fixed-line dimensions never block Next for a missing Feature B shape.
 - **AC5.4** If a later instance upload changes the capture's image size so that a saved line falls outside the image, the dimension keeps measuring and is not marked errored. Its values are checked against the new size only when it is next saved.
@@ -189,7 +193,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Today:** The engine measures distances only between two shape features, always as a positive number, in the full camera image.
 
 - **AC6.1** On every image, the engine measures the shortest distance from Feature A's point to the fixed line in camera pixels of the full image. It then applies the pixel-to-mm ratio, the unit and the Offset exactly as for other distances.
-- **AC6.2** A Distance's fixed line stays at the same place in the camera image on every cycle, whichever search area, Orientator or datum alignment Feature A's shape sits under. For a horizontal line, a part sitting 20 px lower, and staying on the same side of the line, gives a value 20 px different.
+- **AC6.2** A Distance's fixed line stays at the same place in the camera image on every cycle, whichever search area, Orientator or datum alignment Feature A's shape sits under. For a line at 0°, a part sitting 20 px lower, and staying on the same side of the line, gives a value 20 px different.
 - **AC6.3** The value is always positive: a point 120 px above the line and a point 120 px below it give the same value.
 - **AC6.4** A fixed-line dimension whose value falls outside its Ground Truth Min–Max fails, and the capture's verdict is NG.
 
@@ -205,12 +209,12 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: toggle on, Fixed line colour yellow](prototype/dimension-config-line-after.png)
 
 - **AC15.1** When a dimension uses a fixed line (a Distance whose Feature B is Fixed line, single- or cross-capture, or an Angle of type From a fixed line), Inference Line Colours shows a "Show the fixed line on inferenced image" toggle under OK colour and NG colour. Other dimensions don't show it.
-- **AC15.2** The toggle starts off on every new fixed line.
+- **AC15.2** The toggle starts off on every new fixed line, including one picked again after a shape.
 - **AC15.3** Turning the toggle on shows a "Fixed line colour" dropdown under it. Turning it off hides the dropdown.
-- **AC15.4** Fixed line colour lists the same 40 colours as OK colour and NG colour, each with its swatch, and starts on yellow.
+- **AC15.4** Fixed line colour lists the same 40 colours as OK colour and NG colour, each with its swatch, and starts on yellow, including for a fixed line picked again after a shape.
 - **AC15.5** Turning the toggle off and on again, in the same form or after saving, brings back the colour picked before.
 - **AC15.6** Saving keeps the toggle and Fixed line colour, and opening the dimension again with Edit shows them as saved.
-- **AC15.7** Neither the toggle nor Fixed line colour changes the setup canvas: it draws the fixed line as in AC2.1, AC3.3 and AC4.4.
+- **AC15.7** Neither the toggle nor Fixed line colour changes the setup canvas: it draws a distance's fixed line as in AC2.1 and AC4.4, and an Angle's as in AC3.3.
 
 ### US7 — See the fixed line on the analysed image
 *As an operator or quality engineer, I want the analysed image to show the fixed line and the measured span, so that I can see at a glance why a part passed or failed.*
@@ -228,7 +232,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: toggle off: span, mark and value only](prototype/analysed-image-hidden-after.png)
 ![After: angle from a fixed line, toggle on](prototype/analysed-image-angle-after.png)
 
-- **AC7.1** For a single-capture fixed-line dimension (Distance or Angle) with "Show the fixed line on inferenced image" on, the analysed image draws the fixed line dashed across the whole image (edge to edge for a tilted line), in the Fixed line colour, on OK and NG cycles alike.
+- **AC7.1** For a single-capture fixed-line dimension (Distance or Angle) with "Show the fixed line on inferenced image" on, the analysed image draws the fixed line dashed across the whole image, in the Fixed line colour, on OK and NG cycles alike.
 - **AC7.2** For a single-capture Distance, the analysed image draws the span from Feature A's point to the line with today's dots, a right-angle mark where it meets the line, and today's value label (for example "6.00mm"), in the OK colour when it passes and the NG colour when it fails.
 - **AC7.3** For an Angle from a fixed line, the analysed image draws Feature A's line, an arc at its middle spanning the measured angle to the fixed line (never the reflex angle outside it), and the value in degrees, in the OK or NG colour. The fixed line itself passes through the middle of Feature A's line (AC7.1).
 - **AC7.4** The Live Dashboard image and saved analysed images show the same drawing as the analysed image.
@@ -331,7 +335,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC11.3** Scripts bundle: changes. It carries the Dimension Configuration page, the Edge deployment server (save, list and deploy check), the Edge inferencing server (what is sent to the engine, the cross-capture maths, and sending a cross-capture line to its own camera's engine run for drawing) and the Python engine (measuring and drawing).
 - **AC11.4** Installer: no change. The new stored fields ship in the release's database script.
 - **AC11.5** New error codes: none. A fixed line has no detection that can fail, and the existing engine and cross-capture error codes still apply.
-- **AC11.6** The Edge manual gets a Dimension Configuration section that covers fixed lines, the measured length on the canvas and the Ground Truth unit (there is none today). The release note reads: "Dimensioning on Edge can now measure a distance against a fixed line you type in (pick Fixed line in Feature B's Shape list, then a horizontal, vertical or tilted line), or an angle against a line at an angle you set. The line shows live on the setup canvas, and on the analysed image when you turn on "Show the fixed line on inferenced image", in a colour you pick. "Angle from" is now called "Angle type", and "Two features" is now "Between two features". The setup canvas now shows each distance's measured length in the Ground Truth unit, new dimensions start as a Distance in mm, and the unit you pick decides whether a pixel-to-mm ratio is needed. Before rolling an Edge back to an older version, delete its fixed-line dimensions."
+- **AC11.6** The Edge manual gets a Dimension Configuration section that covers fixed lines, the measured length on the canvas and the Ground Truth unit (there is none today). The release note reads: "Dimensioning on Edge can now measure a distance against a fixed line you type in (pick Fixed line in Feature B's Shape list, then set its angle and centre), or an angle against a line at an angle you set. A distance's line shows live on the setup canvas, and the line shows on the analysed image when you turn on "Show the fixed line on inferenced image", in a colour you pick. "Angle from" is now called "Angle type", and "Two features" is now "Between two features". The setup canvas now shows each distance's measured length in the Ground Truth unit, new dimensions start as a Distance in mm, and the unit you pick decides whether a pixel-to-mm ratio is needed. Before rolling an Edge back to an older version, delete its fixed-line dimensions."
 
 ### US12 — Migration requirements
 *As a site engineer, I want updates and rollbacks to leave existing dimensions intact, so that upgrading Edge is safe.*
@@ -370,9 +374,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **C15** — N/A: no network or clock dependence; works offline as today.
 - **C16** — N/A: no licensing or encryption change, and nothing new leaves the plant.
 
-**Coverage check** (26 Oct 2026, after round 4): **PASS**, no warnings. 15 user stories (10 Feature, 1 Rules, 2 Keeps working, 1 Platform, 1 Migration), 88 ACs, 23 touched parts, 0 discussion points. Checklist: 14 items covered by stories, 4 N/A, 0 open.
+**Coverage check** (27 Oct 2026, after round 5): **PASS**, no warnings. 15 user stories (10 Feature, 1 Rules, 2 Keeps working, 1 Platform, 1 Migration), 92 ACs, 23 touched parts, 0 discussion points. Checklist: 14 items covered by stories, 4 N/A, 0 open.
 
-**Checks beyond the script:** every coverage-sheet item maps to exactly one AC; the duplicate pass found 5 duplicates and 6 wording conflicts, all fixed (see Changelog); the code back-check added AC9.5; every goal is delivered (G1: US1, US4, US6; G2: US3; G3: US2, US7, US15; G4: US5, US9, US10; G5: US13, US14). Round 4 duplicate pass: 3 duplicates fixed, 2 scope gaps closed, no contradictions; the code back-check found no new part (all changed files sit in the Dimension Configuration page, the Edge deployment and inferencing servers and the Python engine, already Yes).
+**Checks beyond the script:** every coverage-sheet item maps to exactly one AC; the duplicate pass found 5 duplicates and 6 wording conflicts, all fixed (see Changelog); the code back-check added AC9.5; every goal is delivered (G1: US1, US4, US6; G2: US3; G3: US2, US7, US15; G4: US5, US9, US10; G5: US13, US14). Round 4 duplicate pass: 3 duplicates fixed, 2 scope gaps closed, no contradictions; round 5 duplicate pass: 4 duplicates and 2 edge-case contradictions fixed, no old line-type wording left; the code back-check found no new part (all changed files sit in the Dimension Configuration page, the Edge deployment and inferencing servers and the Python engine, already Yes).
 
 ## Appendix B — Code references
 For developers. Per touched part: the files that hold today's behaviour, from this sync.
@@ -424,6 +428,7 @@ Every line names the US / AC ids it touched.
 - 26 Oct 2026 — Status Draft → Approved; no US or AC changed (Tanay Deo)
 - 26 Oct 2026 — Status Approved → In review after PM review. G5 added. US13 added (AC13.1–AC13.7): measured length on the setup canvas for every Distance. US14 added (AC14.1–AC14.6): new dimension starts as a Distance in mm; Min, Max and Unit in one row; Unit turns the ratio box on or off. AC9.6, AC9.7 added: a ratio is still required for mm. AC3.2, AC3.3 changed: From a fixed line asks only for the angle and draws the line through the middle of Feature A's line. Reworded: AC5.1 (Angle cell), AC6.2 (Distance lines only), AC7.3 (analysed angle drawing), AC9.1 (canvas label and Ground Truth layout now change), AC11.6 (manual and release note), AC12.1 (Ground Truth layout now changes). Duplicate pass: AC2.1 trimmed ("never a short segment" is its first sentence) and limited to a Distance; AC3.2 trimmed (a single box needs no "no position boxes"); AC13.5 trimmed (Offset is AC13.3). Conflicts settled: AC9.1 points to AC13.1 for the label; AC9.7 and AC13.2 limited to single-capture (cross-capture uses Capture Layout); AC7.3 arc reworded to "never the reflex angle". (Tanay Deo)
 - 26 Oct 2026 — Round 4 (PM review of the prototype). Fixed line moves into Feature B's Shape dropdown: AC1.1 changed (the "Shape | Fixed line" switch is gone), AC1.2 changed (line type is now a "Line type" dropdown, and the line's capture is Feature B's Capture dropdown); AC1.9, AC3.2 and AC4.1 reworded; AC1.10 and AC1.11 added. Rename: AC3.1 changed ("Angle from" → "Angle type", "Two features" → "Between two features"); AC9.1 and AC12.1 reworded. US15 added (AC15.1–AC15.7): "Show the fixed line on inferenced image" toggle (off to start) and "Fixed line colour" (40 colours, yellow to start) under Inference Line Colours; the setup canvas is unaffected. AC7.1 changed (line only with the toggle on, in the Fixed line colour); AC7.2 reworded (span keeps OK/NG colours); AC7.3 changed (arc and value; the line is AC7.1); AC7.5 added (toggle off). AC4.5 changed: with the toggle on, a cross-capture line is drawn on its own camera's analysed image (was: never drawn); AC4.6 added; US4 and US7 now SDE + AI. G3, Summary, impact map (mod-shape-extractor, edge-emc, mod-result, edge-inferencing-customization), AC11.3, AC11.6 release note and Out of scope reworded. Duplicate pass: AC7.2 and AC7.3 trimmed (toggle-off drawing is AC7.5); AC15.7 merged into one sentence; AC1.10 trimmed (the Distance list is AC1.1). Scoped: AC7.5 to single-capture (cross-capture is AC4.5), AC14.5 to single-capture (AC14.3). AC1.9: picking Fixed line again also starts the toggle off and the colour on yellow. Status stays In review. (Tanay Deo)
+- 27 Oct 2026 — Round 5 (PM). The Line type dropdown (Horizontal / Vertical / Tilted) is gone: a distance's fixed line is always Angle (0°–180°), Centre x and Centre y. AC1.2 changed (three boxes, Angle first); AC1.3 changed (starts at 90° on the middle column, was Horizontal on the middle row); AC1.5, AC1.7 and AC1.8 reworded; AC1.12–AC1.15 added (0° and 180° grey out Centre x, 90° greys out Centre y; a greyed box is empty, comes back with the earlier value or the middle column/row, and is neither checked nor stored). AC2.1 and AC2.5 reworded. AC3.3 changed: an Angle from a fixed line draws nothing on the setup canvas (was the line and an arc); AC3.2 and AC15.7 reworded. AC5.1 changed (angle first: "Fixed line · 90° at x = 960 px"). AC6.2, AC7.1, AC11.6 release note, Summary, G1, G3, Key concepts and impact map reworded. Duplicate pass: AC1.3 trimmed (greying is AC1.12); AC1.9 trimmed, its toggle and colour reset moved into AC15.2 and AC15.4; AC2.1 example marked; AC7.1 trimmed; AC1.14 limited to this fixed line (a re-pick starts from AC1.3); AC1.7 reworded (a greyed centre value isn't stored). Status stays In review. (Tanay Deo)
 
 ## Checked, not affected
 Every other part in the component map, grouped, each group with a one-line reason.

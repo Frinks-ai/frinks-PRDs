@@ -286,8 +286,8 @@ var DERIV_PREV_LINE = 'Perpendicular from Previous Line';
 /* =========================================================================
  * Shared state with the other prototype screens (localStorage)
  * ========================================================================= */
-var LS_KEY = 'fixedline-proto-v2';
-var SHARED_DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, refAngle: 30, name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000', showLine: false, lineColor: '#FFFF33', shape: null };
+var LS_KEY = 'fixedline-proto-v3';
+var SHARED_DEFAULTS = { dimType: 'distance', cx: 960, cy: 540, angle: 0, refAngle: 30, name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000', showLine: false, lineColor: '#FFFF33', shape: null };
 function sanitizeShapeRow(o) {
   if (!o || typeof o !== 'object' || typeof o.name !== 'string' || !o.name.trim()) return null;
   var n = function (v) { var x = Number(v); return v === null || v === undefined || v === '' || !Number.isFinite(x) ? null : x; };
@@ -297,9 +297,8 @@ function sanitizeShared(o) {
   var d = Object.assign({}, SHARED_DEFAULTS);
   if (!o || typeof o !== 'object') return d;
   if (o.dimType === 'distance' || o.dimType === 'angle') d.dimType = o.dimType;
-  if (['horizontal', 'vertical', 'tilted'].indexOf(o.lineMode) >= 0) d.lineMode = o.lineMode;
   d.shape = sanitizeShapeRow(o.shape);
-  ['y', 'x', 'cx', 'cy', 'angle', 'refAngle', 'min', 'max', 'ratio'].forEach(function (k) {
+  ['cx', 'cy', 'angle', 'refAngle', 'min', 'max', 'ratio'].forEach(function (k) {
     if (o[k] === null || o[k] === undefined || o[k] === '') return;
     var n = Number(o[k]); if (Number.isFinite(n)) d[k] = n;
   });
@@ -480,13 +479,11 @@ function hasErrors(e) { return Object.keys(e).length > 0; }
 var FIXED = {
   // Copy / options
   SHAPE_OPTION: { id: '__fixed', name: 'Fixed line' },   // last entry of a Distance's Feature B Shape dropdown
-  LINE_TYPE_PLACEHOLDER: 'Line type',
   SHOW_LINE_LABEL: 'Show the fixed line on inferenced image',
   LINE_COLOUR_LABEL: 'Fixed line colour',
   DEFAULT_LINE_COLOR: '#FFFF33',  // yellow
   ANGLE_TYPE_LABEL: 'Angle type',
   TWO_FEATURES_NAME: 'Between two features',
-  LINE_MODES: [['horizontal', 'Horizontal (y =)'], ['vertical', 'Vertical (x =)'], ['tilted', 'Tilted']],
   ANGLE_OPTION: { id: 'fixed', name: 'From a fixed line' },
   ANGLE_LABEL: 'Angle',           // the one box shown for Angle → From a fixed line
   HIDE_DISTANCE_AXIS: true,       // Distance axis is hidden while Feature B is a fixed line
@@ -497,7 +494,25 @@ var FIXED = {
   angleModes: function () { return [ANGLE_MODES_TODAY[0], ANGLE_MODES_TODAY[1], FIXED.ANGLE_OPTION, { id: 'two', name: FIXED.TWO_FEATURES_NAME }]; },
 
   // Defaults applied when "Fixed line" is picked: Horizontal at the image's middle row.
-  applyDefaults: function (fx, cap) { var s = imgSizeOf(cap); fx.mode = 'horizontal'; fx.y = String(s.h / 2); fx.cap = cap; },
+  // Defaults applied when "Fixed line" is picked: 90° through the image's middle column (Centre y greyed out).
+  applyDefaults: function (fx, cap) { var s = imgSizeOf(cap); fx.angle = '90'; fx.cx = String(s.w / 2); fx.cy = ''; fx.cap = cap; },
+  // Exactly 0° or 180° greys out Centre x; exactly 90° greys out Centre y.
+  greyX: function (fx) { var a = textToNum(fx.angle); return a === 0 || a === 180; },
+  greyY: function (fx) { return textToNum(fx.angle) === 90; },
+  // A box that comes back into use gets the value typed earlier, or the image's middle column / row.
+  ungrey: function (fx) {
+    var s = imgSizeOf(fx.cap);
+    if (!FIXED.greyX(fx) && textToNum(fx.cx) === null) fx.cx = String(s.w / 2);
+    if (!FIXED.greyY(fx) && textToNum(fx.cy) === null) fx.cy = String(s.h / 2);
+  },
+  // Updates the two centre boxes in place, so typing the angle keeps the cursor where it is.
+  syncGrey: function (fx) {
+    FIXED.ungrey(fx);
+    [['cx', FIXED.greyX(fx)], ['cy', FIXED.greyY(fx)]].forEach(function (b) {
+      var el = document.querySelector('[data-inp="fixed.' + b[0] + '"]'); if (!el) return;
+      el.disabled = b[1]; el.value = b[1] ? '' : fx[b[0]];
+    });
+  },
 
   inputPattern: function () { return new RegExp('^\\d*\\.?\\d{0,' + FIXED.DECIMALS + '}$'); },
 
@@ -507,22 +522,19 @@ var FIXED = {
     var px = function (max) { return 'Enter a value between 0 and ' + max + ' px.'; };
     // Angle → From a fixed line: the angle is the only input.
     if (f.type === 'angle') { if (!inR(fx.angle, 0, 180)) e.fixedAngle = 'Enter an angle between 0° and 180°.'; return e; }
-    if (fx.mode === 'horizontal' && !inR(fx.y, 0, s.h)) e.fixedY = px(s.h);
-    if (fx.mode === 'vertical' && !inR(fx.x, 0, s.w)) e.fixedX = px(s.w);
-    if (fx.mode === 'tilted') {
-      if (!inR(fx.cx, 0, s.w)) e.fixedCx = px(s.w);
-      if (!inR(fx.cy, 0, s.h)) e.fixedCy = px(s.h);
-      if (!inR(fx.angle, 0, 180)) e.fixedAngle = 'Enter an angle between 0° and 180°.';
-    }
+    if (!inR(fx.angle, 0, 180)) e.fixedAngle = 'Enter an angle between 0° and 180°.';
+    // a greyed-out box is neither checked nor saved
+    if (!FIXED.greyX(fx) && !inR(fx.cx, 0, s.w)) e.fixedCx = px(s.w);
+    if (!FIXED.greyY(fx) && !inR(fx.cy, 0, s.h)) e.fixedCy = px(s.h);
     return e;
   },
 
   // Dimensions table, Feature B cell
   describe: function (fx, captureName) {
-    var v = function (t) { return fmt2(textToNum(t)); }, txt;
-    if (fx.mode === 'vertical') txt = 'Fixed line · x = ' + v(fx.x) + ' px';
-    else if (fx.mode === 'tilted') txt = 'Fixed line · Tilted (' + v(fx.cx) + ', ' + v(fx.cy) + ') at ' + v(fx.angle) + '°';
-    else txt = 'Fixed line · y = ' + v(fx.y) + ' px';
+    var v = function (t) { return fmt2(textToNum(t)); }, a = v(fx.angle) + '°', txt;
+    if (FIXED.greyX(fx)) txt = 'Fixed line · ' + a + ' at y = ' + v(fx.cy) + ' px';
+    else if (FIXED.greyY(fx)) txt = 'Fixed line · ' + a + ' at x = ' + v(fx.cx) + ' px';
+    else txt = 'Fixed line · ' + a + ' at (' + v(fx.cx) + ', ' + v(fx.cy) + ') px';
     return captureName ? captureName + ' · ' + txt : txt;
   },
   describeAngle: function (angle) { return 'Fixed line · ' + fmt2(textToNum(angle)) + '°'; },
@@ -596,22 +608,24 @@ var FIXED = {
       return '<button type="button" data-seg="' + key + '" data-val="' + it[0] + '" class="' + (it[0] === value ? 'on' : '') + '">' + esc(it[1]) + '</button>';
     }).join('') + '</div>';
   },
+  // One row: Angle | Centre x | Centre y. The angle decides which centre box is greyed out.
   inputs: function (fx) {
-    var cells = fx.mode === 'horizontal' ? [['fixed.y', 'y', fx.y, 'px', 'fixedY']]
-      : fx.mode === 'vertical' ? [['fixed.x', 'x', fx.x, 'px', 'fixedX']]
-        : [['fixed.cx', 'Centre x', fx.cx, 'px', 'fixedCx'], ['fixed.cy', 'Centre y', fx.cy, 'px', 'fixedCy'], ['fixed.angle', 'Angle', fx.angle, '°', 'fixedAngle']];
-    return '<div class="g3 gap2">' + cells.map(function (c) { return numberTextField(c[0], c[1], c[2], c[3], c[4], { pattern: 'fixed' }); }).join('') + '</div>';
+    var gx = FIXED.greyX(fx), gy = FIXED.greyY(fx);
+    return '<div class="g3 gap2">'
+      + numberTextField('fixed.angle', 'Angle', fx.angle, '°', 'fixedAngle', { pattern: 'fixed' })
+      + numberTextField('fixed.cx', 'Centre x', gx ? '' : fx.cx, 'px', 'fixedCx', { pattern: 'fixed', disabled: gx })
+      + numberTextField('fixed.cy', 'Centre y', gy ? '' : fx.cy, 'px', 'fixedCy', { pattern: 'fixed', disabled: gy })
+      + '</div>';
   },
-  // Distance: "Fixed line" is the last entry of Feature B's Shape dropdown. Picking it swaps Part / Point
-  // for a Line type dropdown, then the line's boxes.
+  // Distance: "Fixed line" is the last entry of Feature B's Shape dropdown. Picking it hides Part / Point
+  // and shows the line's Angle, Centre x and Centre y boxes.
   featureBBlock: function (f) {
     var html = '<div class="min0"><label class="fl">Feature B</label><div class="col gap2">', warn = '';
     if (f.bKind === 'fixed') {
       var capObj = capById(f.fixed.cap), types = shapeTypesFor(f.type);
       var shapes = capObj ? capObj.shapes.filter(function (sh) { return types.indexOf(sh.type) >= 0; }) : [];
       html += selectInput('fixed.cap', { options: captureOptions(), value: f.fixed.cap, placeholder: 'Capture' });
-      html += '<div class="g2 gap2">' + selectInput('B.shape', { options: shapes.map(function (sh) { return { id: sh.id, name: sh.name }; }).concat([FIXED.SHAPE_OPTION]), value: FIXED.SHAPE_OPTION.id, placeholder: 'Shape' })
-        + selectInput('fixed.mode', { options: FIXED.LINE_MODES.map(function (m) { return { id: m[0], name: m[1] }; }), value: f.fixed.mode, placeholder: FIXED.LINE_TYPE_PLACEHOLDER }) + '</div>';
+      html += selectInput('B.shape', { options: shapes.map(function (sh) { return { id: sh.id, name: sh.name }; }).concat([FIXED.SHAPE_OPTION]), value: FIXED.SHAPE_OPTION.id, placeholder: 'Shape' });
       html += FIXED.inputs(f.fixed);
     } else {
       var inner = featurePickerInner(f, 'B', true, true, [FIXED.SHAPE_OPTION]);
@@ -635,12 +649,10 @@ var FIXED = {
 
   // ---- geometry (image px, y down; 0° = horizontal, +angle = counter-clockwise on screen) ----
   geom: function (fx) {
-    var s = imgSizeOf(fx.cap);
-    if (fx.mode === 'horizontal') { var y = textToNum(fx.y); return y === null ? null : { p: { x: s.w / 2, y: y }, u: { x: 1, y: 0 } }; }
-    if (fx.mode === 'vertical') { var x = textToNum(fx.x); return x === null ? null : { p: { x: x, y: s.h / 2 }, u: { x: 0, y: 1 } }; }
-    var cx = textToNum(fx.cx), cy = textToNum(fx.cy), a = textToNum(fx.angle);
-    if (cx === null || cy === null || a === null) return null;
-    return { p: { x: cx, y: cy }, u: { x: Math.cos(a * DEG), y: -Math.sin(a * DEG) } };
+    var s = imgSizeOf(fx.cap), a = textToNum(fx.angle);
+    var x = FIXED.greyX(fx) ? s.w / 2 : textToNum(fx.cx), y = FIXED.greyY(fx) ? s.h / 2 : textToNum(fx.cy);
+    if (a === null || x === null || y === null) return null;
+    return { p: { x: x, y: y }, u: { x: Math.cos(a * DEG), y: -Math.sin(a * DEG) } };
   },
   clip: function (p, u, W, H) {
     var t0 = -Infinity, t1 = Infinity, ok = true;
@@ -727,7 +739,7 @@ var FIXED = {
 /* =========================================================================
  * Forms per state
  * ========================================================================= */
-var FORCED_LINE = { 'distance-vertical': 'vertical', 'distance-tilted': 'tilted', cross: 'vertical' };
+var FORCED_LINE = { 'distance-vertical': { angle: '90', cx: '960', cy: '' }, 'distance-tilted': { angle: '30', cx: '960', cy: '540' } };
 // The Ground Truth screens open on a set unit (gt-px: a px range that fits the 120 px sample span).
 var FORCED_UNIT = { gt: 'mm', 'gt-px': 'px' };
 var OWN_STATES = ['cross', 'pitch', 'edge', 'shape-value'];   // own sample dimensions: never read/written to the shared state
@@ -737,7 +749,7 @@ function baseForm(S) {
     A: { cap: 'top', shape: 'circle_hole', part: 'Centre', point: null },
     B: { cap: 'top', shape: 'line_edge', part: 'Line 1', point: DERIV_ON_LINE },
     bKind: 'shape',
-    fixed: { cap: 'top', mode: S.lineMode, y: numText(S.y), x: numText(S.x), cx: numText(S.cx), cy: numText(S.cy), angle: numText(S.angle) },
+    fixed: { cap: 'top', angle: numText(S.angle), cx: numText(S.cx), cy: numText(S.cy) },
     name: '', min: '', max: '', unit: 'mm', ratio: numText(S.ratio), offset: 0,
     okColor: S.okColor, ngColor: S.ngColor, labelSize: 'medium',
     showLine: S.showLine, lineColor: S.lineColor,
@@ -746,7 +758,7 @@ function baseForm(S) {
 function buildForm(st, S) {
   var f = baseForm(S), after = isAfter();
   if (Q.get('line') === 'on') f.showLine = true; else if (Q.get('line') === 'off') f.showLine = false;
-  if (after && FORCED_LINE[st]) f.fixed.mode = FORCED_LINE[st];
+  if (after && FORCED_LINE[st]) Object.assign(f.fixed, FORCED_LINE[st]);
   if (st === 'angle') {
     var useA = S.dimType === 'angle';
     f.type = 'angle'; f.angleMode = after ? 'fixed' : 'x';
@@ -758,7 +770,7 @@ function buildForm(st, S) {
     // The cross-capture example is its own dimension: its line does not follow the shared one.
     f.B = { cap: 'side', shape: 'circle_pin', part: 'Centre', point: null };
     f.bKind = after ? 'fixed' : 'shape';
-    f.fixed = { cap: 'side', mode: after ? 'vertical' : 'horizontal', y: '540', x: '960', cx: '960', cy: '540', angle: '30' };
+    f.fixed = { cap: 'side', angle: '90', cx: '960', cy: '' };
     f.name = 'Distance_side_to_datum'; f.min = 105.9; f.max = 106.1; f.unit = 'mm';
   } else if (st === 'shape-value') {
     // A new single-capture Distance between two shapes: Circle_hole centre, perpendicular on Line_edge.
@@ -789,8 +801,7 @@ function applySharedToForm(S) {
   var forced = isAfter() && FORCED_LINE[st];
   f.okColor = S.okColor; f.ngColor = S.ngColor; f.lineColor = S.lineColor; if (!Q.get('line')) f.showLine = S.showLine;
   if (OWN_STATES.indexOf(st) >= 0) return;
-  ['y', 'x', 'cx', 'cy', 'angle'].forEach(function (k) { f.fixed[k] = fresh.fixed[k]; });
-  if (!forced) f.fixed.mode = S.lineMode;
+  if (!forced) ['cx', 'cy', 'angle'].forEach(function (k) { f.fixed[k] = fresh.fixed[k]; });
   f.name = fresh.name; f.min = fresh.min; f.max = fresh.max; f.ratio = fresh.ratio; if (f.type !== 'angle') f.unit = fresh.unit;
 }
 // Writes only what the user changed (plus the dimension type), never on load.
@@ -806,10 +817,9 @@ function pushShared(keys) {
   var patch = {}, fx = f.fixed, isAng = f.type === 'angle';
   var shapeUnit = function (u) { return u === 'deg' ? '°' : (u === 'px' ? 'px' : 'mm'); };
   keys.forEach(function (k) {
-    if (k === 'lineMode') { if (isAfter() && !isAng) patch.lineMode = fx.mode; }
-    else if (['y', 'x', 'cx', 'cy', 'angle'].indexOf(k) >= 0 && isAfter()) {
+    if (['cx', 'cy', 'angle'].indexOf(k) >= 0 && isAfter()) {
       // only in-range values travel to the other screens; an Angle form owns only its line's angle
-      var n = textToNum(fx[k]), sz = imgSizeOf(fx.cap), hi = { y: sz.h, x: sz.w, cx: sz.w, cy: sz.h, angle: 180 }[k];
+      var n = textToNum(fx[k]), sz = imgSizeOf(fx.cap), hi = { cx: sz.w, cy: sz.h, angle: 180 }[k];
       if (n !== null && n >= 0 && n <= hi) { if (!isAng) patch[k] = n; else if (k === 'angle') patch.refAngle = n; }
     }
     else if (k === 'okColor' || k === 'ngColor' || k === 'lineColor' || k === 'showLine') patch[k] = f[k];
@@ -1049,16 +1059,16 @@ function tableRows() {
   var rows = BASE_ROWS.slice();
   if (isAfter() && effState() === 'saved') {
     var S = readShared(), dist = S.dimType === 'distance', ang = S.dimType === 'angle';
-    var line = function (useS, d) { return useS ? { mode: S.lineMode, y: S.y, x: S.x, cx: S.cx, cy: S.cy, angle: S.angle } : d; };
+    var line = function (useS, d) { return useS ? { angle: S.angle, cx: S.cx, cy: S.cy } : d; };
     var dUnit = dist ? S.unit : 'mm';
     rows.push({ name: dist ? S.name : SHARED_DEFAULTS.name, type: 'Distance', capture: 'Top Camera', A: 'Circle_hole · Centre',
-      B: FIXED.describe(line(dist, { mode: 'horizontal', y: 540 })),
+      B: FIXED.describe(line(dist, { angle: 0, cx: '', cy: 540 })),
       gt: 'Between ' + (dist ? S.min : 5) + ' and ' + (dist ? S.max : 7) + ' ' + dUnit + (dUnit === 'mm' ? ' (1 px = ' + (dist ? S.ratio : 0.05) + ' mm)' : ''), offset: '0', open: 'distance' });
     rows.push({ name: ang ? S.name : 'Angle_edge_to_ref', type: 'Angle', capture: 'Top Camera', A: 'Line_edge · Line 1',
       B: FIXED.describeAngle(S.refAngle),
       gt: 'Between ' + (ang ? S.min : 44.5) + ' and ' + (ang ? S.max : 45.5) + ' °', offset: '0', open: 'angle' });
     rows.push({ name: 'Distance_side_to_datum', type: 'Distance', capture: 'Top Camera, Side Camera', cross: true, A: 'Top Camera · Circle_hole · Centre',
-      B: FIXED.describe({ mode: 'vertical', x: 960 }, 'Side Camera'), gt: 'Between 105.9 and 106.1 mm', offset: '0', open: 'cross' });
+      B: FIXED.describe({ angle: 90, cx: 960, cy: '' }, 'Side Camera'), gt: 'Between 105.9 and 106.1 mm', offset: '0', open: 'cross' });
     // The shape-to-shape Distance, once saved from its own screen.
     if (S.shape) rows.push({ name: S.shape.name, type: 'Distance', capture: 'Top Camera', A: 'Circle_hole · Centre', B: 'Line_edge · ' + DERIV_ON_LINE,
       gt: 'Between ' + fmt2(S.shape.min) + ' and ' + fmt2(S.shape.max) + ' ' + S.shape.unit + (S.shape.unit === 'mm' && S.shape.ratio ? ' (1 px = ' + S.shape.ratio + ' mm)' : ''), offset: '0', open: 'shape-value' });
@@ -1199,7 +1209,7 @@ function measurementFor(f, sw) {
     } };
   }
   if (f.type === 'angle') {
-    if (fixedAngle(f)) return FIXED.angleMeasurement(f, sw, color);
+    if (fixedAngle(f)) return null;   // Angle → From a fixed line: nothing is drawn on the setup canvas
     var lineA = resolveFeatureLine(shA, f.A); if (!lineA) return null;
     var angA = segmentAngleDeg(lineA), two = f.angleMode === 'two';
     var lineB = two ? resolveFeatureLine(shB, f.B) : null; if (two && !lineB) return null;
@@ -1475,13 +1485,12 @@ function onSelect(key, val) {
   if (key === 'distanceAxis') { f.distanceAxis = val; renderMain(); afterFormChange(); return; }
   if (key === 'sharedCap') { f.A = emptyFeature(val); f.B = emptyFeature(f.angleMode === 'two' ? val : null); f.fixed.cap = val; renderMain(); afterFormChange(); return; }
   if (key === 'fixed.cap') { f.fixed.cap = val; f.B = emptyFeature(val); if (isCross(f) && f.unit === 'px') f.unit = 'mm'; renderMain(); afterFormChange(); return; }
-  if (key === 'fixed.mode') { if (f.fixed.mode === val) return; f.fixed.mode = val; renderMain(); afterFormChange(['lineMode']); return; }
   if (key === 'B.shape' && val === FIXED.SHAPE_OPTION.id) {
     if (f.bKind === 'fixed') return;
     f.bKind = 'fixed'; FIXED.applyDefaults(f.fixed, f.B.cap || f.A.cap || 'top');
     f.showLine = false; f.lineColor = FIXED.DEFAULT_LINE_COLOR;   // a newly picked fixed line starts off, in yellow
     if (isCross(f) && f.unit === 'px') f.unit = 'mm';
-    renderMain(); afterFormChange(['lineMode', 'y', 'showLine', 'lineColor']); return;
+    renderMain(); afterFormChange(['angle', 'cx', 'cy', 'showLine', 'lineColor']); return;
   }
   if (key === 'B.shape' && f.bKind === 'fixed') { f.bKind = 'shape'; f.B = { cap: f.fixed.cap, shape: val, part: null, point: null }; renderMain(); afterFormChange(); return; }
   if (key === 'lineColor') { f.lineColor = val; renderMain(); afterFormChange(['lineColor']); return; }
@@ -1532,7 +1541,7 @@ function onInput(el) {
   if (key.indexOf('fixed.') === 0) {
     var k = key.slice(6);
     if (v !== '' && !FIXED.inputPattern().test(v)) { el.value = f.fixed[k]; return; }
-    f.fixed[k] = v; drawCurrent(); afterFormChange([k]);
+    f.fixed[k] = v; if (k === 'angle' && fixedB(f)) FIXED.syncGrey(f.fixed); drawCurrent(); afterFormChange(k === 'angle' ? ['angle', 'cx', 'cy'] : [k]);
   }
 }
 function drawCurrent() { if (document.getElementById('cv')) drawSingle(); else if (document.getElementById('cvx')) drawCross(); }
@@ -1544,7 +1553,7 @@ function doSave() {
   toast('success', App.editingName ? 'Dimension updated' : 'Dimension created');
   var f = App.form;
   if (App.formState === 'shape-value' && isAfter()) writeShared({ shape: { name: f.name, min: textToNum(f.min), max: textToNum(f.max), unit: f.unit === 'px' ? 'px' : 'mm', ratio: textToNum(f.ratio) } });
-  pushShared((f.type === 'angle' ? ['angle', 'name', 'min', 'max', 'unit', 'ratio'] : ['lineMode', 'y', 'x', 'cx', 'cy', 'angle', 'name', 'min', 'max', 'unit', 'ratio']).concat(fixedActive(f) ? ['showLine', 'lineColor'] : []));
+  pushShared((f.type === 'angle' ? ['angle', 'name', 'min', 'max', 'unit', 'ratio'] : ['cx', 'cy', 'angle', 'name', 'min', 'max', 'unit', 'ratio']).concat(fixedActive(f) ? ['showLine', 'lineColor'] : []));
   goState('saved', 'edge-dim-saved');
 }
 function zoomBy(factor) {

@@ -64,7 +64,7 @@
 
 <script>
 (function () {
-  const KEY = 'fixedline-proto-v2';
+  const KEY = 'fixedline-proto-v3';
   const STEPS = [
     { id: 'edge-dim-list', label: 'Dimensions table', file: 'dimension-config.html', state: 'list' },
     { id: 'edge-dim-shape-value', label: 'Measured value', file: 'dimension-config.html', state: 'shape-value' },
@@ -93,7 +93,7 @@
     const q = [];
     if (step.state) q.push('state=' + step.state);
     q.push('mode=' + mode);
-    q.push('v=20261026b');
+    q.push('v=20261027a');
     if (extra) Object.keys(extra).forEach((k) => q.push(k + '=' + encodeURIComponent(extra[k])));
     return step.file + '?' + q.join('&');
   }

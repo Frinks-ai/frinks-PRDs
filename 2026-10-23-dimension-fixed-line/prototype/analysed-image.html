@@ -302,8 +302,8 @@
   var qs = new URLSearchParams(location.search);
   var MODE = qs.get('mode') === 'today' ? 'today' : 'after';
   var STATE = ['ok', 'ng', 'angle', 'cross'].indexOf(qs.get('state')) >= 0 ? qs.get('state') : 'ok';
-  var KEY = 'fixedline-proto-v2';
-  var DEFAULTS = { dimType: 'distance', lineMode: 'horizontal', y: 540, x: 960, cx: 960, cy: 540, angle: 30, refAngle: 30,
+  var KEY = 'fixedline-proto-v3';
+  var DEFAULTS = { dimType: 'distance', cx: 960, cy: 540, angle: 0, refAngle: 30,
     name: 'Distance_hole_to_datum', min: 5, max: 7, unit: 'mm', ratio: 0.05, okColor: '#39FF14', ngColor: '#FF0000',
     showLine: false, lineColor: '#FFFF33' };
   // Angle → From a fixed line: the line's angle (refAngle) is its only setting.
@@ -320,8 +320,7 @@
     var raw = readStored() || {};
     var c = {};
     Object.keys(DEFAULTS).forEach(function (k) { c[k] = (raw[k] === undefined || raw[k] === null || raw[k] === '') ? DEFAULTS[k] : raw[k]; });
-    ['y', 'x', 'cx', 'cy', 'angle', 'refAngle', 'min', 'max', 'ratio'].forEach(function (k) { c[k] = num(c[k], DEFAULTS[k]); });
-    if (['horizontal', 'vertical', 'tilted'].indexOf(c.lineMode) < 0) c.lineMode = DEFAULTS.lineMode;
+    ['cx', 'cy', 'angle', 'refAngle', 'min', 'max', 'ratio'].forEach(function (k) { c[k] = num(c[k], DEFAULTS[k]); });
     if (!HEX.test(String(c.okColor))) c.okColor = DEFAULTS.okColor;
     if (!HEX.test(String(c.ngColor))) c.ngColor = DEFAULTS.ngColor;
     if (!HEX.test(String(c.lineColor))) c.lineColor = DEFAULTS.lineColor;
@@ -485,10 +484,10 @@
   function round3(v) { return Math.round(v * 1000) / 1000; }
 
   // A fixed line from the shared config: a point on it and its direction (counter-clockwise on screen, 0° = horizontal).
+  // At exactly 0° or 180° Centre x is unused; at exactly 90° Centre y is unused.
   function fixedLine(c) {
-    if (c.lineMode === 'vertical') return { q: [c.x, H / 2], v: [0, -1] };
-    if (c.lineMode === 'tilted') { var a = c.angle * Math.PI / 180; return { q: [c.cx, c.cy], v: [Math.cos(a), -Math.sin(a)] }; }
-    return { q: [W / 2, c.y], v: [1, 0] };
+    var a = c.angle * Math.PI / 180, gx = c.angle === 0 || c.angle === 180, gy = c.angle === 90;
+    return { q: [gx ? W / 2 : c.cx, gy ? H / 2 : c.cy], v: [Math.cos(a), -Math.sin(a)] };
   }
   // Clip the infinite line to the image rectangle (whole width / height, never a short segment).
   function clipLine(L) {
