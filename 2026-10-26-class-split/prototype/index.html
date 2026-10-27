@@ -194,7 +194,7 @@ let expanded = false;
 
 function renderSplit(m) {
   $('#split-desc').textContent = `Images in each split, and ${m.unit === 'images' ? 'how many of them belong to each class' : `how many times each ${m.what} occurs in them`}. A ${m.what} with far fewer ${m.unit} than the others can bias the model towards the larger ones.`;
-  $('#split-h').textContent = m.ocr ? 'Character Split' : 'Class Instances Split';
+  $('#split-h').textContent = m.ocr ? 'Character Instances Split' : 'Class Instances Split';
   const names = Object.keys(m.classes);
   const rows = m.ocr ? names : [...names].sort((a, b) => m.classes[b][0] - m.classes[a][0]);
   const shown = expanded ? rows : rows.slice(0, VISIBLE);

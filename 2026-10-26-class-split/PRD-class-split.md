@@ -38,7 +38,7 @@ This ticket adds a class-wise split of the Training, Testing and Validation data
 
 - **AC2.1** Given the Training Results page of a trained model, when it loads, then the line "Training Data: N images / Testing Data: N images / Validation Data: N images" is no longer shown above Validation Results.
 - **AC2.2** Given the page loads, then a new section is shown below the Confidence Threshold card (end of Validation Results) and above the Training Results heading.
-- **AC2.3** Given an ODC, Segmentation or IC model, then the section heading reads "Class Instances Split"; given an OCR model, then it reads "Character Split".
+- **AC2.3** Given an ODC, Segmentation or IC model, then the section heading reads "Class Instances Split"; given an OCR model, then it reads "Character Instances Split".
 - **AC2.4** Given the section, then a one-line description under the heading states what the counts are and that a class with far fewer examples than the others can bias the model (copy as in the prototype).
 - **AC2.5** Given the page, then the Validation Results and Training Results sections (image comparison, confidence threshold Save/Reset, confusion matrix, loss curve) behave exactly as before.
 
@@ -117,4 +117,5 @@ To be added by the developer. Map each case to an executional ID (E1, E2...).
 
 ## Changelog
 
-- 27 Oct 2026 — Renamed "Class Split" to "Class Instances Split": PRD title, E2 title, E3 title, AC2.3 heading text, S1 highlight, prototype heading. No behaviour change; "Character Split" (OCR) unchanged (Tanay)
+- 27 Oct 2026 — Renamed "Class Split" to "Class Instances Split": PRD title, E2 title, E3 title, AC2.3 heading text, S1 highlight, prototype heading. No behaviour change (Tanay)
+- 27 Oct 2026 — AC2.3 OCR heading "Character Split" → "Character Instances Split"; prototype OCR heading updated (Tanay)
