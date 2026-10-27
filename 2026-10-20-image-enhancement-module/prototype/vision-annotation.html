@@ -481,6 +481,21 @@ a{color:inherit;text-decoration:inherit}
     }
     return out;
   }
+  // Gaussian blur with standard deviation s (kernel radius 3s, edges repeated): the smoothed copy Sharpen subtracts.
+  function gauss(g, w, h, s) {
+    var r = Math.floor(3 * s + 0.5), k = [], sum = 0, i;
+    for (i = -r; i <= r; i++) { k.push(Math.exp(-i * i / (2 * s * s))); sum += k[k.length - 1]; }
+    for (i = 0; i < k.length; i++) k[i] /= sum;
+    function pass(src, horiz) {
+      var out = new Float32Array(src.length), x, y, j, acc;
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+        for (acc = 0, j = -r; j <= r; j++) acc += k[j + r] * (horiz ? src[y * w + clamp(x + j, 0, w - 1)] : src[clamp(y + j, 0, h - 1) * w + x]);
+        out[y * w + x] = acc;
+      }
+      return out;
+    }
+    return pass(pass(g, true), false);
+  }
   function sobel(g, w, h) {
     var gx = new Float32Array(g.length), gy = new Float32Array(g.length);
     var at = function (x, y) { return g[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)]; };
@@ -507,7 +522,7 @@ a{color:inherit;text-decoration:inherit}
     var open = function () { return win2d(win2d(g, w, h, P, 'min'), w, h, P, 'max'); };
     var close = function () { return win2d(win2d(g, w, h, P, 'max'), w, h, P, 'min'); };
     switch (type) {
-      case 'binarize': { var t = otsu(g); return map(function (v) { return v > t ? 255 : 0; }); }
+      case 'binarize': { if (P.auto === false) return map(function (v) { return v >= P.thr ? 255 : 0; }); var t = otsu(g); return map(function (v) { return v > t ? 255 : 0; }); }
       case 'dilate': return win2d(g, w, h, P, 'max');
       case 'erode': return win2d(g, w, h, P, 'min');
       case 'open': return open();
@@ -517,12 +532,13 @@ a{color:inherit;text-decoration:inherit}
       case 'maxhat': { var o2 = open(), c2 = close(); return map(function (v, i) { return Math.max(v - o2[i], c2[i] - v); }); }
       case 'lowpass': return win2d(g, w, h, P, 'mean');
       case 'highpass': { var lp = win2d(g, w, h, P, 'mean'); return map(function (v, i) { return v - lp[i] + 128; }); }
-      case 'sharpen': { var lp2 = win2d(g, w, h, P, 'mean'); return map(function (v, i) { return v + (v - lp2[i]); }); }
+      case 'sharpen': { var lp2 = gauss(g, w, h, P.smooth); return map(function (v, i) { return v + P.gain * (v - lp2[i]); }); }
       case 'localmedian': return median2d(g, w, h, P);
-      case 'localmediannorm': { var md = median2d(g, w, h, P); return map(function (v, i) { return v - md[i] + 128; }); }
+      // Local Median Normalization: difference from the box's median, halved (shifted right by one), plus 128.
+      case 'localmediannorm': { var md = median2d(g, w, h, P); return map(function (v, i) { return Math.floor((Math.round(v) - md[i]) / 2) + 128; }); }
       case 'clip': return map(function (v) { return clamp(v, P.low, P.high); });
       case 'thresholdrange': return map(function (v) { return v >= P.low && v <= P.high ? 255 : 0; });
-      case 'greydist': return map(function (v) { return Math.abs(v - P.grey); });
+      case 'greydist': { var gl = P.auto === false ? P.grey : Math.round(g.reduce(function (a, v) { return a + v; }, 0) / n); return map(function (v) { return Math.abs(v - gl); }); }
       case 'invert': return map(function (v) { return 255 - v; });
       case 'opticaldensity': return map(function (v) { return (255 * -Math.log10((v + 1) / 256)) / Math.log10(256); });
       case 'equalize': {
@@ -530,7 +546,7 @@ a{color:inherit;text-decoration:inherit}
         var cdf = [], cc = 0; for (var q = 0; q < 256; q++) { cc += hist[q]; cdf[q] = cc; }
         var c0 = cdf.find(function (v) { return v > 0; }); return map(function (v) { return ((cdf[v | 0] - c0) / Math.max(1, n - c0)) * 255; });
       }
-      case 'stretch': { var s2 = Array.from(g).sort(function (a, b) { return a - b; }), lo = s2[Math.floor(n * 0.01)], hi = s2[Math.floor(n * 0.99)]; return map(function (v) { return ((v - lo) / Math.max(1, hi - lo)) * 255; }); }
+      case 'stretch': return map(function (v) { return v <= P.low ? 0 : v >= P.high ? 255 : ((v - P.low) / (P.high - P.low)) * 255; });
       // Named as in the reference tool: Gradient Horizontal lights up horizontal edges (grey changing top to bottom), Gradient Vertical upright ones.
       case 'gradh': { var sh = sobel(g, w, h); return sh[1].map(function (v) { return Math.abs(v) / 4; }); }
       case 'gradv': { var sv = sobel(g, w, h); return sv[0].map(function (v) { return Math.abs(v) / 4; }); }

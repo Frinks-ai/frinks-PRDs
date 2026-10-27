@@ -323,6 +323,23 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
     }
     return out;
   }
+  // Gaussian blur with standard deviation s (kernel radius 3s, edges repeated): the smoothed copy Sharpen subtracts.
+  function gauss(g, w, h, s) {
+    const r = Math.floor(3 * s + 0.5), k = [];
+    for (let i = -r; i <= r; i++) k.push(Math.exp(-i * i / (2 * s * s)));
+    const sum = k.reduce((a, v) => a + v, 0);
+    for (let i = 0; i < k.length; i++) k[i] /= sum;
+    const pass = (src, horiz) => {
+      const out = new Float32Array(src.length);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        let acc = 0;
+        for (let j = -r; j <= r; j++) acc += k[j + r] * (horiz ? src[y * w + clamp(x + j, 0, w - 1)] : src[clamp(y + j, 0, h - 1) * w + x]);
+        out[y * w + x] = acc;
+      }
+      return out;
+    };
+    return pass(pass(g, true), false);
+  }
   function sobel(g, w, h) {
     const gx = new Float32Array(g.length), gy = new Float32Array(g.length);
     const at = (x, y) => g[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)];
@@ -350,7 +367,7 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
     const close = () => win2d(win2d(g, w, h, P, 'max'), w, h, P, 'min');
     let o, c, lp, md, gg;
     switch (type) {
-      case 'binarize': { const t = otsu(g); return map((v) => (v > t ? 255 : 0)); }
+      case 'binarize': { if (P.auto === false) return map((v) => (v >= P.thr ? 255 : 0)); const t = otsu(g); return map((v) => (v > t ? 255 : 0)); }
       case 'dilate': return win2d(g, w, h, P, 'max');
       case 'erode': return win2d(g, w, h, P, 'min');
       case 'open': return open();
@@ -360,12 +377,13 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
       case 'maxhat': o = open(); c = close(); return map((v, i) => Math.max(v - o[i], c[i] - v));
       case 'lowpass': return win2d(g, w, h, P, 'mean');
       case 'highpass': lp = win2d(g, w, h, P, 'mean'); return map((v, i) => v - lp[i] + 128);
-      case 'sharpen': lp = win2d(g, w, h, P, 'mean'); return map((v, i) => v + (v - lp[i]));
+      case 'sharpen': lp = gauss(g, w, h, P.smooth); return map((v, i) => v + P.gain * (v - lp[i]));
       case 'localmedian': return median2d(g, w, h, P);
-      case 'localmediannorm': md = median2d(g, w, h, P); return map((v, i) => v - md[i] + 128);
+      // Local Median Normalization: difference from the box's median, halved (shifted right by one), plus 128.
+      case 'localmediannorm': md = median2d(g, w, h, P); return map((v, i) => Math.floor((Math.round(v) - md[i]) / 2) + 128);
       case 'clip': return map((v) => clamp(v, P.low, P.high));
       case 'thresholdrange': return map((v) => (v >= P.low && v <= P.high ? 255 : 0));
-      case 'greydist': return map((v) => Math.abs(v - P.grey));
+      case 'greydist': { const gl = P.auto === false ? P.grey : Math.round(g.reduce((a, v) => a + v, 0) / n); return map((v) => Math.abs(v - gl)); }
       case 'invert': return map((v) => 255 - v);
       case 'opticaldensity': return map((v) => (255 * -Math.log10((v + 1) / 256)) / Math.log10(256));
       case 'equalize': {
@@ -373,7 +391,7 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
         const cdf = []; let cc = 0; for (let i = 0; i < 256; i++) { cc += hist[i]; cdf[i] = cc; }
         const c0 = cdf.find((v) => v > 0); return map((v) => ((cdf[v | 0] - c0) / Math.max(1, n - c0)) * 255);
       }
-      case 'stretch': { const s2 = Array.from(g).sort((a, b) => a - b), lo = s2[Math.floor(n * 0.01)], hi = s2[Math.floor(n * 0.99)]; return map((v) => ((v - lo) / Math.max(1, hi - lo)) * 255); }
+      case 'stretch': return map((v) => (v <= P.low ? 0 : v >= P.high ? 255 : ((v - P.low) / (P.high - P.low)) * 255));
       // Named as in the reference tool: Gradient Horizontal lights up horizontal edges (grey changing top to bottom), Gradient Vertical upright ones.
       case 'gradh': gg = sobel(g, w, h); return gg[1].map((v) => Math.abs(v) / 4);
       case 'gradv': gg = sobel(g, w, h); return gg[0].map((v) => Math.abs(v) / 4);
@@ -390,10 +408,12 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
   // is missing or empty: Local Median Normalization 15 x 15 -> Binarize -> Invert.
   const KEY = 'ie-proto:v1';
   const DEFAULT_CHAIN = [{ f: 'localmediannorm', p: { rows: 15, cols: 15 } }, { f: 'binarize' }, { f: 'invert' }];
-  const KERNEL = ['bothat', 'close', 'dilate', 'edgemag', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'sharpen', 'tophat'];
-  const PLAIN = ['binarize', 'equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity', 'stretch'];
-  const DEFAULT_P = (f) => (KERNEL.includes(f) ? { rows: 5, cols: 5 } : f === 'clip' ? { low: 40, high: 200 } : f === 'thresholdrange' ? { low: 0, high: 110 } : f === 'greydist' ? { grey: 128 } : {});
-  const known = (f) => KERNEL.includes(f) || PLAIN.includes(f) || ['clip', 'thresholdrange', 'greydist'].includes(f);
+  const KERNEL = ['bothat', 'close', 'dilate', 'edgemag', 'erode', 'highpass', 'localmedian', 'localmediannorm', 'lowpass', 'maxhat', 'open', 'tophat'];
+  const PLAIN = ['equalize', 'filldark', 'filllight', 'gradfull', 'gradh', 'gradv', 'invert', 'opticaldensity'];
+  const VALUED = { clip: { low: 40, high: 200 }, stretch: { low: 40, high: 200 }, thresholdrange: { low: 0, high: 110 }, sharpen: { gain: 1, smooth: 1 },
+    binarize: { auto: true, thr: 128 }, greydist: { auto: true, grey: 128 } };
+  const DEFAULT_P = (f) => (KERNEL.includes(f) ? { rows: 3, cols: 3 } : VALUED[f] ? { ...VALUED[f] } : {});
+  const known = (f) => KERNEL.includes(f) || PLAIN.includes(f) || !!VALUED[f];
   const validChain = (c) => Array.isArray(c) && c.length > 0 && c.every((x) => x && known(x.f));
   function runningChain() {
     let st = {};
@@ -406,7 +426,7 @@ td > div{display:flex;align-items:center;justify-content:center;width:100%;heigh
     for (let i = 0; i < n; i++) g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
     runningChain().forEach((step) => {
       const P = { ...DEFAULT_P(step.f) };
-      Object.keys(step.p || {}).forEach((k) => { P[k] = Number(step.p[k]); });
+      Object.keys(step.p || {}).forEach((k) => { P[k] = typeof step.p[k] === 'boolean' ? step.p[k] : Number(step.p[k]); });
       g = applyGreyFilter(g, w, h, step.f, P);
       for (let i = 0; i < n; i++) g[i] = clamp(Math.round(g[i]), 0, 255); // 8-bit between steps
     });
