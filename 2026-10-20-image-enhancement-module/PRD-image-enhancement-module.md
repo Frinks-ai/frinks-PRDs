@@ -3,7 +3,7 @@
 **Prototype:** [Interactive workflow, Vision to Edge, Today vs After change](https://vbv-fr.github.io/image-enhancement-prototype/)
 **Product:** Vision + Edge
 **Status:** In review
-**Date:** 26 October 2026
+**Date:** 27 October 2026
 **Owner:** Tanay Deo
 **Related:** FP-2436 (OCR epic), FP-2375 (Masking module epic: the same "change the image, pass it on" pattern). Filter reference: [Image Filter Guide](https://claude.ai/artifact/3S5hj7dJaBNiTWtfhefu2m) (what each filter does, with before/after pictures)
 **Code checked:** 20 October 2026 — 34 repos at their latest default-branch commit (list in Appendix B)
@@ -119,6 +119,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![After: the chain, with the canvas showing the enhanced area](prototype/vision-module-config-after.png)
 ![After: Add filter grouped under six bold category headings](prototype/vision-module-config-after-add-filter.png)
 ![After: an empty chain cannot be saved](prototype/vision-module-config-after-empty-chain.png)
+![After: a filter's info card in the Add filter list](prototype/vision-module-config-after-filter-info.png)
+![After: a filter's info card in the chain](prototype/vision-module-config-after-chain-info.png)
 
 - **AC2.1** Module Setup lists the chain in order. "Add filter" opens a list grouped under six bold category headings: Colour and tone (Invert, Equalize, Stretch, Clip, Optical Density, Greyscale Distance), Thresholding (Binarize, Threshold Range), Smooth and blur (Low Pass, Local Median), Sharpen and edges (Sharpen, High Pass, Gradient Full, Gradient Horizontal, Gradient Vertical, Edge Magnitude), Shape clean-up (Erode, Dilate, Open, Close, Fill Dark Holes, Fill Light Holes), Background and lighting (Top Hat, Bot Hat, Max (Top Hat/Bottom Hat), Local Median Normalization).
 - **AC2.2** Filters can be added without a limit, the same filter can appear more than once, and each row can be dragged to a new position or removed.
@@ -129,6 +131,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC2.7** On a fixed set of reference images, the Vision canvas gives exactly the same pixels as the line does for every filter and every allowed value (golden-image test run on every release).
 - **AC2.8** The enhanced image is greyscale; filters whose results go beyond black and white (Optical Density, the Gradients, Edge Magnitude, High Pass) are scaled into the 0–255 range, as the guide pictures show.
 - **AC2.9** A new Image Enhancement starts with an empty chain; "+ Add filter" opens the grouped list (AC2.1).
+- **AC2.10** Every filter in the "+ Add filter" list and every filter row in the chain has an info icon; it opens a card with the filter's name, category, description and values as listed in [Filter descriptions](filter-descriptions.md), and a before/after picture of sample "ABC 123" print with that filter applied.
+- **AC2.11** Clicking a filter's info icon in the "+ Add filter" list opens its card without adding the filter.
 
 ### US3 — Hand the areas to the modules below
 *As an integrator, I want each module under an Image Enhancement to pick the normal or the enhanced area, so that every module works on the picture that suits it.*
@@ -254,6 +258,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ![Today: update pop-up](prototype/edge-instance-update-today.png)
 ![After: update pop-up lists the filter changes](prototype/edge-instance-update-after.png)
 ![After: Upload image info](prototype/edge-emc-after-upload-info.png)
+![After: a filter's info card on Edge](prototype/edge-emc-after-filter-info.png)
 
 - **AC9.1** The Module list in Edit Module Configurations lists each Image Enhancement (IE_1 …).
 - **AC9.2** Its section shows the chain in its current order, and filters can be added there from the same six-category list as in Vision (AC2.1), without a limit and with the same filter allowed more than once.
@@ -272,6 +277,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC9.17** A picture of a different size from the master image is refused with the message "Pick a picture the same size as the master image", and only PNG and JPEG files can be picked.
 - **AC9.15** The uploaded picture is only for the preview: it is not saved, and Reset or leaving the page brings back the master image.
 - **AC9.18** An info icon next to "Upload image" says: "The uploaded image shall not be retained after refresh and the previous image shall be restored."
+- **AC9.19** Edit Module Configurations shows the same info icon and card for every filter in its "+ Add filter" list and in its Filter column (AC2.10, AC2.11).
 - **AC9.16** (removed) Per-module choice between Edge and Vision filters: dropped, Vision's list always replaces Edge's (AC9.9).
 
 ### US10 — See and save the enhanced image
@@ -403,6 +409,7 @@ Manual checks: every coverage-sheet item maps to exactly one AC; three duplicate
 Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-model-evaluation @ 7a0403a (2025-11-04), assembly-training @ 725f834 (2026-06-02), Assembly-Training-OCR @ 99d0d62 (2025-07-08), Auto-annotation @ d213b71 (2025-10-30), auto-training-backend @ 63ba9a6 (2026-08-04), Classification-Evaluation @ eda0d3b (2025-12-19), classification-training-docker @ 3f7a64e (2025-11-05), Craft-model-evaluation @ 5a95e16 (2025-07-10), frinkschat-backend @ 88e5c91 (2026-07-21), frinksedge-deployment-backend @ 009fc11 (2026-10-19), frinksedge-deployment-frontend @ 7e92de34 (2026-10-19), frinksedge-file-releases @ 7041254 (2026-07-16), frinksedge-health @ e8ef112 (2026-10-15), frinksedge-inferencing-backend @ eddd8e5 (2026-10-19), frinksedge-installer-electron @ b4a5049 (2026-10-12), frinksedge-plc-backend @ 254d08e (2026-10-15), frinksedge-report @ 5fe5390 (2026-10-15), frinksedge-report-frontend @ 9893a19 (2026-10-13), frinksedge-staging-environment @ 4993036 (2026-09-09), frinksvision-backend @ eda944f (2026-10-14), frinksvision-frontend @ 110a23c (2026-10-19), OCR-Evaluation @ c9c413c (2025-07-10), OCR-Training-Detection-ALL @ fc59f48 (2026-10-14), Python-inference-docker @ 62e22bd (2026-05-29), Recommendation-classification @ 0796dbb (2026-08-03), Recommendation-OCR @ ae1e953 (2026-04-30), release-manager-backend @ b8016f7 (2026-09-22), Segmentation-Data-Recommender @ d6f679e (2026-07-22), Segmentation-Evaluation @ 44bb8c6 (2025-08-28), Segmentation-Training @ f749aab (2025-08-22), train-utils @ d3e6378 (2026-09-15), vip-inference-python @ 93451d1 (2026-10-15), workflow-dataprocessor @ d2cd9bd (2026-08-11)
 
 ## Changelog
+- 27 Oct 2026 — Info icon and card (description, values, before/after of sample "ABC 123" print) for every filter in Vision (AC2.10, AC2.11) and on Edge (AC9.19); card text in filter-descriptions.md (Tanay Deo)
 - 26 Oct 2026 — New module starts with an empty chain (AC2.9, replacing Binarize → Invert); Vision's filters and values always win on update (AC9.8), AC9.10 (removed); update pop-up lists each changed step, Discard / Upload kept (AC9.9); info icon on Upload image (AC9.18) (Tanay Deo)
 - 26 Oct 2026 — Discussion points closed: Q6 decided, the model training details page shows the enhancement each model was trained with (AC6.6, AC6.7); Q2 dropped, not an issue (AC7.2 and AC15.2 reworded); Q1 moved to its own PRD (AC1.2, non-goals, out of scope). Status to In review (Tanay Deo)
 - 23 Oct 2026 — Retrain warning pop-ups dropped in Vision and on Edge: AC4.2 (removed), AC9.5 (removed); instances still go back to draft (AC4.5); Q6 now also covers spotting models trained on older filters (Tanay Deo)
