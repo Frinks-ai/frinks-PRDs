@@ -6,6 +6,7 @@ with their screenshots. The Prototype column opens each PRD's live, clickable pr
 
 | Date | PRD | Prototype | Product | Status | Owner |
 |---|---|---|---|---|---|
+| 27 Oct 2026 | [Rename Matting to Edge Refinement](2026-10-27-edge-refinement-rename/PRD-edge-refinement-rename.md) | None (no screen changes) | Vision + Edge | In review | Tanay Deo |
 | 26 Oct 2026 | [Shape Extractor rows in Analysed Image Configurations](2026-10-26-shape-extractor-analysed-image/PRD-shape-extractor-analysed-image.md) | [Live prototype](https://vbv-fr.github.io/shape-extractor-analysed-image-prototype/) | Frinks Edge | In review | Tanay Deo |
 | 26 Oct 2026 | [Edge Instance Testing v2](2026-10-24-edge-instance-testing-v2/PRD-edge-instance-testing-v2.md) | [Live prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-24-edge-instance-testing-v2/prototype/) | Frinks Edge | Draft | Akshat Sharma |
 | 26 Oct 2026 | [Dimensioning: distance and angle to a fixed line](2026-10-23-dimension-fixed-line/PRD-dimension-fixed-line.md) | [Live prototype](https://vbv-fr.github.io/dimension-fixed-line-prototype/) | Frinks Edge | In review | Tanay Deo |
