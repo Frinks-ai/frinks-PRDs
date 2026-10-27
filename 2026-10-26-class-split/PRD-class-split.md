@@ -1,6 +1,6 @@
-# PRD: Class Split on the Training Results page
+# PRD: Class Instances Split on the Training Results page
 
-**Prototype:** [Class Split Prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-26-class-split/prototype/)
+**Prototype:** [Class Instances Split Prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-26-class-split/prototype/)
 **Product:** Frinks Vision
 **Status:** Draft
 **Date:** 26 October 2026
@@ -30,7 +30,7 @@ This ticket adds a class-wise split of the Training, Testing and Validation data
 - **AC1.5** Given a trained model, when its dataset's annotations are edited or images are added later, then the saved counts for that model do not change.
 - **AC1.6** Given a class that has no annotations in a split, when the counts are saved, then that class is saved with a count of 0 for that split (not omitted).
 
-### E2 - Class Split section replaces the top split strip
+### E2 - Class Instances Split section replaces the top split strip
 
 **User story:** As an ML engineer, I want the data split shown as its own section on the Training Results page so that I can read it alongside the validation and training results.
 
@@ -38,11 +38,11 @@ This ticket adds a class-wise split of the Training, Testing and Validation data
 
 - **AC2.1** Given the Training Results page of a trained model, when it loads, then the line "Training Data: N images / Testing Data: N images / Validation Data: N images" is no longer shown above Validation Results.
 - **AC2.2** Given the page loads, then a new section is shown below the Confidence Threshold card (end of Validation Results) and above the Training Results heading.
-- **AC2.3** Given an ODC, Segmentation or IC model, then the section heading reads "Class Split"; given an OCR model, then it reads "Character Split".
+- **AC2.3** Given an ODC, Segmentation or IC model, then the section heading reads "Class Instances Split"; given an OCR model, then it reads "Character Split".
 - **AC2.4** Given the section, then a one-line description under the heading states what the counts are and that a class with far fewer examples than the others can bias the model (copy as in the prototype).
 - **AC2.5** Given the page, then the Validation Results and Training Results sections (image comparison, confidence threshold Save/Reset, confusion matrix, loss curve) behave exactly as before.
 
-### E3 - Class split table
+### E3 - Class instances split table
 
 **User story:** As an ML engineer, I want to see the per-class counts for each split in one table so that I can spot classes with too little data before deploying the model.
 
@@ -100,7 +100,7 @@ This ticket adds a class-wise split of the Training, Testing and Validation data
 
 ## Screens to capture
 
-- **[S1]** E2, E3, E5 | **Where:** Vision > AI Models > (an ODC model) > Training Results | **State:** ODC model with 4 or more classes, one class with 0 in Validation Data, table collapsed | **Highlight:** Class Split section | **Caption:** See how much data each class has in every split
+- **[S1]** E2, E3, E5 | **Where:** Vision > AI Models > (an ODC model) > Training Results | **State:** ODC model with 4 or more classes, one class with 0 in Validation Data, table collapsed | **Highlight:** Class Instances Split section | **Caption:** See how much data each class has in every split
 
 ## Dev test cases
 
@@ -114,3 +114,7 @@ To be added by the developer. Map each case to an executional ID (E1, E2...).
 - **Fix version:** TBD - to be set once the 26.x release version exists in Jira
 - **Migration needed:** Y
 - **Related:** FP-1645, FP-1646 (original Training Results graphs), FP-2144 (OCR training results, To Do)
+
+## Changelog
+
+- 27 Oct 2026 — Renamed "Class Split" to "Class Instances Split": PRD title, E2 title, E3 title, AC2.3 heading text, S1 highlight, prototype heading. No behaviour change; "Character Split" (OCR) unchanged (Tanay)

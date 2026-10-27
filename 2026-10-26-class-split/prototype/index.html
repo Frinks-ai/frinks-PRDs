@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Class Split Prototype</title>
+<title>Class Instances Split Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
 <style>
@@ -106,7 +106,7 @@ tbody tr:hover th,tbody tr:hover td{background:var(--head)}
     <button type="button" id="t-ic" data-type="ic" aria-pressed="false">IC</button>
     <button type="button" id="t-ocr" data-type="ocr" aria-pressed="false">OCR</button>
   </div>
-  The top strip has moved into the new Class Split section.
+  The top strip has moved into the new Class Instances Split section.
 </div></div>
 
 <main class="page">
@@ -136,7 +136,7 @@ tbody tr:hover th,tbody tr:hover td{background:var(--head)}
   </section>
 
   <section>
-    <h2 id="split-h">Class Split</h2>
+    <h2 id="split-h">Class Instances Split</h2>
     <p id="split-desc"></p>
     <div id="split" style="display:flex;flex-direction:column;gap:8px"></div>
   </section>
@@ -194,7 +194,7 @@ let expanded = false;
 
 function renderSplit(m) {
   $('#split-desc').textContent = `Images in each split, and ${m.unit === 'images' ? 'how many of them belong to each class' : `how many times each ${m.what} occurs in them`}. A ${m.what} with far fewer ${m.unit} than the others can bias the model towards the larger ones.`;
-  $('#split-h').textContent = m.ocr ? 'Character Split' : 'Class Split';
+  $('#split-h').textContent = m.ocr ? 'Character Split' : 'Class Instances Split';
   const names = Object.keys(m.classes);
   const rows = m.ocr ? names : [...names].sort((a, b) => m.classes[b][0] - m.classes[a][0]);
   const shown = expanded ? rows : rows.slice(0, VISIBLE);
