@@ -2,7 +2,7 @@
 
 **Prototype:** None — no new screens or layouts; only names and wording change (PM decision, 27 Oct 2026)
 **Product:** Vision + Edge
-**Status:** Approved
+**Status:** In review
 **Date:** 28 October 2026
 **Owner:** Swayam (SDE POC)
 **Related:** Epic FP-2454 (reused for this work, assigned to Deb). Original module build: FP-2454 with FP-2343, FP-2349, FP-2352, FP-2356 and stories FP-2344 to FP-2363. Same principle: FP-3473 (model names removed from logs and screens). Full place-by-place list: matting-exposure-audit.xlsx (shared separately).
@@ -54,7 +54,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Auto-annotation (vision-auto-annotation) | Toggle label says Edge Refinement; job logs and settings renamed; toggle works as before; saved on/off values kept | US3, US5, US9, US12 |
 | Datasets and annotations (vision-datasets-annotations) | A capture with the module still goes through the sample-data steps | US9 |
 | Instance creation (vision-instance-creation) | The package carries the module under its new name; the new Edge version's table layout is registered | US6, US12 |
-| Model training (vision-model-training) | Training jobs fetch the refinement model under new setting and file names; logs renamed | US5, US9 |
+| Model training (vision-model-training) | Jobs are not changed and keep receiving the old internal name; any of their messages a Vision screen shows has no "matting" | US5, US9 |
 | Model evaluation (vision-model-evaluation) | Same as training, for evaluation jobs | US5, US9 |
 | Data Recommender (vision-training-sets-recommender) | Same as training, for recommender runs | US5, US9 |
 | Access (vision-access) | No role or permission change | US8 |
@@ -77,7 +77,6 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Model loading (edge-model-loading-variant-change) | Loads the refinement model as before | US10 |
 | Backup and migration (edge-backup-migration) | Edge upgrade renames the module's table and entry | US12 |
 | Releases (edge-release-upgrade) | Scripts bundle changes; Vision, Edge and Python ship together | US11, US12 |
-| Chat assistant manuals (not in the component map) | Answers say Edge Refinement | US7 |
 
 ## 6. User stories and acceptance criteria
 
@@ -140,10 +139,10 @@ The parts this changes. Parts checked and not affected are listed at the very en
 
 - **AC5.1** Running a recipe with the module on Edge writes no log line containing "matting"; every line about it says "Edge Refinement".
 - **AC5.2** Edge server messages about this module (result checks and database errors) say "Edge Refinement".
-- **AC5.3** Training, evaluation, Data Recommender and auto-annotation jobs that use the module write no log line containing "matting".
+- **AC5.3** Any message from training, evaluation, Data Recommender or auto-annotation jobs that a Vision screen shows contains no "matting".
 - **AC5.4** When the refinement model fails to load, the error detail shown for MODELLOAD_005 in Health reads "Edge Refinement model loading".
-- **AC5.5** The settings that point to the refinement model are named EDGE_REFINEMENT_MODEL_PATH, EDGE_REFINEMENT_MODEL_LINK and EDGE_REFINEMENT_WARMUP_SIZE in every job and on Edge.
-- **AC5.6** Model and debug files written by these jobs are named after Edge Refinement (e.g. edge_refinement_model.pth, debug_edge_refinement), never "matting".
+- **AC5.5** The settings that point to the refinement model on Edge are named EDGE_REFINEMENT_MODEL_PATH and EDGE_REFINEMENT_WARMUP_SIZE.
+- **AC5.6** (removed): file names in the Vision cloud jobs are out of scope; Edge writes no file named after the module.
 
 ### US6 — One internal name everywhere
 *As a Frinks support engineer, I want the module's internal name to be edgeRefinement end to end, so that raw data, databases and code never carry the old name.*
@@ -154,23 +153,15 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Covers:** C7
 - **Today:** Vision, Edge and every Python job identify the module as "matting".
 
-- **AC6.1** A recipe with the module, sent from Vision to training jobs and packaged for Edge, names it edgeRefinement, and Edge passes that name to the AI engine.
-- **AC6.2** No part of the release accepts the old name: Vision, Edge and the Python jobs recognise only edgeRefinement, and the new Edge refuses a package that still names the module the old way with today's schema-mismatch message (no site has one).
+- **AC6.1** A recipe with the module, packaged for Edge, names it edgeRefinement, and Edge passes that name to the AI engine. Vision keeps sending the old internal name to training, evaluation, Data Recommender and auto-annotation jobs, which do not change.
+- **AC6.2** No part of Vision or Edge accepts the old name from the browser or an instance package: they recognise only edgeRefinement, and the new Edge refuses a package that still names the module the old way with today's schema-mismatch message (no site has one).
 - **AC6.3** On a new installation, the Vision and Edge databases store the module's entry and settings under the Edge Refinement name, with no table or entry named "matting".
-- **AC6.4** A word search for "matting" across all shipped Frinks repos finds it only inside the copied ViTMatte model code and in the unused model step of the Python Docker image recipe, which goes at its next rebuild (AC11.2); generated files committed by mistake that contain it are deleted.
+- **AC6.4** A word search for "matting" across the Vision and Edge frontends, servers and the Edge AI engine finds it only inside the copied ViTMatte model code.
 - **AC6.5** On every Vision screen, no request or response in the browser inspect tool's Network tab contains "matting".
 - **AC6.6** On every Edge screen (Deployments, Instance Details, Integrations, Dashboard Builder, Reports & Analytics, Health), no request or response in the Network tab contains "matting".
 - **AC6.7** Using Vision and Edge screens with the module writes nothing containing "matting" to the inspect tool's Console.
 
-### US7 — The chat assistant says Edge Refinement
-*As a project member asking the Frinks chat assistant, I want answers to use the new name, so that the assistant matches the product.*
-- **Kind:** Feature
-- **Parts:** Chat assistant manuals (not in the component map)
-- **Teams:** AI
-- **Covers:** C18
-- **Today:** the manuals behind the chat assistant say "Matting" (for example, "Segmentation and Matting cannot both be applied to the same Search Area").
-
-- **AC7.1** Asked about the module, the chat assistant answers with "Edge Refinement" and never "Matting"; the PM team updates the manual text and the assistant's owner reloads it.
+### US7 — (removed): chat assistant manuals are out of scope (PM, 28 Oct 2026).
 
 ### US8 — Rules
 *As an Org Admin, I want access to stay as it is, so that the rename does not change who can do what.*
@@ -239,6 +230,8 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC12.9** The release is tested end to end on staging, with Vision, Edge and every Python job together, before it ships.
 
 ## 7. Out of scope
+- Code changes in the Vision cloud job repos (PM, 28 Oct 2026): Auto-annotation, Segmentation-Training, workflow-dataprocessor, train-utils, Segmentation-Evaluation, OCR-Training-Detection-ALL, the four Data Recommender repos and the seven training and evaluation repos on create_build_dev. They keep the old internal name, settings and file names; Vision keeps talking to them with it.
+- The chat assistant manuals and the staging-environment notes (PM, 28 Oct 2026).
 - The copied open-source ViTMatte model code keeps its own names (PM, 27 Oct). Two of them are stored inside the model file and must never change.
 - The old Jira epics named after the module (FP-2454 and others) and the "Matting" wording in the Module Outputs in Reports & Analytics PRD: handled separately after this PRD is approved.
 - Two old client-specific repos that contain the word: not shipped (PM, 27 Oct).
@@ -247,7 +240,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ## 8. How we'll know it worked
 | Measure | Target |
 |---|---|
-| Word search for "matting" across all shipped Frinks repos, default and live branches | Only the copied ViTMatte model code, plus the image's unused model step until its next rebuild |
+| Word search for "matting" across the Vision and Edge frontends, servers and Edge AI engine | Only the copied ViTMatte model code |
 | Staging run: recipe with ER_1 trained, recommended, deployed and run on Edge | No screen, key, report, log or setting shows "matting" |
 | Same staging image before and after the release | Same refined masks and the same OK/NG |
 
@@ -284,6 +277,7 @@ Every line names the US / AC ids it touched.
 - 27 Oct 2026 — Duplicate pass: AC12.6 (removed): covered by AC6.2, which now names the schema-mismatch refusal; AC12.9 trimmed to the staging test (the one-release switch is AC6.2); AC11.5 trimmed (MODELLOAD_005 detail is AC5.4); AC11.1 trimmed (scripts bundle is AC11.3). Contradictions settled by earlier decisions: AC6.4 allows the image's unused model step until its next rebuild (default e) and covers shipped repos only (client repos not shipped) (Tanay Deo)
 - 27 Oct 2026 — Approved. Owner set to Swayam (SDE) and Shreyas (AI); no AC changes (Tanay Deo)
 - 28 Oct 2026 — Briefly split into phases (phase 1 = screens, inspect tools, logs); reverted the same day by the PM: "let's make tickets on everything - repo changes, table name changes, everything. only sde poc will work on this." Full scope restored as approved on 27 Oct, plus: AC6.5, AC6.6, AC6.7 added (Network on Vision and Edge, Console); G1 names the inspect tools; Appendix B adds the live create_build_dev branches of Assembly-Training-OCR, assembly-training, classification-training-docker, Assembly-model-evaluation, Classification-Evaluation, Craft-model-evaluation and OCR-Evaluation (covered by AC5.3, AC5.5, AC5.6, AC6.4); Owner and Stakeholders: Swayam (SDE POC) only. Approved (Tanay Deo)
+- 28 Oct 2026 — Scope cut by the PM: "whatever error codes/logs are shown in the ui, they should not contain the word matting" and the Vision cloud job repos, chat manuals and staging notes dropped. US7 (removed); AC5.6 (removed); AC5.3 now covers job messages shown in Vision screens; AC5.5 Edge settings only; AC6.1, AC6.2 Vision keeps the old internal name towards the unchanged jobs; AC6.4 word search limited to Vision/Edge frontends, servers and Edge AI engine; back to In review (Tanay Deo)
 
 ## Checked, not affected
 - vision-projects, vision-variants: the module has no project or variant setting.
