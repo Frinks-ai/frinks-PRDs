@@ -230,14 +230,14 @@ table.tbl{min-width:100%;width:100%;border-collapse:collapse;text-indent:0}
  * ========================================================================= */
 var Q = new URLSearchParams(location.search);
 var IN_IFRAME = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
-var VALID_STATES = ['list', 'shape-value', 'distance', 'distance-vertical', 'distance-tilted', 'line', 'gt', 'gt-px', 'angle', 'cross', 'saved'];
+var VALID_STATES = ['list', 'shape-value', 'distance', 'distance-vertical', 'distance-tilted', 'perp', 'line', 'gt', 'gt-px', 'angle', 'cross', 'saved'];
 var MODE = Q.get('mode') === 'today' ? 'today' : 'after';
 var STATE = VALID_STATES.indexOf(Q.get('state')) >= 0 ? Q.get('state') : 'list';
 var SHOW_SWITCH = !IN_IFRAME && Q.get('switch') !== '0';
 var SCROLL_TO = Q.get('scroll') || (STATE === 'gt' || STATE === 'gt-px' ? 'gt' : (STATE === 'line' ? 'col' : ''));
 function isAfter() { return MODE === 'after'; }
 function effState() {
-  if (MODE === 'today' && (STATE === 'distance-vertical' || STATE === 'distance-tilted' || STATE === 'line')) return 'distance';
+  if (MODE === 'today' && (STATE === 'distance-vertical' || STATE === 'distance-tilted' || STATE === 'line' || STATE === 'perp')) return 'distance';
   return STATE;
 }
 function nav(to) {
@@ -468,6 +468,7 @@ function validate(f) {
   return e;
 }
 function hasErrors(e) { return Object.keys(e).length > 0; }
+function hasErrorsIn(e) { return Object.keys(e).length > 0; }
 
 /* =========================================================================
  * =========================================================================
@@ -483,6 +484,9 @@ var FIXED = {
   LINE_COLOUR_LABEL: 'Fixed line colour',
   DEFAULT_LINE_COLOR: '#FFFF33',  // yellow
   ANGLE_TYPE_LABEL: 'Angle type',
+  PERP_LABEL: 'Perpendicular type',
+  PERP_OPTIONS: [{ id: 'on', name: 'Perpendicular on the line' }, { id: 'from', name: 'Perpendicular from Previous Line' }],
+  NEVER_MEETS: 'Feature A’s line is perpendicular to the fixed line, so the perpendicular from A never meets it. Change the angle or pick a different point.',
   TWO_FEATURES_NAME: 'Between two features',
   ANGLE_OPTION: { id: 'fixed', name: 'From a fixed line' },
   ANGLE_LABEL: 'Angle',           // the one box shown for Angle → From a fixed line
@@ -497,6 +501,15 @@ var FIXED = {
   // Defaults applied when "Fixed line" is picked: 90° through the image's middle column (Centre y greyed out).
   applyDefaults: function (fx, cap) { var s = imgSizeOf(cap); fx.angle = '90'; fx.cx = String(s.w / 2); fx.cy = ''; fx.cap = cap; },
   // Exactly 0° or 180° greys out Centre x; exactly 90° greys out Centre y.
+  // Perpendicular type applies only while Feature A is a point on a line; otherwise it is "on the line".
+  perpOf: function (f) { return mode2Enabled(f) && f.fixed.perp === 'from' ? 'from' : 'on'; },
+  // "From previous line": the line at right angles to Feature A's own line, through A's point, to where it meets the fixed line.
+  fromPrevious: function (f, P, g) {
+    var lineA = resolveFeatureLine(shapeOf(f.A), f.A); if (!lineA) return null;
+    var perp = perpendicularThrough(P, lineA), L = { a: g.p, b: add(g.p, g.u) };
+    if (!perp || nearlyParallel(perp, L)) return null;
+    return { meet: intersectLines(perp, L), lineDir: unit(sub(lineA.b, lineA.a)) };
+  },
   greyX: function (fx) { var a = textToNum(fx.angle); return a === 0 || a === 180; },
   greyY: function (fx) { return textToNum(fx.angle) === 90; },
   // A box that comes back into use gets the value typed earlier, or the image's middle column / row.
@@ -524,17 +537,22 @@ var FIXED = {
     if (f.type === 'angle') { if (!inR(fx.angle, 0, 180)) e.fixedAngle = 'Enter an angle between 0° and 180°.'; return e; }
     if (!inR(fx.angle, 0, 180)) e.fixedAngle = 'Enter an angle between 0° and 180°.';
     // a greyed-out box is neither checked nor saved
+    if (FIXED.perpOf(f) === 'from' && !hasErrorsIn(e)) {
+      var P0 = resolveFeaturePoint(shapeOf(f.A), f.A), g0 = FIXED.geom(fx);
+      if (P0 && g0 && !FIXED.fromPrevious(f, P0, g0)) e.featureB = FIXED.NEVER_MEETS;
+    }
     if (!FIXED.greyX(fx) && !inR(fx.cx, 0, s.w)) e.fixedCx = px(s.w);
     if (!FIXED.greyY(fx) && !inR(fx.cy, 0, s.h)) e.fixedCy = px(s.h);
     return e;
   },
 
   // Dimensions table, Feature B cell
-  describe: function (fx, captureName) {
+  describe: function (fx, captureName, perpName) {
     var v = function (t) { return fmt2(textToNum(t)); }, a = v(fx.angle) + '°', txt;
     if (FIXED.greyX(fx)) txt = 'Fixed line · ' + a + ' at y = ' + v(fx.cy) + ' px';
     else if (FIXED.greyY(fx)) txt = 'Fixed line · ' + a + ' at x = ' + v(fx.cx) + ' px';
     else txt = 'Fixed line · ' + a + ' at (' + v(fx.cx) + ', ' + v(fx.cy) + ') px';
+    if (perpName) txt += ' · ' + perpName;
     return captureName ? captureName + ' · ' + txt : txt;
   },
   describeAngle: function (angle) { return 'Fixed line · ' + fmt2(textToNum(angle)) + '°'; },
@@ -627,6 +645,7 @@ var FIXED = {
       html += selectInput('fixed.cap', { options: captureOptions(), value: f.fixed.cap, placeholder: 'Capture' });
       html += selectInput('B.shape', { options: shapes.map(function (sh) { return { id: sh.id, name: sh.name }; }).concat([FIXED.SHAPE_OPTION]), value: FIXED.SHAPE_OPTION.id, placeholder: 'Shape' });
       html += FIXED.inputs(f.fixed);
+      if (mode2Enabled(f)) html += selectField('fixed.perp', FIXED.PERP_LABEL, { options: FIXED.PERP_OPTIONS, value: FIXED.perpOf(f) });
     } else {
       var inner = featurePickerInner(f, 'B', true, true, [FIXED.SHAPE_OPTION]);
       html += inner.html; warn = inner.warn;
@@ -677,14 +696,21 @@ var FIXED = {
     var P = resolveFeaturePoint(shapeOf(f.A), f.A); if (!P) return null;
     var g = FIXED.geom(f.fixed); if (!g) return null;
     var s = imgSizeOf(f.fixed.cap), seg = FIXED.clip(g.p, g.u, s.w, s.h);
-    var foot = FIXED.foot(P, g.p, g.u), d = len(sub(P, foot));
+    var fp = FIXED.perpOf(f) === 'from' ? FIXED.fromPrevious(f, P, g) : null;
+    if (FIXED.perpOf(f) === 'from' && !fp) return null;
+    var end = fp ? fp.meet : FIXED.foot(P, g.p, g.u), d = len(sub(P, end));
     return {
-      at: d > 0.5 ? mid(P, foot) : P,
-      px: d, half: d / 2, dir: d > 0.5 ? unit(sub(P, foot)) : g.u, avoid: seg ? [{ a: seg[0], b: seg[1] }] : [],
+      at: d > 0.5 ? mid(P, end) : P,
+      px: d, half: d / 2, dir: d > 0.5 ? unit(sub(P, end)) : g.u, avoid: seg ? [{ a: seg[0], b: seg[1] }] : [],
       draw: function (ctx) {
         if (seg) strokeLine(ctx, seg[0], seg[1], color, sw, [5 * sw, 3 * sw]);
-        if (d > 0.5) { FIXED.tick(ctx, foot, g.u, unit(sub(P, foot)), 5 * sw, color, sw * 0.6); strokeLine(ctx, P, foot, color, sw * 1.4); }
-        drawMarker(ctx, P, color, sw); drawMarker(ctx, foot, color, sw);
+        if (d > 0.5) {
+          // the right angle sits where the span meets the fixed line, or (from previous line) at A on its own line
+          if (fp) FIXED.tick(ctx, P, fp.lineDir, unit(sub(end, P)), 5 * sw, color, sw * 0.6);
+          else FIXED.tick(ctx, end, g.u, unit(sub(P, end)), 5 * sw, color, sw * 0.6);
+          strokeLine(ctx, P, end, color, sw * 1.4);
+        }
+        drawMarker(ctx, P, color, sw); drawMarker(ctx, end, color, sw);
       },
     };
   },
@@ -718,6 +744,12 @@ var FIXED = {
     var pA = placementOf(f.A.cap), pB = placementOf(f.fixed.cap);
     var Amm = imagePointToMm(PA, pA), l1 = imagePointToMm(g.p, pB), l2 = imagePointToMm(add(g.p, mul(g.u, 100)), pB);
     var umm = unit(sub(l2, l1)), footMm = FIXED.foot(Amm, l1, umm);
+    if (FIXED.perpOf(f) === 'from') {
+      var lA = resolveFeatureLine(shapeOf(f.A), f.A); if (!lA) return;
+      var perpMm = perpendicularThrough(Amm, { a: imagePointToMm(lA.a, pA), b: imagePointToMm(lA.b, pA) }), Lmm = { a: l1, b: add(l1, umm) };
+      if (!perpMm || nearlyParallel(perpMm, Lmm)) return;
+      footMm = intersectLines(perpMm, Lmm);
+    }
     var s1 = T.toCanvas(l1), s2 = T.toCanvas(add(l1, umm)), us = unit(sub(s2, s1));
     var seg = FIXED.clip(s1, us, size.width, size.height);
     var a = T.toCanvas(Amm), b = T.toCanvas(footMm), d = len(sub(a, b));
@@ -742,14 +774,14 @@ var FIXED = {
 var FORCED_LINE = { 'distance-vertical': { angle: '90', cx: '960', cy: '' }, 'distance-tilted': { angle: '30', cx: '960', cy: '540' } };
 // The Ground Truth screens open on a set unit (gt-px: a px range that fits the 120 px sample span).
 var FORCED_UNIT = { gt: 'mm', 'gt-px': 'px' };
-var OWN_STATES = ['cross', 'pitch', 'edge', 'shape-value'];   // own sample dimensions: never read/written to the shared state
+var OWN_STATES = ['cross', 'pitch', 'edge', 'shape-value', 'perp'];   // own sample dimensions: never read/written to the shared state
 function baseForm(S) {
   return {
     type: 'distance', angleMode: 'x', distanceAxis: 'euclidean',
     A: { cap: 'top', shape: 'circle_hole', part: 'Centre', point: null },
     B: { cap: 'top', shape: 'line_edge', part: 'Line 1', point: DERIV_ON_LINE },
     bKind: 'shape',
-    fixed: { cap: 'top', angle: numText(S.angle), cx: numText(S.cx), cy: numText(S.cy) },
+    fixed: { cap: 'top', angle: numText(S.angle), cx: numText(S.cx), cy: numText(S.cy), perp: 'on' },
     name: '', min: '', max: '', unit: 'mm', ratio: numText(S.ratio), offset: 0,
     okColor: S.okColor, ngColor: S.ngColor, labelSize: 'medium',
     showLine: S.showLine, lineColor: S.lineColor,
@@ -770,8 +802,14 @@ function buildForm(st, S) {
     // The cross-capture example is its own dimension: its line does not follow the shared one.
     f.B = { cap: 'side', shape: 'circle_pin', part: 'Centre', point: null };
     f.bKind = after ? 'fixed' : 'shape';
-    f.fixed = { cap: 'side', angle: '90', cx: '960', cy: '' };
+    f.fixed = { cap: 'side', angle: '90', cx: '960', cy: '', perp: 'on' };
     f.name = 'Distance_side_to_datum'; f.min = 105.9; f.max = 106.1; f.unit = 'mm';
+  } else if (st === 'perp') {
+    // Feature A is a point on a line (Line_edge's End), so Feature B's fixed line offers Perpendicular type.
+    f.A = { cap: 'top', shape: 'line_edge', part: 'Line 1', point: 'End' };
+    f.bKind = after ? 'fixed' : 'shape';
+    f.fixed = { cap: 'top', angle: '90', cx: '1500', cy: '', perp: after ? 'from' : 'on' };
+    f.name = 'Distance_edge_to_datum'; f.min = 43.5; f.max = 44.5; f.unit = 'mm'; f.ratio = '0.05';
   } else if (st === 'shape-value') {
     // A new single-capture Distance between two shapes: Circle_hole centre, perpendicular on Line_edge.
     f.name = 'Distance_hole_to_edge'; f.min = 29.9; f.max = 30.1; f.unit = 'mm'; f.ratio = '0.05';
@@ -1069,6 +1107,8 @@ function tableRows() {
       gt: 'Between ' + (ang ? S.min : 44.5) + ' and ' + (ang ? S.max : 45.5) + ' °', offset: '0', open: 'angle' });
     rows.push({ name: 'Distance_side_to_datum', type: 'Distance', capture: 'Top Camera, Side Camera', cross: true, A: 'Top Camera · Circle_hole · Centre',
       B: FIXED.describe({ angle: 90, cx: 960, cy: '' }, 'Side Camera'), gt: 'Between 105.9 and 106.1 mm', offset: '0', open: 'cross' });
+    rows.push({ name: 'Distance_edge_to_datum', type: 'Distance', capture: 'Top Camera', A: 'Line_edge · Line 1 · End',
+      B: FIXED.describe({ angle: 90, cx: 1500, cy: '' }, null, 'Perpendicular from Previous Line'), gt: 'Between 43.5 and 44.5 mm (1 px = 0.05 mm)', offset: '0', open: 'perp' });
     // The shape-to-shape Distance, once saved from its own screen.
     if (S.shape) rows.push({ name: S.shape.name, type: 'Distance', capture: 'Top Camera', A: 'Circle_hole · Centre', B: 'Line_edge · ' + DERIV_ON_LINE,
       gt: 'Between ' + fmt2(S.shape.min) + ' and ' + fmt2(S.shape.max) + ' ' + S.shape.unit + (S.shape.unit === 'mm' && S.shape.ratio ? ' (1 px = ' + S.shape.ratio + ' mm)' : ''), offset: '0', open: 'shape-value' });
@@ -1414,7 +1454,7 @@ function openRowMenu(btn) {
   layer.innerHTML = '<div class="rowmenu" style="top:' + (rect.bottom + 4) + 'px;left:' + Math.max(8, rect.right - 120) + 'px"><button type="button" data-row-edit="' + open + '">' + ICON.edit2 + 'Edit</button><button type="button" class="danger" data-row-del="1">' + ICON.trash2 + 'Delete</button></div>';
   layer.firstChild.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; closeLayer(); if (b.hasAttribute('data-row-edit')) openRow(b.getAttribute('data-row-edit')); });
 }
-var STEP_OF = { 'shape-value': 'edge-dim-shape-value', distance: 'edge-dim-distance', angle: 'edge-dim-angle', cross: 'edge-dim-cross' };
+var STEP_OF = { 'shape-value': 'edge-dim-shape-value', distance: 'edge-dim-distance', perp: 'edge-dim-perp', angle: 'edge-dim-angle', cross: 'edge-dim-cross' };
 function openRow(open) { if (open === 'pitch' || open === 'edge') enterState(open, { local: false }); else goState(open, isAfter() ? STEP_OF[open] : null); }
 
 var tipEl = null, tipTimer = null;
@@ -1488,11 +1528,12 @@ function onSelect(key, val) {
   if (key === 'B.shape' && val === FIXED.SHAPE_OPTION.id) {
     if (f.bKind === 'fixed') return;
     f.bKind = 'fixed'; FIXED.applyDefaults(f.fixed, f.B.cap || f.A.cap || 'top');
-    f.showLine = false; f.lineColor = FIXED.DEFAULT_LINE_COLOR;   // a newly picked fixed line starts off, in yellow
+    f.showLine = false; f.lineColor = FIXED.DEFAULT_LINE_COLOR; f.fixed.perp = 'on';   // a newly picked fixed line starts off, in yellow
     if (isCross(f) && f.unit === 'px') f.unit = 'mm';
     renderMain(); afterFormChange(['angle', 'cx', 'cy', 'showLine', 'lineColor']); return;
   }
   if (key === 'B.shape' && f.bKind === 'fixed') { f.bKind = 'shape'; f.B = { cap: f.fixed.cap, shape: val, part: null, point: null }; renderMain(); afterFormChange(); return; }
+  if (key === 'fixed.perp') { f.fixed.perp = val; renderMain(); afterFormChange(); return; }
   if (key === 'lineColor') { f.lineColor = val; renderMain(); afterFormChange(['lineColor']); return; }
   if (key === 'unit') { f.unit = val; renderMain(); afterFormChange(['unit']); return; }
   if (key === 'okColor' || key === 'ngColor') { f[key] = val; renderMain(); afterFormChange([key]); return; }
@@ -1512,6 +1553,7 @@ function onSelect(key, val) {
       if (first) { feat.part = first.group; feat.point = first.point; }
     } else if (field === 'point') { feat.point = val; }
     if (side === 'A' && f.B.point === DERIV_PREV_LINE && !mode2Enabled(f)) { f.B.part = null; f.B.point = null; }
+    if (side === 'A' && !mode2Enabled(f)) f.fixed.perp = 'on';   // Feature A no longer on a line: back to Perpendicular on the line
     if (f.type === 'shapeFeatures' && side === 'A') f.unit = 'px';
     if (isCross(f) && f.unit === 'px') f.unit = 'mm';
     renderMain(); afterFormChange(); return;
