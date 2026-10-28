@@ -2,7 +2,7 @@
 
 **Prototype:** None — no new screens or layouts; only names and wording change (PM decision, 27 Oct 2026)
 **Product:** Vision + Edge
-**Status:** In review
+**Status:** Approved
 **Date:** 28 October 2026
 **Owner:** Swayam (SDE POC)
 **Related:** Epic FP-3895 with story FP-3896 (assigned to Deb). Original module build: FP-2454 with FP-2343, FP-2349, FP-2352, FP-2356 and stories FP-2344 to FP-2363. Same principle: FP-3473 (model names removed from logs and screens). Full place-by-place list: matting-exposure-audit.xlsx (shared separately).
@@ -299,6 +299,7 @@ Every line names the US / AC ids it touched.
 - 28 Oct 2026 — Approved (scoped-down version); no AC changes. Tickets: Epic FP-3895, Story FP-3896, assigned to Deb (Tanay Deo)
 - 28 Oct 2026 — Review round (FP-3895/FP-3896 review). PM decisions: drop what no user can see; rename existing MAT_ modules; chat manuals and the older-Edge guard: PM had no preference, recommended option applied. AC5.1, AC5.5, AC6.4 (removed); AC4.1 changed (no key contains MATTING; ER proved by a test); AC5.2 adds the Health database error tag; AC5.3 notes it holds today; AC6.1 Edge keeps the old name towards the AI engine; AC6.5, AC6.6 add exceptions for user-typed text and pre-release data, say "the word matting"; AC6.8 added (Sources); AC2.3 added (saved filters); AC11.2 corrected (the image's model folder IS used, Example.env:47-48); AC11.3 reworded; AC11.7 added (MariaDB 10.5.2); AC12.10 (MAT_ to ER_), AC12.11 (older-Edge download guard), AC12.12 (re-deploy after upgrade) added; US13 added (chat manuals back; US7 number not reused); US4 Teams SDE; back to In review (Tanay Deo)
 - 28 Oct 2026 — Duplicate pass on the review round: AC5.3 (removed): covered by AC6.5, which now names job messages and chat answers; AC6.5, AC6.6 narrowed to data requests (Fetch/XHR, WebSocket) so AC6.8 alone checks the loaded code; AC13.1 trimmed (the 'never Matting' clause is AC6.5); AC4.1 trimmed to the ER test (the no-MATTING clause is AC6.6). Contradictions fixed: AC6.1, AC6.2 limited so the AI engine keeps its internal name; AC6.7 gets the AC6.5 exceptions; AC12.7 now points existing modules at the new entry; AC12.10 is Vision-only; Out of scope no longer says variables keep the old name (Tanay Deo)
+- 28 Oct 2026 — Approved (review-round version); no AC changes. Tickets synced: Epic FP-3895, Story FP-3896 (Tanay Deo)
 
 ## Checked, not affected
 - vision-projects, vision-variants: the module has no project or variant setting.
