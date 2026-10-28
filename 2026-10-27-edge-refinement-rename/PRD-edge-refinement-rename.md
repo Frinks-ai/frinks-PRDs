@@ -1,11 +1,11 @@
-# PRD: Rename Matting to Edge Refinement — Phase 1
+# PRD: Rename Matting to Edge Refinement
 
 **Prototype:** None — no new screens or layouts; only names and wording change (PM decision, 27 Oct 2026)
 **Product:** Vision + Edge
-**Status:** In review
+**Status:** Approved
 **Date:** 28 October 2026
-**Owner:** Swayam (SDE), Shreyas (AI)
-**Related:** Original module build: FP-2454 (epic, now assigned to Deb) with FP-2343, FP-2349, FP-2352, FP-2356 and stories FP-2344 to FP-2363. Same principle: FP-3473 (model names removed from logs and screens). Full place-by-place list: matting-exposure-audit.xlsx (shared separately).
+**Owner:** Swayam (SDE POC)
+**Related:** Epic FP-2454 (reused for this work, assigned to Deb). Original module build: FP-2454 with FP-2343, FP-2349, FP-2352, FP-2356 and stories FP-2344 to FP-2363. Same principle: FP-3473 (model names removed from logs and screens). Full place-by-place list: matting-exposure-audit.xlsx (shared separately).
 **Code checked:** 27 October 2026 — 34 repos at their latest default-branch commit, plus the live branches of Auto-annotation, Segmentation-Training and Segmentation-Evaluation (list in Appendix B)
 
 ---
@@ -14,58 +14,59 @@
 None.
 
 ## 1. Summary
-- Phase 1 hides the word "Matting" everywhere a person can see it: Vision and Edge screens, the browser's inspect tools (Network, Console, Sources) and error logs on Edge and in Vision cloud jobs. Everything there says **Edge Refinement**.
+- The module that sharpens the edges of segmentation masks is called **Edge Refinement** everywhere: Vision screens, server messages, Edge keys, reports, logs, settings and file names.
 - New modules of this type are named **ER_1, ER_2, …** in Vision, and their Edge keys use **ER**.
-- The module-type entry in the Vision and Edge databases becomes **edgeRefinement / Edge Refinement**, so the browser only ever receives the new name.
-- Inside the servers and Python jobs nothing else is renamed in phase 1: the module's settings table, Python code, setting names and file names keep "matting" until phase 2.
+- Inside the product the module's internal name becomes **edgeRefinement**: in the data Vision sends to Edge and to the AI engine, in both databases, and in every Python job.
 - The module works exactly as before: same refined masks, same OK/NG, same place in the recipe tree.
+- Everything switches in one release. No part keeps understanding the old name.
+- The only place the word stays is the copied open-source model code (ViTMatte), which nobody sees in the product.
 
 ## 2. Why we are making this
-- **Today:** the module shows its research name, "Matting", on the add-module list, panel title, recipe filters, auto-annotation settings, error pop-ups and Edge key names (MAT), in the data the browser receives, and in logs. About 700 places in 20 repos use it.
+- **Today:** the module shows its research name, "Matting", on the add-module list, panel title, recipe filters, auto-annotation settings, error pop-ups and Edge key names (MAT). The same name appears in logs, error details, setting names and file names on Edge boxes and in training jobs. About 700 places in 20 repos use it.
 - **Evidence:** product naming decision: the product never shows the academic name of a technique, the same principle as the model-name clean-up in FP-3473.
-- **After:** nothing a user, integrator or support engineer can see, including in the browser's inspect tools and in logs, says "Matting". The deeper rename follows in phase 2.
+- **After:** every place a user, integrator or support engineer can see says "Edge Refinement", and the module behaves the same.
 
 ## 3. Goals and non-goals
 **Goals**
-- G1. No Vision or Edge screen, key or report says "Matting"; they say "Edge Refinement" or ER.
-- G2. The browser's inspect tools (Network, Console, Sources) never show "matting" on any Vision or Edge screen.
-- G3. No error log on Edge or in Vision cloud jobs says "matting".
-- G4. The module and everything around it keeps working exactly as before.
+- G1. No screen, message, key, report, log, setting or file name, and nothing in the browser's inspect tools (Network, Console, Sources), says "Matting"; they say "Edge Refinement" or ER.
+- G2. One internal name, edgeRefinement, across Vision, Edge and every Python job, shipped together in one release.
+- G3. The module and everything around it keeps working exactly as before.
 
 **Non-goals**
 - Changing what the module does, its settings or its place in the recipe tree.
-- Phase 2 work (see Out of scope).
+- Renaming the copied open-source ViTMatte model code.
+- Adding the module to Edit Module Configurations on Edge.
 
 ## 4. Key concepts
 - **Edge Refinement:** the new name of the Matting module. It takes a Segmentation module's masks and sharpens their edges.
 - **ER:** the new name prefix for these modules (ER_1) and in their Edge key names. It replaces MAT.
-- **edgeRefinement:** the new name of the module-type entry, the name the browser receives. It replaces matting.
-- **Phase 1 / Phase 2:** phase 1 (this PRD) hides the word from everything people see; phase 2 (later, own PRD) renames what only the code and databases hold.
+- **edgeRefinement:** the module's internal name, used in data, databases and code. It replaces matting.
+- **ViTMatte:** the free, published research model the module runs. Its copied code keeps its own names, two of which are stored inside the model file.
 
 ## 5. Impact map
 The parts this changes. Parts checked and not affected are listed at the very end.
 
 | Part | What will happen | User stories |
 |---|---|---|
-| Matting (mod-matting) | Shown as Edge Refinement everywhere people look; works the same | US1, US6, US10 |
-| Recipe editor (vision-recipe-tree) | Add-module list, panel title, tooltip, pop-ups, server messages and new module names say Edge Refinement / ER; parent rules unchanged; module-type entry renamed | US1, US6, US9, US12 |
+| Matting (mod-matting) | Called Edge Refinement everywhere; works the same | US1, US6, US10 |
+| Recipe editor (vision-recipe-tree) | Add-module list, panel title, tooltip, pop-ups, server messages and new module names say Edge Refinement / ER; parent rules unchanged; database entry and table renamed | US1, US6, US9, US12 |
 | Captures list (vision-captures-cameras) | Recipe Management filter option and module summary say Edge Refinement | US2 |
-| Auto-annotation (vision-auto-annotation) | Toggle label says Edge Refinement; the browser never sees the old setting name; job logs reworded; toggle works as before | US3, US5, US6, US9, US12 |
+| Auto-annotation (vision-auto-annotation) | Toggle label says Edge Refinement; job logs and settings renamed; toggle works as before; saved on/off values kept | US3, US5, US9, US12 |
 | Datasets and annotations (vision-datasets-annotations) | A capture with the module still goes through the sample-data steps | US9 |
-| Instance creation (vision-instance-creation) | Packages carry the renamed module-type entry | US12 |
-| Model training (vision-model-training) | Job logs reworded; jobs run as before | US5, US9 |
-| Model evaluation (vision-model-evaluation) | Job logs reworded; jobs run as before | US5, US9 |
-| Data Recommender (vision-training-sets-recommender) | Job logs reworded; runs as before | US5, US9 |
+| Instance creation (vision-instance-creation) | The package carries the module under its new name; the new Edge version's table layout is registered | US6, US12 |
+| Model training (vision-model-training) | Training jobs fetch the refinement model under new setting and file names; logs renamed | US5, US9 |
+| Model evaluation (vision-model-evaluation) | Same as training, for evaluation jobs | US5, US9 |
+| Data Recommender (vision-training-sets-recommender) | Same as training, for recommender runs | US5, US9 |
 | Access (vision-access) | No role or permission change | US8 |
 | Masking (mod-masking) | Still accepts Edge Refinement as its parent and gets refined masks | US9, US10 |
 | Orientation & Tilt Check (mod-orientation) | Still accepts Edge Refinement as its parent and gets refined masks | US9, US10 |
 | Shape Extractor (mod-shape-extractor) | Still accepts Edge Refinement as its parent and gets refined masks | US9, US10 |
 | Result (mod-result) | Same pass/fail for the module | US10 |
-| AI engine (engine-workflow) | Log lines reworded; runs as before | US5, US10 |
+| AI engine (engine-workflow) | Runs the module under its new name; logs and settings renamed | US5, US6, US10 |
 | AI engine images (engine-runtime-packaging) | No image change | US11 |
-| Instance upload (edge-instance-details) | Accepts packages with the renamed entry; Instance Details shows no old name | US6, US12 |
-| Deployment (edge-deployment) | Messages reworded; screens and their data show no old name | US5, US6 |
-| Inferencing (edge-inferencing-customization) | Messages reworded; result data sent to screens shows no old name | US5, US10 |
+| Instance upload (edge-instance-details) | Accepts packages with the new name; refuses old-name packages | US6, US12 |
+| Deployment (edge-deployment) | Sends the module to the AI engine under its new name; messages renamed | US5, US6 |
+| Inferencing (edge-inferencing-customization) | Reads the module's settings and results under the new name; messages renamed | US5, US10 |
 | Actions (edge-actions) | Key names use ER | US4 |
 | PLC Read (edge-plc-read) | Key names use ER | US4 |
 | PLC Write (edge-plc-write) | Key names use ER | US4 |
@@ -74,8 +75,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 | Reports (edge-reports-analytics) | Raw result data names the module edgeRefinement | US4 |
 | Health (edge-health) | Model-load error detail says Edge Refinement; no new error codes | US5, US11 |
 | Model loading (edge-model-loading-variant-change) | Loads the refinement model as before | US10 |
-| Backup and migration (edge-backup-migration) | Edge upgrade renames the module-type entry | US12 |
+| Backup and migration (edge-backup-migration) | Edge upgrade renames the module's table and entry | US12 |
 | Releases (edge-release-upgrade) | Scripts bundle changes; Vision, Edge and Python ship together | US11, US12 |
+| Chat assistant manuals (not in the component map) | Answers say Edge Refinement | US7 |
 
 ## 6. User stories and acceptance criteria
 
@@ -119,43 +121,56 @@ The parts this changes. Parts checked and not affected are listed at the very en
 *As an integrator, I want this module's keys and report data to use ER and edgeRefinement, so that nothing on Edge shows the old name.*
 - **Kind:** Feature
 - **Parts:** edge-actions, edge-plc-read, edge-plc-write, edge-internal-actions, edge-dashboard-builder, edge-reports-analytics
-- **Teams:** SDE
+- **Teams:** SDE + AI
+- **Stakeholders:** Swayam (SDE POC, also does the AI work)
 - **Covers:** C9, C12
 - **Today:** this module's keys carry MAT as their module type, and the raw result data in Reports names the module "matting".
 
 - **AC4.1** Keys created for this module carry ER as their module type wherever keys are listed: PLC Read Config, PLC Write Config, Internal Action Config and Dashboard Builder.
 - **AC4.2** The raw result data of a cycle in Reports & Analytics names this module's type "edgeRefinement".
 
-### US5 — Error logs say Edge Refinement
-*As a Frinks support engineer, I want every log line and error detail about this module to use the new name, so that the old name never shows up on a plant machine or in a job log.*
+### US5 — Logs, errors, settings and files say Edge Refinement
+*As a Frinks support engineer, I want every log line, error detail, setting and file about this module to use the new name, so that the old name never shows up on a plant machine or in a job log.*
 - **Kind:** Feature
 - **Parts:** engine-workflow, edge-inferencing-customization, edge-deployment, edge-health, vision-model-training, vision-model-evaluation, vision-training-sets-recommender, vision-auto-annotation
 - **Teams:** SDE + AI
-- **Stakeholders:** Swayam (SDE), Shreyas (AI)
-- **Covers:** C13
-- **Today:** logs, validation and database error messages and the model-load error detail say "matting".
+- **Stakeholders:** Swayam (SDE POC, also does the AI work)
+- **Covers:** C13, C17
+- **Today:** logs, validation and database error messages, the model-load error detail, setting names and file names say "matting".
 
 - **AC5.1** Running a recipe with the module on Edge writes no log line containing "matting"; every line about it says "Edge Refinement".
 - **AC5.2** Edge server messages about this module (result checks and database errors) say "Edge Refinement".
 - **AC5.3** Training, evaluation, Data Recommender and auto-annotation jobs that use the module write no log line containing "matting".
 - **AC5.4** When the refinement model fails to load, the error detail shown for MODELLOAD_005 in Health reads "Edge Refinement model loading".
-- **AC5.5** (removed): setting names move to phase 2.
-- **AC5.6** (removed): file and folder names move to phase 2.
+- **AC5.5** The settings that point to the refinement model are named EDGE_REFINEMENT_MODEL_PATH, EDGE_REFINEMENT_MODEL_LINK and EDGE_REFINEMENT_WARMUP_SIZE in every job and on Edge.
+- **AC5.6** Model and debug files written by these jobs are named after Edge Refinement (e.g. edge_refinement_model.pth, debug_edge_refinement), never "matting".
 
-### US6 — The browser's inspect tools never show the old name
-*As a Frinks support engineer, I want the browser's inspect tools to show only the new name, so that anyone opening them on a Vision or Edge screen never sees "matting".*
+### US6 — One internal name everywhere
+*As a Frinks support engineer, I want the module's internal name to be edgeRefinement end to end, so that raw data, databases and code never carry the old name.*
 - **Kind:** Feature
-- **Parts:** mod-matting, vision-recipe-tree, vision-auto-annotation, edge-instance-details, edge-deployment
-- **Teams:** SDE
+- **Parts:** mod-matting, vision-recipe-tree, vision-instance-creation, edge-instance-details, edge-deployment, engine-workflow
+- **Teams:** SDE + AI
+- **Stakeholders:** Swayam (SDE POC, also does the AI work)
 - **Covers:** C7
-- **Today:** the data Vision and Edge send to the browser names the module type "matting" and "Matting", saving auto-annotation settings sends "matting", and the Vision frontend code holds names like "matting-module".
+- **Today:** Vision, Edge and every Python job identify the module as "matting".
 
-- **AC6.1** On every Vision screen, no request or response in the inspect tool's Network tab contains "matting"; the module type arrives as edgeRefinement / Edge Refinement.
-- **AC6.2** On every Edge screen (Deployments, Instance Details, Integrations, Dashboard Builder, Reports & Analytics, Health), no request or response in the Network tab contains "matting".
-- **AC6.3** Using these screens with the module writes nothing containing "matting" to the inspect tool's Console.
-- **AC6.4** The Vision and Edge frontend code shown in the inspect tool's Sources tab contains no "matting".
+- **AC6.1** A recipe with the module, sent from Vision to training jobs and packaged for Edge, names it edgeRefinement, and Edge passes that name to the AI engine.
+- **AC6.2** No part of the release accepts the old name: Vision, Edge and the Python jobs recognise only edgeRefinement, and the new Edge refuses a package that still names the module the old way with today's schema-mismatch message (no site has one).
+- **AC6.3** On a new installation, the Vision and Edge databases store the module's entry and settings under the Edge Refinement name, with no table or entry named "matting".
+- **AC6.4** A word search for "matting" across all shipped Frinks repos finds it only inside the copied ViTMatte model code and in the unused model step of the Python Docker image recipe, which goes at its next rebuild (AC11.2); generated files committed by mistake that contain it are deleted.
+- **AC6.5** On every Vision screen, no request or response in the browser inspect tool's Network tab contains "matting".
+- **AC6.6** On every Edge screen (Deployments, Instance Details, Integrations, Dashboard Builder, Reports & Analytics, Health), no request or response in the Network tab contains "matting".
+- **AC6.7** Using Vision and Edge screens with the module writes nothing containing "matting" to the inspect tool's Console.
 
-### US7 — (removed): chat assistant manuals move to phase 2.
+### US7 — The chat assistant says Edge Refinement
+*As a project member asking the Frinks chat assistant, I want answers to use the new name, so that the assistant matches the product.*
+- **Kind:** Feature
+- **Parts:** Chat assistant manuals (not in the component map)
+- **Teams:** AI
+- **Covers:** C18
+- **Today:** the manuals behind the chat assistant say "Matting" (for example, "Segmentation and Matting cannot both be applied to the same Search Area").
+
+- **AC7.1** Asked about the module, the chat assistant answers with "Edge Refinement" and never "Matting"; the PM team updates the manual text and the assistant's owner reloads it.
 
 ### US8 — Rules
 *As an Org Admin, I want access to stay as it is, so that the rename does not change who can do what.*
@@ -171,7 +186,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Kind:** Keeps working
 - **Parts:** vision-recipe-tree, mod-masking, mod-orientation, mod-shape-extractor, vision-datasets-annotations, vision-auto-annotation, vision-model-training, vision-model-evaluation, vision-training-sets-recommender
 - **Teams:** SDE + AI
-- **Stakeholders:** Swayam (SDE), Shreyas (AI)
+- **Stakeholders:** Swayam (SDE POC, also does the AI work)
 - **Covers:** C4, C14
 
 - **AC9.1** The module can still be added only under a Segmentation module, and Masking, Orientation & Tilt Check and Shape Extractor can still be added under it.
@@ -195,13 +210,13 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Kind:** Platform
 - **Parts:** engine-runtime-packaging, edge-release-upgrade, edge-health
 - **Teams:** SDE + AI
-- **Stakeholders:** Swayam (SDE), Shreyas (AI)
+- **Stakeholders:** Swayam (SDE POC, also does the AI work)
 - **Covers:** C13, C17, C18
 
 - **AC11.1** Node Docker image: no change.
-- **AC11.2** Python Docker image: no change.
-- **AC11.3** Scripts bundle: changes; it carries the updated Vision, Edge and Python code.
-- **AC11.4** Installer: no change.
+- **AC11.2** Python Docker image: no change. Edge reads the refinement model from its own models folder, not from the copy inside the image; that unused copy is cleaned up whenever the image is next rebuilt.
+- **AC11.3** Scripts bundle: changes; it carries the renamed Vision, Edge and Python code.
+- **AC11.4** Installer: no change; it sets no setting or folder with the old name.
 - **AC11.5** Error codes: no new codes.
 - **AC11.6** Release note: "The Matting module is now called Edge Refinement (module prefix ER) in Frinks Vision and Frinks Edge."
 
@@ -210,69 +225,65 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **Kind:** Migration
 - **Parts:** vision-recipe-tree, vision-auto-annotation, vision-instance-creation, edge-instance-details, edge-backup-migration, edge-release-upgrade
 - **Teams:** SDE + AI
-- **Stakeholders:** Swayam (SDE), Shreyas (AI)
+- **Stakeholders:** Swayam (SDE POC, also does the AI work)
 - **Covers:** C6, C7, C17
 
-- **AC12.1** Existing data in Vision: the release's database script renames the module-type entry to edgeRefinement / Edge Refinement and points existing modules of this type at it, so the add-module list shows only "Edge Refinement"; the module's settings table keeps its name.
+- **AC12.1** Existing data in Vision: the release's database script renames the module's entry and settings table, so the add-module list shows only "Edge Refinement" and no table or entry named "matting" remains.
 - **AC12.2** A Vision recipe that already contains the module shows it as Edge Refinement after the release, with its classes and outputs unchanged.
 - **AC12.3** Saved auto-annotation settings keep their toggle on or off as it was before the release.
-- **AC12.4** Older Edge with a new instance: a package that contains the module is not supported on an Edge older than this release (no site uses the module); packages without it upload as before.
+- **AC12.4** Older Edge with a new instance: a package that contains the module, downloaded without a target version, is refused by an older Edge with today's schema-mismatch message.
 - **AC12.5** Older instance on the new Edge: an instance without the module uploads, deploys and runs unchanged.
-- **AC12.6** (removed): covered by AC6.2 in the earlier version; no longer applies.
-- **AC12.7** Upgrades of Edge boxes in the field rename the module-type entry in the Edge database and change nothing else.
-- **AC12.8** (removed): the settings table is not renamed, so the Edge table layout does not change.
+- **AC12.6** (removed): covered by AC6.2.
+- **AC12.7** Upgrades of Edge boxes in the field rename the module's table and entry in the Edge database and change nothing else.
+- **AC12.8** The new Edge version's table layout is registered in Vision, so an instance downloaded for it includes the module's settings.
 - **AC12.9** The release is tested end to end on staging, with Vision, Edge and every Python job together, before it ships.
 
 ## 7. Out of scope
-**Phase 2 (later, own PRD):**
-- Renaming the module's settings table and every internal name in the servers and Python code (files, classes, the type value Python uses).
-- Setting names on machines (e.g. the model-path settings) and model, debug and folder names.
-- The chat assistant manuals.
-- The unused model step in the Python Docker image recipe.
-
-**Not planned:**
 - The copied open-source ViTMatte model code keeps its own names (PM, 27 Oct). Two of them are stored inside the model file and must never change.
+- The old Jira epics named after the module (FP-2454 and others) and the "Matting" wording in the Module Outputs in Reports & Analytics PRD: handled separately after this PRD is approved.
 - Two old client-specific repos that contain the word: not shipped (PM, 27 Oct).
-- The old Jira epics named after the module and the "Matting" wording in the Module Outputs in Reports & Analytics PRD: handled separately.
+- Fix version: added when the tickets are made.
 
 ## 8. How we'll know it worked
 | Measure | Target |
 |---|---|
-| Staging run: recipe with ER_1 trained, recommended, auto-annotated, deployed and run on Edge, with the inspect tools open on every screen used | No screen, Network request or response, Console line or Sources file shows "matting" |
-| Edge logs, Health and Vision cloud job logs from that run | No line contains "matting" |
+| Word search for "matting" across all shipped Frinks repos, default and live branches | Only the copied ViTMatte model code, plus the image's unused model step until its next rebuild |
+| Staging run: recipe with ER_1 trained, recommended, deployed and run on Edge | No screen, key, report, log or setting shows "matting" |
 | Same staging image before and after the release | Same refined masks and the same OK/NG |
 
 ## Appendix A — Coverage
 **Not applicable:**
 - **C2** — N/A: the name applies wherever the module is used; there is no project, capture or instance-level choice.
-- **C3** — N/A: creating, copying and deleting the module work as before.
+- **C3** — N/A: creating, copying and deleting the module work as before; copies carry the same internal name.
 - **C5** — N/A: no new states; the changed error texts are AC1.5 and AC1.6.
 - **C11** — N/A: the module is not in Edit Module Configurations on Edge.
 - **C15** — N/A: no network, offline or time behaviour changes.
 - **C16** — N/A: no licence, encryption or data-leaving change; the model file is unchanged.
 
-**Coverage check:** PASS (check_prd.py, 28 Oct 2026).
+**Coverage check:** (pasted below after the final run)
 
 ## Appendix B — Code references
-For developers. The full place-by-place list is in matting-exposure-audit.xlsx; phase 1 needs only the rows seen on screens, in the browser and in logs.
-- **Module-type entry (browser sees it):** `frinksvision-backend`: `src/config/populate.ts:215-216` (inserted only if missing: 368-378), served by `GET /store/module` (`frinksvision-frontend` `moduleWorkflow/index.tsx:456`); every Vision and Edge comparison against the entry's id ('matting') must follow the rename: `frinksvision-backend` `src/dao/module.ts:480, 713, 824, 1759`, `src/service/module.ts:54-96`, `src/service/pythonModel.ts:686`, `src/utils/module.ts:8, 24`; `frinksedge-deployment-backend` `src/config/populate.ts:136-137`, `src/dao/module.ts:465, 569`, `src/cache/keystore.ts:595-596`, `src/service/pythonModel.ts:200, 298, 360, 934`, `src/service/instance.ts:135, 2636`, `src/moduleTree/nodes/moduleNode.ts:8`; `frinksedge-inferencing-backend` `src/python-model/transformers/matting.transformer.ts:4`, `src/python-model/python-model-result.service.ts:21, 141, 186`, `src/shared/infrastructure/module/module.repository.ts:336, 442`. Settings table `matting_config` keeps its name.
-- **Vision screens and frontend code:** `frinksvision-frontend`: `moduleWorkflow/selectedModule.tsx:60, 73, 1069, 1172, 2469-2473, 2726, 3143`; `moduleWorkflow/index.tsx:69-73`; `matting-module/` (folder and component names; inputs.tsx:121); `src/core/constants/index.ts:175` (MAT); `src/shared/copy/tooltips.ts:164`; `project-configuration/recipeFilters.ts:32`; `configure-auto-annotation/SegmentationRoi.tsx:119, 320-325`, `moduleItem.tsx:101`; `src/shared/hooks/annotationPipeline/annotationPipeline.tsx:508`.
-- **Auto-annotation setting name in the browser:** `frinksvision-backend`: `src/service/annotation.ts:382`, `src/dto/Frontend.ts:1576, 1649`; read by `Auto-annotation` (live branches) `scripts/annotation/modules/segmentModule.py:137-151, 197-214`.
+For developers. The full place-by-place list (736 rows, with suggested change) is in matting-exposure-audit.xlsx.
+- **Recipe editor:** `frinksvision-frontend`: `src/modules/project/module-configuration/components/moduleWorkflow/index.tsx:456` (add-module list from the server), `:69-73` (allowed parents); `moduleWorkflow/selectedModule.tsx:60, 2469-2473, 2726, 3143`; `matting-module/` (inputs.tsx:121); `src/core/constants/index.ts:175` (MAT prefix); `src/shared/copy/tooltips.ts:164`. `frinksvision-backend`: `src/config/populate.ts:215-216` (module entry, inserted only if missing: 368-378); `src/service/module.ts:54-96` (parent-rule messages); `src/db/mattingConfig.schema.ts:12, 21`; `src/dao/module.ts:480, 713, 824, 1759`.
+- **Captures list:** `frinksvision-frontend`: `src/modules/project/project-configuration/recipeFilters.ts:32`. `frinksvision-backend`: `src/utils/module.ts:8` (summary label), `:20-25` (sample-data rule).
+- **Auto-annotation:** `frinksvision-frontend`: `src/modules/project/configure-auto-annotation/SegmentationRoi.tsx:119, 320-325`, `moduleItem.tsx:101`. `frinksvision-backend`: `src/service/annotation.ts:382` (saved setting), `src/dto/Frontend.ts:1576, 1649`. `Auto-annotation` (live branches auto-segment, feature/*; not on `main`): `scripts/annotation/modules/segmentModule.py:35-37, 137-151, 197-214`, `scripts/components/getConfig.py:404-408`, `scripts/modules/moduleRegistry.py:7, 23`, `ANNOTATION.env:36-37`.
+- **Instance creation and upload:** `frinksvision-backend`: `src/service/instance.ts:82, 926-929, 1151, 1540`; `src/service/pythonModel.ts:686-688`. `frinksedge-deployment-backend`: `src/service/uploadValidation.ts:1070`; `src/service/instance.ts:94, 135, 1418, 2636`; `src/dao/instances.ts:993, 1057, 1104`; `dump.sql:191, 1338-1344, 2566-2567`; `src/config/populate.ts:136-137`.
 - **Edge keys:** `frinksedge-deployment-backend`: `src/cache/keystore.ts:595-596` (MAT), used by `keystore.ts:536`, `src/keys/createKeys.ts:164`, `src/triggers/params.ts:215`.
-- **Reports raw data:** the engine writes the type `vip-inference-python` `scripts/assembly/resultProcess/matting.py:431`; the result reaches Reports through `frinksedge-inferencing-backend` `src/python-model/python-model-result.service.ts`.
-- **Edge server messages:** `frinksedge-inferencing-backend`: `src/shared/dto/dtos/parser.dto.ts:443-465`; `src/shared/infrastructure/module-config/matting/matting-config.repository.ts:6` (feature name printed in database errors).
-- **Edge AI engine logs and Health:** `vip-inference-python`: `scripts/main.py:286`, `components/main_utils.py:37-54`, `modules/mattingModule.py:27-42`, `interfaces/mattingInterface.py:148, 243`, `resultProcess/matting.py:232-418`, `models/ModelManager.py:983-988` (MODELLOAD_005).
-- **Vision cloud job logs:** `workflow-dataprocessor` `modules/mattingModule.py:30-69`, `interfaces/mattingInterface.py:18, 201`, `workflow/workflow_processor.py:964`; `train-utils` `io/downloader.py:188`; `Segmentation-Training` and `Segmentation-Evaluation` (`master` and live `create_build_dev`) `scripts/interface/mattingInterface.py:209`, `scripts/modules/mattingModule.py:19, 59`; `OCR-Training-Detection-ALL` `Snake/scripts/trainUtils/downloader.py:296`; `Auto-annotation` (live branches) `segmentModule.py:214`. The branch scan also found the word on live branches of Assembly-Training-OCR, assembly-training, classification-training-docker, Assembly-model-evaluation, Classification-Evaluation, Craft-model-evaluation and OCR-Evaluation; their log lines are in scope for AC5.3.
-- **Database scripts:** Vision changes run by hand from `frinksvision-backend/release-sql/<feature>/`; Edge schema in `frinksedge-deployment-backend/dump.sql`.
+- **Deployment and inferencing:** `frinksedge-deployment-backend`: `src/service/pythonModel.ts:200, 298, 360, 934-936`; `src/moduleTree/manager.ts:7, 324-350`; `src/dao/mattingConfig.ts`. `frinksedge-inferencing-backend`: `src/python-model/transformers/matting.transformer.ts`; `src/python-model/python-model-result.service.ts:21, 141, 186`; `src/shared/dto/dtos/parser.dto.ts:443-465, 951-958`; `src/shared/infrastructure/module-config/matting/` (feature name printed in database errors: `matting-config.repository.ts:6`); `src/shared/infrastructure/module/module.repository.ts:336-442`; `src/module-tree/module-tree.service.ts:308-326`.
+- **AI engine:** `vip-inference-python`: `scripts/assembly/modules/moduleRegistry.py:30`, `modules/mattingModule.py`, `interfaces/mattingInterface.py:142-148, 243`, `resultProcess/matting.py:232-432`, `models/model_keys.py:31`, `models/ModelManager.py:973-988` (MODELLOAD_005), `components/main_utils.py:21-61` (model path setting), `interfaces/orientationInterface.py:174`, `modules/validation/module_validators.py:149`, `scripts/main.py:284-286`. Weights are loaded by layer name (`models/matting/matting.py:53`); `vitmatte/decoder/detail_capture.py:94, 136` (`matting_head`, `matting_convs`) must not be renamed.
+- **AI engine images:** `Python-inference-docker`: `Dockerfile:139-145` (unused copy). Edge mounts its models folder: `frinksedge-deployment-backend`: `docker-files/docker-compose.yaml:33`.
+- **Training, evaluation, recommender:** `train-utils`: `src/train_utils/io/downloader.py:175-191` (also committed `__pycache__` files). `workflow-dataprocessor`: `src/workflow_dataprocessor/modules/mattingModule.py`, `interfaces/mattingInterface.py:16-19, 125, 201`, `workflow/workflow_processor.py:947-1158`. `Segmentation-Training` (`master` and live `create_build_dev`): `{unet,pointrend}-segmentation/scripts/downloader.py:201-209`, `scripts/interface/mattingInterface.py:14-15, 122, 209`, `scripts/modules/mattingModule.py:8-59`. `Segmentation-Evaluation` (`master` and live `create_build_dev`): same layout. `OCR-Training-Detection-ALL`: `{CRAFT,psenet,Snake}/scripts/trainUtils/downloader.py:273-296`, `TRAINING.env` files (also a committed `Snake/scripts/.coverage`). Same model-download step and model settings on the live `create_build_dev` branches (not on their default branch) of: `Assembly-Training-OCR` (`scripts/downloader.py:225-227`, `TRAINING.env:75-76`, `scripts/.env`), `assembly-training` (`fasterrcnn/scripts/downloader.py:223`, `TRAINING.env:56-61` and per-model `.env`), `classification-training-docker` (`resnet18-cls/scripts/downloader.py:220-225`, `TRAINING.env:58-62`), `Assembly-model-evaluation` (`scripts/components/getConfig.py:529-534`, `EVALUATION.env:42-43`), `Classification-Evaluation` (`scripts/components/getConfig.py:259-264`, `EVALUATION.env:41-42`), `Craft-model-evaluation` (`scripts/components/getConfig.py:433-438`, `EVALUATION.env:43-55`, plus a copied ViTMatte folder), `OCR-Evaluation` (`scripts/components/getConfig.py:270-278` incl. the log line "Downloading matting model if exists...", `EVALUATION.env:45-51`). Recommenders: `scripts/components/getConfig.py` in `assembly-dataset-recommender` (348-352), `Segmentation-Data-Recommender` (325-329), `Recommendation-classification` (226-230), `Recommendation-OCR` (232-236), and their `.env` files.
+- **Chat assistant manuals:** `frinkschat-backend`: `Frinks-Manuals-Query-Engine/Frinks Vision/manuals-text/Segmentation_Setup.md:58, 117, 144-145`, `Image_Annotation.md:78`, `reference/DICTIONARY.md:128`, `reference/ABBREVIATIONS.md:18`, `CLAUDE.md:38`.
+- **Database scripts:** Vision changes run by hand from `frinksvision-backend/release-sql/<feature>/` (the backend never runs them); Edge schema lives in `frinksedge-deployment-backend/dump.sql`.
 
-Repos checked (27 Oct 2026): frinksvision-frontend @ df358e8, frinksvision-backend @ 1703f24, frinksedge-deployment-backend @ 5a69c77, frinksedge-deployment-frontend @ 857dfddd, frinksedge-inferencing-backend @ 310c18e, frinksedge-report-frontend @ 9893a19, frinksedge-health @ 2dbc622, vip-inference-python @ 3af02b5, Python-inference-docker @ 62e22bd (50_series), workflow-dataprocessor @ d2cd9bd, train-utils @ d3e6378, OCR-Training-Detection-ALL @ fc59f48, assembly-dataset-recommender @ 0556f06, Segmentation-Data-Recommender @ 58d1e07, Recommendation-classification @ 0796dbb, Recommendation-OCR @ ae1e953, Segmentation-Training @ f749aab (+ create_build_dev), Segmentation-Evaluation @ 44bb8c6 (+ create_build_dev), Auto-annotation @ d213b71 (+ auto-segment 6e56c5f), frinkschat-backend @ 88e5c91, and the other 14 synced repos (no mention on their default branch).
+Repos checked (27 Oct 2026): frinksvision-frontend @ df358e8, frinksvision-backend @ 1703f24, frinksedge-deployment-backend @ 5a69c77, frinksedge-deployment-frontend @ 857dfddd, frinksedge-inferencing-backend @ 310c18e, frinksedge-report-frontend @ 9893a19, frinksedge-health @ 2dbc622, vip-inference-python @ 3af02b5, Python-inference-docker @ 62e22bd (50_series), workflow-dataprocessor @ d2cd9bd, train-utils @ d3e6378, OCR-Training-Detection-ALL @ fc59f48, assembly-dataset-recommender @ 0556f06, Segmentation-Data-Recommender @ 58d1e07, Recommendation-classification @ 0796dbb, Recommendation-OCR @ ae1e953, Segmentation-Training @ f749aab (+ create_build_dev), Segmentation-Evaluation @ 44bb8c6 (+ create_build_dev), Auto-annotation @ d213b71 (+ auto-segment 6e56c5f), frinkschat-backend @ 88e5c91, and the other 14 synced repos (no mention).
 
 ## Changelog
 Every line names the US / AC ids it touched.
 - 27 Oct 2026 — First draft, US1–US12 (AC1.1–AC12.9). Decisions: name Edge Refinement, prefix ER, internal name edgeRefinement; ViTMatte code left as-is; one release with no old-name support; database table renamed too; stakeholders Swayam (SDE) and Shreyas (AI); prototype not needed (Tanay Deo)
 - 27 Oct 2026 — Duplicate pass: AC12.6 (removed): covered by AC6.2, which now names the schema-mismatch refusal; AC12.9 trimmed to the staging test (the one-release switch is AC6.2); AC11.5 trimmed (MODELLOAD_005 detail is AC5.4); AC11.1 trimmed (scripts bundle is AC11.3). Contradictions settled by earlier decisions: AC6.4 allows the image's unused model step until its next rebuild (default e) and covers shipped repos only (client repos not shipped) (Tanay Deo)
 - 27 Oct 2026 — Approved. Owner set to Swayam (SDE) and Shreyas (AI); no AC changes (Tanay Deo)
-- 28 Oct 2026 — Split into two phases; this PRD is phase 1 and back to In review. Phase 1 = screens, the browser's inspect tools (Network, Console, Sources) and error logs (Edge and Vision cloud jobs); the module-type entry is renamed in both databases, the settings table is not. US6 rewritten as "inspect tools never show the old name": AC6.1–AC6.4 replaced. US7 (removed): chat manuals to phase 2. AC5.5, AC5.6 (removed): setting and file names to phase 2. US4 and US6 Teams SDE. AC11.2 "no change" without the cleanup note. AC12.1, AC12.4, AC12.7 rewritten for the entry-only rename; AC12.8 (removed): no table layout change. Goals G1–G4 replace G1–G3 (Tanay Deo)
+- 28 Oct 2026 — Briefly split into phases (phase 1 = screens, inspect tools, logs); reverted the same day by the PM: "let's make tickets on everything - repo changes, table name changes, everything. only sde poc will work on this." Full scope restored as approved on 27 Oct, plus: AC6.5, AC6.6, AC6.7 added (Network on Vision and Edge, Console); G1 names the inspect tools; Appendix B adds the live create_build_dev branches of Assembly-Training-OCR, assembly-training, classification-training-docker, Assembly-model-evaluation, Classification-Evaluation, Craft-model-evaluation and OCR-Evaluation (covered by AC5.3, AC5.5, AC5.6, AC6.4); Owner and Stakeholders: Swayam (SDE POC) only. Approved (Tanay Deo)
 
 ## Checked, not affected
 - vision-projects, vision-variants: the module has no project or variant setting.
