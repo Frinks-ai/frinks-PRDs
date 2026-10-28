@@ -2,9 +2,10 @@
 
 **Prototype:** [Interactive workflow, Vision to Edge, Today vs After change](https://vbv-fr.github.io/image-enhancement-prototype/)
 **Product:** Vision + Edge
-**Status:** Approved
+**Status:** In review
 **Date:** 28 October 2026
 **Owner:** Tanay Deo
+**Timeline:** Not planned yet
 **Related:** FP-2436 (OCR epic), FP-2375 (Masking module epic: the same "change the image, pass it on" pattern). Filter reference: [Image Filter Guide](https://claude.ai/artifact/3S5hj7dJaBNiTWtfhefu2m) (what each filter does, with before/after pictures)
 **Code checked:** 20 October 2026 — 34 repos at their latest default-branch commit (list in Appendix B)
 
@@ -409,6 +410,7 @@ Manual checks: every coverage-sheet item maps to exactly one AC; three duplicate
 Repos checked: assembly-dataset-recommender @ 0556f06 (2026-07-21), Assembly-model-evaluation @ 7a0403a (2025-11-04), assembly-training @ 725f834 (2026-06-02), Assembly-Training-OCR @ 99d0d62 (2025-07-08), Auto-annotation @ d213b71 (2025-10-30), auto-training-backend @ 63ba9a6 (2026-08-04), Classification-Evaluation @ eda0d3b (2025-12-19), classification-training-docker @ 3f7a64e (2025-11-05), Craft-model-evaluation @ 5a95e16 (2025-07-10), frinkschat-backend @ 88e5c91 (2026-07-21), frinksedge-deployment-backend @ 009fc11 (2026-10-19), frinksedge-deployment-frontend @ 7e92de34 (2026-10-19), frinksedge-file-releases @ 7041254 (2026-07-16), frinksedge-health @ e8ef112 (2026-10-15), frinksedge-inferencing-backend @ eddd8e5 (2026-10-19), frinksedge-installer-electron @ b4a5049 (2026-10-12), frinksedge-plc-backend @ 254d08e (2026-10-15), frinksedge-report @ 5fe5390 (2026-10-15), frinksedge-report-frontend @ 9893a19 (2026-10-13), frinksedge-staging-environment @ 4993036 (2026-09-09), frinksvision-backend @ eda944f (2026-10-14), frinksvision-frontend @ 110a23c (2026-10-19), OCR-Evaluation @ c9c413c (2025-07-10), OCR-Training-Detection-ALL @ fc59f48 (2026-10-14), Python-inference-docker @ 62e22bd (2026-05-29), Recommendation-classification @ 0796dbb (2026-08-03), Recommendation-OCR @ ae1e953 (2026-04-30), release-manager-backend @ b8016f7 (2026-09-22), Segmentation-Data-Recommender @ d6f679e (2026-07-22), Segmentation-Evaluation @ 44bb8c6 (2025-08-28), Segmentation-Training @ f749aab (2025-08-22), train-utils @ d3e6378 (2026-09-15), vip-inference-python @ 93451d1 (2026-10-15), workflow-dataprocessor @ d2cd9bd (2026-08-11)
 
 ## Changelog
+- 28 Oct 2026 — Back to In review: the PM has changes to make; no AC changes yet. Timeline line added (Not planned yet) (Tanay Deo)
 - 28 Oct 2026 — Approved; no AC changes (Tanay Deo)
 - 28 Oct 2026 — Values matched to the reference tool: kernel sizes odd 1–25 (Local Median Normalization 1–99), default 3 × 3; Stretch takes Low and High; Sharpen takes Gain and Smoothness; Local Median Normalization halves the difference; Auto threshold switch on Binarize and Greyscale Distance (AC2.3, AC2.4, new AC2.12); Bot Hat renamed Bottom Hat (AC2.1); card text in filter-descriptions.md (Tanay Deo)
 - 28 Oct 2026 — Filter check against the reference tool: Edge Magnitude is the lightest minus the darkest grey in its box and takes a kernel size (AC2.3, AC2.8); Gradient Horizontal now lights up horizontal edges and Gradient Vertical upright ones; Local Median is a true median; card text and pictures corrected in filter-descriptions.md (AC2.10) (Tanay Deo)
