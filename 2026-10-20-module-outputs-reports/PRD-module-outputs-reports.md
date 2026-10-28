@@ -2,9 +2,10 @@
 
 **Prototype:** [Interactive workflow: Reports & Analytics, Today vs After change](https://vbv-fr.github.io/module-outputs-prototype/)
 **Product:** Frinks Edge
-**Status:** In review
-**Date:** 20 October 2026
+**Status:** Approved
+**Date:** 28 October 2026
 **Owner:** Tanay Deo
+**Timeline:** SPRINT 26-15, 27 Oct – 10 Nov 2026 (running sprint)
 **Related:** FP-528 (open epic: Analytics & Reports menu). Earlier Reports work: FP-3715 (Raw Images column, Download popup), FP-3622 (Cycle Complete column), FP-3727 (Write to DB custom key)
 **Code checked:** 26 October 2026 — 34 repos at their latest default-branch commit (list in Appendix B)
 
@@ -373,6 +374,7 @@ For the ticket skill and developers. Paths are relative to each repo.
 Repos checked: frinksedge-report @ 5fe5390 (15 Oct 2026), frinksedge-report-frontend @ 9893a19 (13 Oct 2026), frinksedge-inferencing-backend @ 310c18e (22 Oct 2026), frinksedge-deployment-backend @ 7e2951e (26 Oct 2026), frinksedge-deployment-frontend @ 3c027014 (23 Oct 2026), frinksedge-health @ 2dbc622 (23 Oct 2026), vip-inference-python @ 14670bf (26 Oct 2026), frinksvision-backend @ 093a734 (26 Oct 2026), frinksvision-frontend @ 67e4d4a (26 Oct 2026), Python-inference-docker @ 62e22bd (29 May 2026), release-manager-backend @ b8016f7 (22 Sep 2026), and the other 23 repos in the skill's list, all up to date on 26 Oct 2026.
 
 ## Changelog
+- 28 October 2026 — Approved. PM check, no AC changes: nothing is ticked by default (AC2.1, AC11.1); only the ticked keys are saved with each cycle (AC12.1); a key ticked later shows "Not saved" on rows from before it was in use (AC4.3). Timeline added: SPRINT 26-15, 27 Oct – 10 Nov 2026 (Tanay Deo)
 - 26 October 2026 — Q1 decided: no success targets (section 8). Q3 decided: no keys are added for values that have none; Module Outputs offers every key Edge has today. Running totals are offered again: AC3.13 (removed); AC3.1–AC3.8 and AC3.10 restored; out-of-scope line removed. Edge registers the per-line angle and length keys of Parallel Lines and Edge Search shapes, listed everywhere keys are used: AC3.15, AC3.16, AC11.5 added; AC10.3, AC10.6 changed; PLC Write, Internal Action Config, Dashboard Builder added to the impact map. Duplicate pass: AC11.5 trimmed (existing rules unchanged is AC9.1); AC9.1 and non-goals say "existing" keys; summary, Key concept and US3 Today mention the per-line keys; AC3.16 notes Parallel Lines keys stay empty until the engine supports it (Tanay Deo)
 - 26 October 2026 — Only ticked keys are copied, to keep disk use down: AC12.1 changed, AC12.8 added; cycles from before a key was in use show "Not saved" (AC4.3, G2, summary changed). Changes saved while an instance is running wait for a restart, after a Warning pop-up: new US13 (AC13.1–AC13.6); AC1.5, AC2.5, AC4.1, AC10.3 changed. Keys that add up or average across cycles are no longer offered: AC3.13 added; AC3.1–AC3.8, AC3.10 and AC4.5 changed. Dimensions measured across two captures are offered under both captures: AC3.14 and AC12.7 added, AC3.11 changed, out-of-scope line removed. Segmentation in normal mode shows nothing: removed from Q3 and listed in Out of scope (Tanay Deo)
 - 26 October 2026 — Duplicate pass: AC1.5 (removed): covered by AC13.1 and AC13.6. Trimmed restated sentences: AC1.3 (layout options are AC2.9), AC1.4 (modules never listed are AC3.11), AC2.3 (Display Name on Reports and Excel is US4/US5), AC2.9 (where the layout applies is US4/US5), AC3.6 (normal mode), AC4.5 (settings show the copy, AC4.3), AC4.9 (position is AC4.1), AC5.4 (filters are AC8.5), AC7.2 (viewing is AC7.6), AC8.1 (Additional Info is AC8.3), AC9.2 (View JSON is AC8.2), AC10.3, AC10.5 (messages are AC1.6/AC2.6), AC11.2 (mechanism moved to Appendix B), AC11.4 (data untouched is AC11.1), AC12.8 (not ticked = not saved is AC12.1), AC13.2 and AC13.3. Contradictions fixed: AC4.5 "N/A" applies to "Show in same column"; AC13.4 applies to running instances; AC2.5 names the pop-up; AC12.1 points to AC12.7; release note, G2, section 2 and summary say "while in use"; stale non-goal about segmentation and bead values reworded. AC5.5 moved after AC5.4 (Tanay Deo)

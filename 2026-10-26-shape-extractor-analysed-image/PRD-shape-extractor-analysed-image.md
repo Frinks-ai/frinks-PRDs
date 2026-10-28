@@ -2,9 +2,10 @@
 
 **Prototype:** [Interactive workflow, Today vs After change](https://vbv-fr.github.io/shape-extractor-analysed-image-prototype/)
 **Product:** Frinks Edge
-**Status:** In review
-**Date:** 26 October 2026
+**Status:** Approved
+**Date:** 28 October 2026
 **Owner:** Tanay Deo
+**Timeline:** Post Diwali: the sprint after SPRINT 26-15, from 10 Nov 2026 (not yet created in Jira)
 **Related:** FP-3857 Shape Extractor coordinates against the master image are wrong in inferencing (To Do): shapes drawn by this PRD land where the engine places them, so that fix should ship first or together. PRD "Edge Instance Testing v2" (Draft): it draws test results with Analysed Image Configuration colours and adds Shape Extractor to tests, so its owner should know these rows exist. PRD "Dimensioning: distance and angle to a fixed line" (In review): dimension drawings stay on top of shapes.
 **Code checked:** 26 October 2026 — 34 repos at their latest default-branch commit (list in Appendix B)
 
@@ -207,6 +208,7 @@ For developers. Per touched part: the files that hold today's behaviour, from th
 Repos checked: frinksedge-deployment-frontend @ 857dfddd (2026-10-26), frinksedge-deployment-backend @ 5a69c77 (2026-10-26), frinksedge-inferencing-backend @ 310c18e (2026-10-22), vip-inference-python @ 14670bf (2026-10-26); the other 30 repos were synced and not read.
 
 ## Changelog
+- 28 Oct 2026 — Approved. PM check, no AC changes: one row per Shape Extractor module and none per shape (AC1.1), a single colour because the module gives no OK/NG (AC1.3), Show off by default (AC1.4), SDE + AI (Python) work with stakeholders Tanay and Pallavi (US2, US4, US5). Timeline added: post Diwali (Tanay Deo)
 Every line names the US / AC ids it touched.
 - 26 Oct 2026 — Written: US1–US6, 36 ACs, after the duplicate pass (AC1.8 folded into AC1.1; the new-upload migration AC folded into AC1.1; AC4.1 trimmed, update keeps settings is AC6.2; release note in AC5.6 now names the rollback caveat of AC6.4; AC2.3 "with it") (Tanay Deo)
 
