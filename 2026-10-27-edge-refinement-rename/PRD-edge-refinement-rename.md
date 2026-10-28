@@ -2,7 +2,7 @@
 
 **Prototype:** None — no new screens or layouts; only names and wording change (PM decision, 27 Oct 2026)
 **Product:** Vision + Edge
-**Status:** In review
+**Status:** Approved
 **Date:** 28 October 2026
 **Owner:** Swayam (SDE POC)
 **Related:** Epic FP-2454 (reused for this work, assigned to Deb). Original module build: FP-2454 with FP-2343, FP-2349, FP-2352, FP-2356 and stories FP-2344 to FP-2363. Same principle: FP-3473 (model names removed from logs and screens). Full place-by-place list: matting-exposure-audit.xlsx (shared separately).
@@ -278,6 +278,7 @@ Every line names the US / AC ids it touched.
 - 27 Oct 2026 — Approved. Owner set to Swayam (SDE) and Shreyas (AI); no AC changes (Tanay Deo)
 - 28 Oct 2026 — Briefly split into phases (phase 1 = screens, inspect tools, logs); reverted the same day by the PM: "let's make tickets on everything - repo changes, table name changes, everything. only sde poc will work on this." Full scope restored as approved on 27 Oct, plus: AC6.5, AC6.6, AC6.7 added (Network on Vision and Edge, Console); G1 names the inspect tools; Appendix B adds the live create_build_dev branches of Assembly-Training-OCR, assembly-training, classification-training-docker, Assembly-model-evaluation, Classification-Evaluation, Craft-model-evaluation and OCR-Evaluation (covered by AC5.3, AC5.5, AC5.6, AC6.4); Owner and Stakeholders: Swayam (SDE POC) only. Approved (Tanay Deo)
 - 28 Oct 2026 — Scope cut by the PM: "whatever error codes/logs are shown in the ui, they should not contain the word matting" and the Vision cloud job repos, chat manuals and staging notes dropped. US7 (removed); AC5.6 (removed); AC5.3 now covers job messages shown in Vision screens; AC5.5 Edge settings only; AC6.1, AC6.2 Vision keeps the old internal name towards the unchanged jobs; AC6.4 word search limited to Vision/Edge frontends, servers and Edge AI engine; back to In review (Tanay Deo)
+- 28 Oct 2026 — Approved (scoped-down version); no AC changes. Tickets: Epic FP-3895, Story FP-3896, assigned to Deb (Tanay Deo)
 
 ## Checked, not affected
 - vision-projects, vision-variants: the module has no project or variant setting.
