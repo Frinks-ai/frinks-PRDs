@@ -2,7 +2,7 @@
 
 **Prototype:** [Class Instances Split Prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-26-class-split/prototype/)
 **Product:** Frinks Vision
-**Status:** Draft
+**Status:** Approved
 **Date:** 26 October 2026
 **Owner:** Akshat Sharma
 **Related:** FP-1645, FP-1646 (original Training Results graphs), FP-2144 (OCR training results, To Do)
@@ -119,3 +119,4 @@ To be added by the developer. Map each case to an executional ID (E1, E2...).
 
 - 27 Oct 2026 — Renamed "Class Split" to "Class Instances Split": PRD title, E2 title, E3 title, AC2.3 heading text, S1 highlight, prototype heading. No behaviour change (Tanay)
 - 27 Oct 2026 — AC2.3 OCR heading "Character Split" → "Character Instances Split"; prototype OCR heading updated (Tanay)
+- 28 Oct 2026 — Status Draft → Approved; no executional or AC changed (Tanay)
