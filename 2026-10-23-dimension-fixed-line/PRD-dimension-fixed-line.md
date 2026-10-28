@@ -2,7 +2,7 @@
 
 **Prototype:** [Interactive workflow, Today vs After change](https://vbv-fr.github.io/dimension-fixed-line-prototype/)
 **Product:** Frinks Edge
-**Status:** In review
+**Status:** Approved
 **Date:** 28 October 2026
 **Owner:** Tanay Deo
 **Related:** FP-3228 Dimension Configuration (Edge), FP-3404 Canvas for Dimension Configuration, FP-3456 Capture Layout, FP-3230 Keys for Shapes and Dimensions (all Done); PRD "Module Outputs in Reports & Analytics" (In review: its setup window lists every single-capture dimension's keys, fixed-line dimensions included, with no change there)
@@ -444,6 +444,7 @@ Every line names the US / AC ids it touched.
 - 27 Oct 2026 — Round 5 (PM). The Line type dropdown (Horizontal / Vertical / Tilted) is gone: a distance's fixed line is always Angle (0°–180°), Centre x and Centre y. AC1.2 changed (three boxes, Angle first); AC1.3 changed (starts at 90° on the middle column, was Horizontal on the middle row); AC1.5, AC1.7 and AC1.8 reworded; AC1.12–AC1.15 added (0° and 180° grey out Centre x, 90° greys out Centre y; a greyed box is empty, comes back with the earlier value or the middle column/row, and is neither checked nor stored). AC2.1 and AC2.5 reworded. AC3.3 changed: an Angle from a fixed line draws nothing on the setup canvas (was the line and an arc); AC3.2 and AC15.7 reworded. AC5.1 changed (angle first: "Fixed line · 90° at x = 960 px"). AC6.2, AC7.1, AC11.6 release note, Summary, G1, G3, Key concepts and impact map reworded. Duplicate pass: AC1.3 trimmed (greying is AC1.12); AC1.9 trimmed, its toggle and colour reset moved into AC15.2 and AC15.4; AC2.1 example marked; AC7.1 trimmed; AC1.14 limited to this fixed line (a re-pick starts from AC1.3); AC1.7 reworded (a greyed centre value isn't stored). Status stays In review. (Tanay Deo)
 - 28 Oct 2026 — Round 6 (PM). Perpendicular type for a fixed line: AC1.16–AC1.21 added (dropdown below the line's boxes when Feature A is a point on a line, single- and cross-capture; starts on Perpendicular on the line; hidden for other Feature A, with a fallback when Feature A changes; Save blocked when the perpendicular never meets the line; server check). AC2.6, AC4.7, AC5.5, AC6.5, AC6.6 and AC7.6 added for Perpendicular from Previous Line on the canvas, across captures, in the table, in the engine and on the analysed image. AC1.7, AC2.3, AC4.2, AC6.1, AC7.2 and AC7.5 scoped to Perpendicular on the line or reworded. Summary, impact map and AC11.6 release note reworded. Duplicate pass: AC7.6 trimmed; AC10.1 scoped to single-capture (cross-capture is AC10.4); AC6.1, AC6.5, AC6.6 scoped to single-capture (cross-capture is AC4.2, AC4.7); AC6.2 example scoped to Perpendicular on the line; AC1.17 also covers a re-picked fixed line. Status stays In review. (Tanay Deo)
 - 28 Oct 2026 — Round 6 follow-up (PM confirmed the dropdown shows when Feature A is a point on a line). AC1.16 corrected: the Middle point of a Line, Parallel or Edge line also qualifies, as it does today. Status stays In review. (Tanay Deo)
+- 28 Oct 2026 — Status In review → Approved; no US or AC changed (Tanay Deo)
 
 ## Checked, not affected
 Every other part in the component map, grouped, each group with a one-line reason.
