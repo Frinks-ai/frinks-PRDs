@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Test Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.1"></script>
+<script>
+  // Same theme as frinksedge-deployment-frontend/tailwind.config.js
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'f-primary': '#ff4301', 'f-purple': '#6B4EFF' },
+        fontFamily: { sans: ['Outfit', 'system-ui', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  /* Layout: Edge app shell (dark rail + white work area), prototype viewer bar on top. Single light theme on purpose: it mirrors Edge. */
+  :root { --bg: #ffffff; --ink: #111827; --brand: #ff4301; --vb: 44px; color-scheme: light; }
+  body { background: var(--bg); color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+  .tab-num { font-variant-numeric: tabular-nums; }
+  .viewer-tab[aria-current="step"] { background: var(--brand); color: #fff; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 9999px; background: #e5e7eb; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 9999px; background: #6B4EFF; border: 2px solid #fff; box-shadow: 0 0 0 1px #6B4EFF; cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 9999px; background: #6B4EFF; border: 2px solid #fff; box-shadow: 0 0 0 1px #6B4EFF; cursor: pointer; }
+  .sw { position: relative; display: inline-block; width: 36px; height: 20px; border-radius: 9999px; background: #d1d5db; transition: background .15s; }
+  .sw > span { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: left .15s; }
+  .sw.on { background: var(--brand); }
+  .sw.on > span { left: 19px; }
+  .spin { width: 18px; height: 18px; border-radius: 9999px; border: 3px solid var(--brand); border-top-color: transparent; animation: spin .9s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+  button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #6B4EFF; outline-offset: 2px; }
+</style>
+
+<!-- ───────────── Viewer bar (prototype only, not part of Edge) ───────────── -->
+<div id="viewerBar" class="sticky top-0 z-[200] flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-black bg-[#111] px-4 py-2 text-sm text-gray-300">
+  <span class="mr-2 font-semibold text-white">Edge · Test review <span class="font-normal text-gray-400">prototype</span></span>
+  <nav id="vSteps" class="flex flex-wrap gap-1" aria-label="Prototype steps"></nav>
+  <div class="ml-auto flex flex-wrap items-center gap-2">
+    <span class="text-gray-400">Test images:</span>
+    <div class="inline-flex overflow-hidden rounded border border-gray-600" role="group" aria-label="Test mode">
+      <button data-act="setMode" data-mode="annot" class="px-2.5 py-1">With annotations</button>
+      <button data-act="setMode" data-mode="plain" class="px-2.5 py-1">Images only</button>
+    </div>
+    <button data-act="demoFill" class="rounded border border-gray-600 px-2.5 py-1 hover:bg-white/10">Fill expected results (demo)</button>
+    <button data-act="reset" class="rounded border border-gray-600 px-2.5 py-1 hover:bg-white/10">Reset</button>
+  </div>
+</div>
+
+<!-- ───────────── App shell ───────────── -->
+<div class="flex min-h-[calc(100vh-var(--vb))]">
+  <aside class="sticky hidden shrink-0 flex-col items-center border-r border-r-gray-300 bg-[#1e1c1c] px-2 py-6 shadow-md md:flex" style="top:var(--vb);height:calc(100vh - var(--vb));width:96px">
+    <div class="mb-10 mt-3 flex h-10 w-10 items-center justify-center rounded-md bg-f-primary text-xl font-bold text-white">F</div>
+    <ul class="mt-8 flex w-full flex-col gap-2 text-white">
+      <li class="flex justify-center rounded-md bg-white/10 py-2" title="Instances"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><path d="M29.3 16h-8l-2.6 4h-5.4L10.7 16H2.7m26.6 0v8a2.7 2.7 0 0 1-2.7 2.7H5.3A2.7 2.7 0 0 1 2.7 24v-8m26.6 0L24.7 6.8a2.7 2.7 0 0 0-2.4-1.5H9.7a2.7 2.7 0 0 0-2.4 1.5L2.7 16" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+      <li class="flex justify-center rounded-md py-2" title="Integrations"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></li>
+      <li class="flex justify-center rounded-md py-2" title="Deployments"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg></li>
+      <li class="flex justify-center rounded-md py-2" title="Health Monitoring"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></li>
+    </ul>
+  </aside>
+  <main class="relative min-w-0 flex-1 bg-white"><div id="app"></div></main>
+</div>
+<div id="modal"></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[500] -translate-x-1/2 rounded-md bg-gray-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity"></div>
+
+<script>
+/* ════════════════════════ helpers ════════════════════════ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const pct = (v) => `${Math.round(v * 100)}%`;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const r2 = (v) => Math.round(v * 100) / 100;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ICON = {
+  warn: '<svg class="h-4 w-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+  err: '<svg class="h-4 w-4 shrink-0 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>',
+  ok: '<svg class="h-4 w-4 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>',
+  shield: '<svg class="h-4 w-4 shrink-0 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
+  folder: '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fbbf24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg>',
+};
+
+/* ════════════════════════ recipe ════════════════════════ */
+const CAPS = {
+  hu: { v: 'Hinge U', c: 'Right Part', folder: 'hinge_u_right', n: 36, mods: ['pin', 'finish'], ms: 49 },
+  br: { v: 'Bracket', c: 'Weld View', folder: 'bracket_weld', n: 30, mods: ['weld'], ms: 52 },
+  hs: { v: 'Housing', c: 'Sealant', folder: 'housing_sealant', n: 30, mods: ['bead'], ms: 61 },
+  hl: { v: 'Housing', c: 'Label', folder: 'housing_label', n: 30, mods: ['ocr', 'qr'], ms: 54 },
+};
+const CAP_IDS = Object.keys(CAPS);
+const cn = (id) => `${CAPS[id].v} · ${CAPS[id].c}`;
+const MODS = {
+  pin: { cap: 'hu', name: 'Pin detection', type: 'det', typeName: 'Object detection', classes: ['pin', 'burr'] },
+  finish: { cap: 'hu', name: 'Surface finish', type: 'cls', typeName: 'Image classification', classes: ['clean', 'scratch', 'dent'] },
+  weld: { cap: 'br', name: 'Weld check', type: 'seg', typeName: 'Segmentation', classes: ['weld', 'spatter', 'porosity'] },
+  bead: { cap: 'hs', name: 'Sealant bead', type: 'bead', typeName: 'Bead inspection' },
+  ocr: { cap: 'hl', name: 'Label text', type: 'ocr', typeName: 'OCR (Read & Match)' },
+  qr: { cap: 'hl', name: 'Label QR code', type: 'code', typeName: 'Code reader' },
+};
+const MOD_IDS = Object.keys(MODS);
+// Ground truths set in Edit Module Configurations: what an OK part shows
+const GT = {
+  pin: { pin: 4, burr: 0 },
+  finish: 'clean',
+  weld: { weld: 1, spatter: 0, porosity: 0 },
+  bead: 3, // NG from a gap of this many calipers
+  ocr: 'HX-2048-B',
+  qr: 'Readable',
+};
+// Thresholds in EMC when the test ran
+const EMC = {
+  pin: { pin: 0.45, burr: 0.45 },
+  finish: { clean: 0.60, scratch: 0.55, dent: 0.55 },
+  weld: { weld: 0.50, spatter: 0.40, porosity: 0.40 },
+  bead: { mask: 0.50 },
+  ocr: { text: 0.70 },
+  qr: {},
+};
+// Housing · Sealant images without an annotation file (annotated mode only)
+const NO_ANNOT = { hs: [1, 2, 4, 5] };
+
+/* ════════════════════════ sample test images ════════════════════════ */
+// Each image keeps what the model found with its confidence (so its result can be worked out at any threshold)
+// and what was really there (t), which annotation files or a reviewer would give.
+const PINS = [[110, 110], [290, 110], [110, 290], [290, 290]];
+function gen() {
+  const out = {};
+  { // Hinge U · Right Part: pins + burr (detection), surface finish (classification)
+    const r = rng(11), arr = [];
+    const probs = (top, c, second) => { const o = { clean: 0, scratch: 0, dent: 0 }; o[top] = c; const others = Object.keys(o).filter((k) => k !== top); const s = second || others[0]; o[s] = r2((1 - c) * 0.75); o[others.find((k) => k !== s)] = r2(1 - c - o[s]); return o; };
+    for (let i = 0; i < 36; i++) {
+      const pinC = PINS.map(() => r2(0.72 + 0.25 * r()));
+      const noise = r() < 0.45 ? [{ cls: 'burr', conf: r2(0.04 + 0.16 * r()), pos: [120 + r() * 160, 120 + r() * 160] }] : [];
+      const burrPos = [80 + r() * 240, r() < 0.5 ? 72 + r() * 10 : 318 + r() * 10];
+      arr.push({
+        pin: { dets: [...pinC.map((c, j) => ({ cls: 'pin', conf: c, pos: PINS[j] })), ...noise], t: { pin: 4, burr: 0 }, vis: { burrPos } },
+        finish: { p: probs('clean', r2(0.76 + 0.22 * r())), t: 'clean', vis: {} },
+      });
+    }
+    const P = (i) => arr[i].pin, F = (i) => arr[i].finish;
+    const burr = (i, v, vis = {}) => { P(i).dets.push({ cls: 'burr', conf: v, pos: P(i).vis.burrPos }); P(i).t.burr = 1; Object.assign(P(i).vis, vis); };
+    [[3, 0.82], [9, 0.67], [15, 0.91], [22, 0.74], [30, 0.6]].forEach(([i, v]) => burr(i, v));
+    [[6, 0.38], [18, 0.41], [27, 0.36]].forEach(([i, v]) => burr(i, v, { small: true }));
+    P(33).dets = P(33).dets.filter((d) => d.cls === 'pin'); P(33).t.burr = 1; P(33).vis.faint = true;
+    [[11, 0.41], [25, 0.39]].forEach(([i, v]) => { P(i).dets[2].conf = v; P(i).vis.weak = true; });
+    P(13).dets = P(13).dets.filter((d) => d.cls === 'pin').concat([{ cls: 'burr', conf: 0.29, pos: [200, 160] }]);
+    P(20).dets.push({ cls: 'burr', conf: 0.88, pos: [212, 172] }); P(20).vis.glare = [212, 172];
+    P(28).dets.splice(1, 1); P(28).t.pin = 3; P(28).vis.missing = true;
+    [[4, 'scratch', 0.86], [10, 'scratch', 0.78], [17, 'dent', 0.83], [24, 'dent', 0.71]].forEach(([i, k, c]) => Object.assign(F(i), { p: probs(k, c), t: k, vis: { kind: k } }));
+    [[8, 0.63], [29, 0.65]].forEach(([i, c]) => Object.assign(F(i), { p: probs('clean', c, 'scratch'), t: 'scratch', vis: { kind: 'scratch', faint: true } }));
+    [[14, 0.55], [31, 0.52]].forEach(([i, c]) => Object.assign(F(i), { p: probs('clean', c) }));
+    Object.assign(F(21), { p: { clean: 0.14, scratch: 0.81, dent: 0.05 }, vis: { shine: true } });
+    out.hu = arr.map((m) => ({ m }));
+  }
+  { // Bracket · Weld View: weld seam (segmentation)
+    const r = rng(23), arr = [];
+    for (let i = 0; i < 30; i++) {
+      const dy = (r() - 0.5) * 30, at = [110 + r() * 180, 200 + dy], glare = [140 + r() * 120, 198 + dy];
+      const dets = [{ cls: 'weld', conf: r2(0.78 + 0.2 * r()) }];
+      if (r() < 0.4) dets.push({ cls: 'spatter', conf: r2(0.04 + 0.18 * r()), pos: [120 + r() * 160, 165 + dy] });
+      if (r() < 0.3) dets.push({ cls: 'porosity', conf: r2(0.04 + 0.15 * r()), pos: [120 + r() * 160, 200 + dy] });
+      arr.push({ weld: { dets, t: { weld: 1, spatter: 0, porosity: 0 }, vis: { dy, at, glare } } });
+    }
+    const W = (i) => arr[i].weld;
+    const defect = (i, cls, v, vis = {}) => { W(i).dets.push({ cls, conf: v, pos: W(i).vis.at }); W(i).t[cls] = 1; Object.assign(W(i).vis, { cause: cls }, vis); };
+    [[2, 0.71], [11, 0.88], [23, 0.57]].forEach(([i, v]) => defect(i, 'spatter', v));
+    defect(15, 'spatter', 0.34, { small: true });
+    W(26).dets = W(26).dets.filter((d) => d.cls !== 'spatter').concat([{ cls: 'spatter', conf: 0.31, pos: [160, 168 + W(26).vis.dy] }]);
+    [[5, 0.77], [27, 0.64]].forEach(([i, v]) => defect(i, 'porosity', v));
+    [[12, 0.33], [21, 0.37]].forEach(([i, v]) => defect(i, 'porosity', v, { small: true }));
+    W(9).dets = W(9).dets.filter((d) => d.cls === 'weld'); W(9).t.porosity = 1; Object.assign(W(9).vis, { cause: 'porosity', tiny: true });
+    W(17).dets.push({ cls: 'porosity', conf: 0.86, pos: W(17).vis.glare }); W(17).vis.glareOn = true;
+    W(7).dets[0].conf = 0.46; W(7).vis.thin = true;
+    W(19).dets = W(19).dets.filter((d) => d.cls !== 'weld'); W(19).t.weld = 0; W(19).vis.cause = 'missing';
+    out.br = arr.map((m) => ({ m }));
+  }
+  { // Housing · Sealant: bead, 40 calipers, each with the model's bead confidence
+    const r = rng(37), arr = [];
+    for (let i = 0; i < 30; i++) {
+      const cal = Array.from({ length: 40 }, () => (r() < 0.08 ? r2(0.52 + 0.18 * r()) : r2(0.78 + 0.19 * r())));
+      arr.push({ bead: { cal, t: 0, vis: { kind: Array(40).fill('full'), s0: 4 + Math.floor(r() * 30) } } });
+    }
+    const B = (i) => arr[i].bead;
+    const run = (i, len, fn, kind) => { const b = B(i), rr = rng(900 + i); for (let k = 0; k < len; k++) { b.cal[b.vis.s0 + k] = fn(k, rr); b.vis.kind[b.vis.s0 + k] = kind; } };
+    [[3, 5], [14, 4], [25, 7]].forEach(([i, g]) => { run(i, g, (k, rr) => r2(0.03 + 0.12 * rr()), 'gap'); B(i).t = g; });
+    [[8, 0.55], [20, 0.58]].forEach(([i, v]) => { run(i, 3, (k) => (k === 1 ? v : 0.08 + k * 0.01), 'gap'); B(i).vis.kind[B(i).vis.s0 + 1] = 'gloss'; B(i).t = 3; });
+    [[6, 3], [17, 4], [23, 3]].forEach(([i, g]) => run(i, g, (k, rr) => r2(0.36 + 0.1 * rr()), 'faint'));
+    out.hs = arr.map((m) => ({ m }));
+  }
+  { // Housing · Label: printed text (OCR) + QR code
+    const r = rng(51), arr = [], gt = GT.ocr;
+    const read = (txt) => txt.split('').map((ch) => ({ ch, conf: r2(0.8 + 0.19 * r()) }));
+    for (let i = 0; i < 30; i++) arr.push({ ocr: { chars: read(gt), t: gt, printed: gt, vis: {} }, qr: { readable: true, t: 'Readable', vis: {} } });
+    const O = (i) => arr[i].ocr;
+    [[2, 'HX-2O48-B'], [13, 'HX-2048-8'], [24, 'HX-204B-B']].forEach(([i, t]) => Object.assign(O(i), { chars: read(t), t, printed: t }));
+    Object.assign(O(19), { t: 'HX-2O48-B', printed: 'HX-2O48-B' }); O(19).chars[4].conf = 0.73;
+    [[5, 2, 0.62], [16, 6, 0.66], [28, 8, 0.68]].forEach(([i, k, v]) => { O(i).chars[k].conf = v; });
+    O(11).chars[4] = { ch: 'O', conf: 0.9 };
+    Object.assign(arr[24].qr, { readable: false, t: 'Not readable', vis: { damaged: true } });
+    out.hl = arr.map((m) => ({ m }));
+  }
+  for (const c of CAP_IDS) out[c].forEach((img, i) => { img.i = i; img.file = `${CAPS[c].folder}/IMG_${String(i + 1).padStart(4, '0')}.png`; });
+  return out;
+}
+const IMGS = gen();
+const short = (i) => `IMG_${String(i + 1).padStart(4, '0')}`;
+
+/* ════════════════════════ results and OK / NG ════════════════════════ */
+function longestGap(cal, t) { let best = 0, cur = 0; for (const c of cal) { cur = c < t ? cur + 1 : 0; best = Math.max(best, cur); } return best; }
+// What the module reports at thresholds T
+function outputOf(id, d, T) {
+  const m = MODS[id];
+  switch (m.type) {
+    case 'det': case 'seg': return Object.fromEntries(m.classes.map((c) => [c, d.dets.filter((x) => x.cls === c && x.conf >= T[c]).length]));
+    case 'cls': { const top = m.classes.reduce((a, b) => (d.p[a] >= d.p[b] ? a : b)); return d.p[top] >= T[top] ? top : 'no class'; }
+    case 'ocr': return d.chars.filter((x) => x.conf >= T.text).map((x) => x.ch).join('');
+    case 'bead': return longestGap(d.cal, T.mask);
+    default: return d.readable ? 'Readable' : 'Not readable';
+  }
+}
+// OK / NG of a result, judged against the EMC ground truth
+function verdictOf(id, o) {
+  const m = MODS[id];
+  switch (m.type) {
+    case 'det': case 'seg': return m.classes.every((c) => o[c] === GT[id][c]) ? 'OK' : 'NG';
+    case 'bead': return o < GT.bead ? 'OK' : 'NG';
+    default: return o === GT[id] ? 'OK' : 'NG';
+  }
+}
+const sameOut = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function fmtOut(id, o) {
+  const m = MODS[id];
+  switch (m.type) {
+    case 'det': case 'seg': return m.classes.map((c) => `${c} ${o[c]}`).join(' · ');
+    case 'ocr': return o ? `“${o}”` : 'nothing read';
+    case 'bead': return o ? `gap of ${o} caliper${o > 1 ? 's' : ''}` : 'no gap';
+    default: return o;
+  }
+}
+function gtText(id) {
+  const m = MODS[id];
+  if (m.type === 'det' || m.type === 'seg') return m.classes.map((c) => `${c} ${GT[id][c]}`).join(' · ');
+  if (m.type === 'bead') return `NG from a gap of ${GT.bead} calipers`;
+  return GT[id];
+}
+
+/* ─── expected results ─── */
+// Saved by the user, or read from annotation files
+function expOf(cap, i, id) {
+  const s = (S.exp[cap] || {})[i];
+  if (s) return s[id];
+  if (S.mode === 'annot' && !(NO_ANNOT[cap] || []).includes(i)) return IMGS[cap][i].m[id].t;
+  return null;
+}
+// Images only: the user's OK / NG mark for the whole image
+const plain = () => S.mode === 'plain';
+const markOf = (cap, i) => (S.mark[cap] || {})[i] || null;
+const isSaved = (cap, i) => (plain() ? markOf(cap, i) !== null : expOf(cap, i, CAPS[cap].mods[0]) !== null);
+const savedIdx = (cap) => IMGS[cap].map((_, i) => i).filter((i) => isSaved(cap, i));
+const totalImgs = () => CAP_IDS.reduce((s, c) => s + CAPS[c].n, 0);
+const totalSaved = () => CAP_IDS.reduce((s, c) => s + savedIdx(c).length, 0);
+const imgV = (vs) => (vs.includes('NG') ? 'NG' : 'OK');
+const modelV = (cap, i, Tall) => imgV(CAPS[cap].mods.map((id) => verdictOf(id, outputOf(id, IMGS[cap][i].m[id], Tall[id]))));
+const trueV = (cap, i) => imgV(CAPS[cap].mods.map((id) => verdictOf(id, IMGS[cap][i].m[id].t)));
+
+// match: same result · okng: right OK/NG, different result · wrong: wrong OK/NG
+function modState(id, d, exp, T) {
+  const o = outputOf(id, d, T);
+  if (sameOut(o, exp)) return 'match';
+  return verdictOf(id, o) === verdictOf(id, exp) ? 'okng' : 'wrong';
+}
+function imgState(cap, i, Tall, expMap) {
+  // Images only: the model's OK / NG against the user's mark (expMap is the mark being edited)
+  if (plain()) return modelV(cap, i, Tall) === (expMap || markOf(cap, i)) ? 'match' : 'wrong';
+  const mods = CAPS[cap].mods, d = IMGS[cap][i].m;
+  const ex = (id) => (expMap ? expMap[id] : expOf(cap, i, id));
+  const st = mods.map((id) => modState(id, d[id], ex(id), Tall[id]));
+  if (st.every((s) => s === 'match')) return 'match';
+  const mv = imgV(mods.map((id) => verdictOf(id, outputOf(id, d[id], Tall[id])))), ev = imgV(mods.map((id) => verdictOf(id, ex(id))));
+  return mv === ev ? 'okng' : 'wrong';
+}
+function imgScore(Tall) {
+  let n = 0, right = 0;
+  for (const c of CAP_IDS) for (const i of savedIdx(c)) { n++; if (imgState(c, i, Tall) !== 'wrong') right++; }
+  return { n, right };
+}
+function modScore(id, Tm) {
+  const cap = MODS[id].cap; let n = 0, right = 0, match = 0;
+  for (const i of savedIdx(cap)) {
+    const s = modState(id, IMGS[cap][i].m[id], expOf(cap, i, id), Tm);
+    n++; if (s !== 'wrong') right++; if (s === 'match') match++;
+  }
+  return { n, right, match };
+}
+
+/* ─── thresholds ─── */
+function knobs(id) {
+  const m = MODS[id], conf = { min: 0.05, max: 0.95, step: 0.01 };
+  if (m.type === 'det' || m.type === 'seg' || m.type === 'cls') return m.classes.map((c) => ({ ...conf, key: c, label: c }));
+  if (m.type === 'ocr') return [{ ...conf, key: 'text', label: 'Character confidence' }];
+  if (m.type === 'bead') return [{ ...conf, key: 'mask', label: 'Bead confidence' }];
+  return [];
+}
+// Can any threshold give the expected result (or at least the expected OK/NG) on this image?
+const fixCache = new Map();
+function canFix(id, d, exp, cap, i) {
+  const key = `${cap}|${i}|${id}|${JSON.stringify(exp)}`;
+  if (fixCache.has(key)) return fixCache.get(key);
+  const ks = knobs(id), want = verdictOf(id, exp), m = MODS[id];
+  // OK / NG only counts as fixed for the right reason: classes expected to match the ground truth must still be found right
+  const fairNG = (o) => !(m.type === 'det' || m.type === 'seg') || m.classes.every((c) => exp[c] !== GT[id][c] || o[c] === exp[c]);
+  const cands = (k) => {
+    const v = new Set([k.min, k.max]);
+    const add = (c) => [c, c + 0.01].forEach((x) => { x = r2(x); if (x >= k.min && x <= k.max) v.add(x); });
+    const t = MODS[id].type;
+    if (t === 'det' || t === 'seg') d.dets.filter((x) => x.cls === k.key).forEach((x) => add(x.conf));
+    if (t === 'cls') add(d.p[k.key]);
+    if (t === 'ocr') d.chars.forEach((x) => add(x.conf));
+    if (t === 'bead') d.cal.forEach(add);
+    return [...v];
+  };
+  const res = { output: false, verdict: false };
+  const walk = (j, T) => {
+    if (res.output) return;
+    if (j === ks.length) { const o = outputOf(id, d, T); if (sameOut(o, exp)) res.output = res.verdict = true; else if (verdictOf(id, o) === want && fairNG(o)) res.verdict = true; return; }
+    for (const v of cands(ks[j])) walk(j + 1, { ...T, [ks[j].key]: v });
+  };
+  walk(0, {});
+  fixCache.set(key, res);
+  return res;
+}
+// Best values on the saved images: most right OK/NG, then most exact results, then closest to EMC
+let bestCache = { ver: -1, T: null };
+// Images only: one value at a time, keeping whatever gives the most marked images the right OK / NG
+function bestPlain() {
+  const T = clone(EMC);
+  const right = (cap) => savedIdx(cap).filter((i) => imgState(cap, i, T) === 'match').length;
+  const dist = (id) => knobs(id).reduce((a, k) => a + Math.abs(T[id][k.key] - EMC[id][k.key]), 0);
+  for (let pass = 0; pass < 3; pass++) for (const id of MOD_IDS) {
+    const cap = MODS[id].cap;
+    if (!savedIdx(cap).length) continue;
+    for (const k of knobs(id)) {
+      let bv = T[id][k.key], bs = right(cap), bd = dist(id);
+      for (let v = k.min; v <= k.max + 1e-9; v += k.step) {
+        T[id][k.key] = r2(v);
+        const s = right(cap), dd = dist(id);
+        if (s > bs || (s === bs && dd < bd)) { bv = r2(v); bs = s; bd = dd; }
+      }
+      T[id][k.key] = bv;
+    }
+  }
+  return T;
+}
+function bestAll() {
+  if (bestCache.ver === S.ver) return bestCache.T;
+  if (plain()) { bestCache = { ver: S.ver, T: bestPlain() }; return bestCache.T; }
+  const T = {};
+  for (const id of MOD_IDS) {
+    const ks = knobs(id);
+    if (!ks.length || !savedIdx(MODS[id].cap).length) { T[id] = clone(EMC[id]); continue; }
+    const score = (Tm) => { const s = modScore(id, Tm); return s.right * 1000 + s.match; };
+    const dist = (Tm) => ks.reduce((a, k) => a + Math.abs(Tm[k.key] - EMC[id][k.key]), 0);
+    let best = clone(EMC[id]), bs = score(best);
+    const take = (Tm) => { const s = score(Tm); if (s > bs || (s === bs && dist(Tm) < dist(best))) { best = { ...Tm }; bs = s; } };
+    const vals = (k, fine) => { const st = fine ? k.step : 0.05, n = Math.round((k.max - k.min) / st); return Array.from({ length: n + 1 }, (_, j) => r2(k.min + j * st)); };
+    const walk = (j, Tm) => { if (j === ks.length) return take(Tm); for (const v of vals(ks[j])) walk(j + 1, { ...Tm, [ks[j].key]: v }); };
+    walk(0, clone(EMC[id]));
+    for (let pass = 0; pass < 2; pass++) for (const k of ks) for (const v of vals(k, true)) take({ ...best, [k.key]: v });
+    T[id] = best;
+  }
+  bestCache = { ver: S.ver, T };
+  return T;
+}
+function noFixImgs() {
+  const out = [];
+  // Images only: marked images that are still wrong at the best values
+  if (plain()) { const B = bestAll(); for (const c of CAP_IDS) for (const i of savedIdx(c)) if (imgState(c, i, B) === 'wrong') out.push([c, i]); return out; }
+  for (const c of CAP_IDS) for (const i of savedIdx(c)) if (CAPS[c].mods.some((id) => !canFix(id, IMGS[c][i].m[id], expOf(c, i, id), c, i).verdict)) out.push([c, i]);
+  return out;
+}
+const changedKnobs = () => MOD_IDS.flatMap((id) => knobs(id).filter((k) => S.thr[id][k.key] !== EMC[id][k.key]).map((k) => ({ id, k, a: EMC[id][k.key], b: S.thr[id][k.key] })));
+
+/* ════════════════════════ drawing the test images ════════════════════════ */
+const DEFS = `<defs>
+  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cfd4da"/><stop offset=".5" stop-color="#b3b9c1"/><stop offset="1" stop-color="#9aa1aa"/></linearGradient>
+  <linearGradient id="dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6370"/><stop offset="1" stop-color="#3b414b"/></linearGradient>
+  <radialGradient id="dent"><stop offset="0" stop-color="#4b5563" stop-opacity=".75"/><stop offset="1" stop-color="#4b5563" stop-opacity="0"/></radialGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>`;
+const OKC = '#22c55e', NGC = '#ef4444';
+const jag = (cx, cy, s, r) => Array.from({ length: 9 }, (_, k) => { const a = (k / 9) * Math.PI * 2, rr = s * (0.55 + r() * 0.7); return `${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`; }).join(' ');
+// Found items: classes the ground truth expects are drawn green, the rest (defects) red
+const itemColor = (id, cls) => (GT[id][cls] > 0 ? OKC : NGC);
+
+function drawHU(img, i, show, T) {
+  const r = rng(100 + i), rot = (r() - 0.5) * 6, dx = (r() - 0.5) * 12, dy = (r() - 0.5) * 12;
+  const p = img.m.pin, f = img.m.finish;
+  let s = `<rect width="400" height="400" fill="#2b2f36"/><g transform="translate(${dx.toFixed(1)} ${dy.toFixed(1)}) rotate(${rot.toFixed(1)} 200 200)">`;
+  s += '<rect x="60" y="60" width="280" height="280" rx="16" fill="url(#metal)" stroke="#6b7280" stroke-width="2"/>';
+  PINS.forEach(([x, y], j) => {
+    if (p.vis.missing && j === 1) { s += `<circle cx="${x}" cy="${y}" r="13" fill="#1f2937" stroke="#9ca3af" stroke-width="2"/>`; return; }
+    s += `<g opacity="${p.vis.weak && j === 2 ? 0.5 : 1}"><circle cx="${x}" cy="${y}" r="13" fill="#4b5563"/><circle cx="${x - 4}" cy="${y - 4}" r="4.5" fill="#d1d5db" opacity=".7"/></g>`;
+  });
+  if (p.t.burr) { const [bx, by] = p.vis.burrPos; s += `<polygon points="${jag(bx, by, p.vis.faint ? 4 : p.vis.small ? 6 : 9, r)}" fill="#92400e" opacity="${p.vis.faint ? 0.55 : 0.9}"/>`; }
+  if (p.vis.glare) s += `<ellipse cx="${p.vis.glare[0]}" cy="${p.vis.glare[1]}" rx="22" ry="7" fill="#fff" opacity=".7" filter="url(#blur)" transform="rotate(-25 ${p.vis.glare[0]} ${p.vis.glare[1]})"/>`;
+  if (f.vis.kind === 'scratch') s += `<path d="M150 150 L 258 236" stroke="#f3f4f6" stroke-width="${f.vis.faint ? 1.5 : 2.5}" opacity="${f.vis.faint ? 0.45 : 0.95}" stroke-linecap="round"/>`;
+  if (f.vis.kind === 'dent') s += '<ellipse cx="205" cy="205" rx="30" ry="20" fill="url(#dent)"/>';
+  if (f.vis.shine) s += '<rect x="120" y="185" width="170" height="10" fill="#fff" opacity=".35" filter="url(#blur)" transform="rotate(-12 200 190)"/>';
+  if (show) {
+    const fv = verdictOf('finish', outputOf('finish', f, T.finish));
+    s += `<rect x="72" y="72" width="256" height="256" rx="8" fill="none" stroke="${fv === 'OK' ? OKC : NGC}" stroke-width="2" stroke-dasharray="7 5"/>`;
+    p.dets.filter((d) => d.conf >= T.pin[d.cls]).forEach((d) => { s += `<rect x="${d.pos[0] - 18}" y="${d.pos[1] - 18}" width="36" height="36" fill="none" stroke="${itemColor('pin', d.cls)}" stroke-width="2.5"/>`; });
+  }
+  return s + '</g>';
+}
+function drawBR(img, i, show, T) {
+  const w = img.m.weld, { dy, at } = w.vis, r = rng(200 + i), cause = w.vis.cause;
+  const seam = `M50 ${200 + dy} C 120 ${185 + dy}, 180 ${215 + dy}, 250 ${198 + dy} S 340 ${205 + dy}, 350 ${200 + dy}`;
+  const dash = cause === 'missing' ? ' pathLength="100" stroke-dasharray="40 22 100"' : '';
+  let s = `<rect width="400" height="400" fill="#2b2f36"/><rect x="36" y="${88 + dy}" width="328" height="224" rx="10" fill="url(#metal)" stroke="#6b7280" stroke-width="2"/>`;
+  s += `<path d="${seam}" fill="none" stroke="#7b828d" stroke-width="${w.vis.thin ? 12 : 22}" stroke-linecap="round"${dash}/>`;
+  s += `<path d="${seam}" fill="none" stroke="#c5cbd3" stroke-width="${w.vis.thin ? 4 : 8}" stroke-dasharray="3 5" stroke-linecap="round" opacity=".7"${dash}/>`;
+  if (cause === 'spatter') { const n = w.vis.small ? 3 : 7; for (let k = 0; k < n; k++) s += `<circle cx="${(at[0] + (r() - 0.5) * 50).toFixed(1)}" cy="${(at[1] + (r() < 0.5 ? -1 : 1) * (16 + r() * 18)).toFixed(1)}" r="${(w.vis.small ? 2 : 2.5 + r() * 2).toFixed(1)}" fill="#3f2a1d"/>`; }
+  if (cause === 'porosity') { const n = w.vis.tiny ? 1 : w.vis.small ? 2 : 4; for (let k = 0; k < n; k++) s += `<circle cx="${(at[0] + (k - n / 2) * 11).toFixed(1)}" cy="${(at[1] + (r() - 0.5) * 6).toFixed(1)}" r="${w.vis.tiny ? 1.6 : w.vis.small ? 2.8 : (3.5 + r() * 1.5).toFixed(1)}" fill="#111827"/>`; }
+  if (w.vis.glareOn) s += `<ellipse cx="${w.vis.glare[0]}" cy="${w.vis.glare[1]}" rx="16" ry="6" fill="#fff" opacity=".8" filter="url(#blur)"/>`;
+  if (show) w.dets.filter((d) => d.conf >= T.weld[d.cls]).forEach((d) => {
+    if (d.cls === 'weld') s += `<path d="${seam}" fill="none" stroke="${OKC}" stroke-width="32" stroke-linecap="round" opacity=".22"${dash}/>`;
+    else s += `<circle cx="${d.pos[0].toFixed(1)}" cy="${d.pos[1].toFixed(1)}" r="${d.cls === 'spatter' ? 32 : 20}" fill="none" stroke="${NGC}" stroke-width="2.5"/>`;
+  });
+  return s;
+}
+// A point along the bead's rounded-rectangle path, t in 0–100
+function beadPt(t) {
+  const segs = [['l', 110, 70, 290, 70], ['a', 290, 110, -90, 0], ['l', 330, 110, 330, 290], ['a', 290, 290, 0, 90], ['l', 290, 330, 110, 330], ['a', 110, 290, 90, 180], ['l', 70, 290, 70, 110], ['a', 110, 110, 180, 270]];
+  const len = (g) => (g[0] === 'l' ? Math.hypot(g[3] - g[1], g[4] - g[2]) : (Math.PI * 40) / 2);
+  let d = ((t % 100) / 100) * segs.reduce((s, g) => s + len(g), 0);
+  for (const g of segs) {
+    const L = len(g);
+    if (d <= L) { const u = d / L; if (g[0] === 'l') return [g[1] + (g[3] - g[1]) * u, g[2] + (g[4] - g[2]) * u]; const a = ((g[3] + (g[4] - g[3]) * u) * Math.PI) / 180; return [g[1] + 40 * Math.cos(a), g[2] + 40 * Math.sin(a)]; }
+    d -= L;
+  }
+  return [110, 70];
+}
+function drawHS(img, i, show, T) {
+  const b = img.m.bead, path = 'M110 70 H290 A40 40 0 0 1 330 110 V290 A40 40 0 0 1 290 330 H110 A40 40 0 0 1 70 290 V110 A40 40 0 0 1 110 70 Z';
+  let s = `<rect width="400" height="400" fill="#2b2f36"/><rect x="28" y="28" width="344" height="344" rx="34" fill="url(#dark)"/><path d="${path}" fill="none" stroke="#2f343c" stroke-width="26"/>`;
+  b.vis.kind.forEach((k, j) => {
+    const seg = `pathLength="100" stroke-dasharray="0 ${j * 2.5} 2.6 100"`;
+    if (k === 'full') s += `<path d="${path}" ${seg} fill="none" stroke="#dc2626" stroke-width="12"/>`;
+    if (k === 'faint') s += `<path d="${path}" ${seg} fill="none" stroke="#dc2626" stroke-width="10" opacity=".38"/>`;
+    if (k === 'gloss') s += `<path d="${path}" ${seg} fill="none" stroke="#e5e7eb" stroke-width="5" opacity=".7"/>`;
+  });
+  if (show) {
+    s += `<path d="${path}" fill="none" stroke="${OKC}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    b.cal.forEach((c, j) => { if (c < T.bead.mask) { const [x, y] = beadPt(j * 2.5 + 1.25); s += `<rect x="${(x - 7).toFixed(1)}" y="${(y - 7).toFixed(1)}" width="14" height="14" fill="none" stroke="${NGC}" stroke-width="2"/>`; } });
+  }
+  return s;
+}
+function drawHL(img, i, show, T) {
+  const o = img.m.ocr, q = img.m.qr, r = rng(400 + i);
+  let s = '<rect width="400" height="400" fill="#2b2f36"/><rect x="24" y="24" width="352" height="352" rx="18" fill="url(#metal)"/>';
+  s += '<rect x="56" y="122" width="288" height="156" rx="6" fill="#f9fafb" stroke="#d1d5db"/>';
+  s += `<text x="74" y="196" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#111827" letter-spacing="1.5">${esc(o.printed)}</text>`;
+  s += '<text x="74" y="226" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" fill="#4b5563">LOT 26-10 · A</text>';
+  const qx = 270, qy = 168, cell = 7;
+  s += `<rect x="${qx}" y="${qy}" width="${cell * 8}" height="${cell * 8}" fill="#fff"/>`;
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const finder = (x < 3 && y < 3) || (x > 4 && y < 3) || (x < 3 && y > 4);
+    if (finder ? !(x % 4 === 1 && y % 4 === 1) : r() < 0.45) s += `<rect x="${qx + x * cell}" y="${qy + y * cell}" width="${cell}" height="${cell}" fill="#111"/>`;
+  }
+  if (q.vis.damaged) s += `<ellipse cx="${qx + 34}" cy="${qy + 30}" rx="20" ry="14" fill="#e5e7eb" opacity=".95"/>`;
+  if (show) {
+    const ov = verdictOf('ocr', outputOf('ocr', o, T.ocr)), qv = verdictOf('qr', outputOf('qr', q, T.qr));
+    s += `<rect x="68" y="166" width="190" height="40" fill="none" stroke="${ov === 'OK' ? OKC : NGC}" stroke-width="2.5"/>`;
+    s += `<rect x="${qx - 5}" y="${qy - 5}" width="${cell * 8 + 10}" height="${cell * 8 + 10}" fill="none" stroke="${qv === 'OK' ? OKC : NGC}" stroke-width="2.5"/>`;
+  }
+  return s;
+}
+const DRAW = { hu: drawHU, br: drawBR, hs: drawHS, hl: drawHL };
+const imgSvg = (cap, i, show, T) => `<svg viewBox="0 0 400 400" class="block h-full w-full" role="img" aria-label="${IMGS[cap][i].file}">${DEFS}${DRAW[cap](IMGS[cap][i], i, show, T)}</svg>`;
+
+/* ════════════════════════ state ════════════════════════ */
+const KEY = 'edge-test-review-v2';
+const fresh = () => ({ view: 'run', tab: 'results', mode: 'plain', exp: {}, mark: {}, dl: { which: 'ng', caps: { hu: true, br: true, hs: true, hl: true } }, thr: clone(EMC), cap: 'hu', idx: 0, filter: 'all', show: true, applied: false, ver: 0, dr: { f: { hu: true, br: true, hs: true, hl: true }, up: null } });
+let S = fresh();
+let D = null; // expected result being edited for the current image
+try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) S = { ...S, ...saved, dr: { ...S.dr, up: null } }; } catch (e) { /* storage unavailable */ }
+const save = () => { try { const { dr, ...keep } = S; localStorage.setItem(KEY, JSON.stringify(keep)); } catch (e) { /* storage unavailable */ } };
+
+/* ════════════════════════ shared bits ════════════════════════ */
+const pillOK = (v) => `<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${v === 'OK' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700'}">${v}</span>`;
+const thO = (label) => `<th class="px-4 py-3 text-left text-sm font-medium text-white">${label}</th>`;
+const btnP = 'inline-flex items-center justify-center gap-2 rounded-md bg-f-primary px-5 py-2 text-sm font-semibold text-white hover:bg-f-primary/90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600';
+const btnS = 'inline-flex items-center justify-center gap-2 rounded-md border border-f-primary bg-white px-5 py-2 text-sm font-semibold text-f-primary hover:bg-f-primary/5 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400';
+const STATE = {
+  match: { label: 'Result matches', chip: 'bg-emerald-100 text-emerald-800', dot: '#10b981' },
+  okng: { label: 'OK / NG matches, result differs', chip: 'bg-amber-100 text-amber-900', dot: '#f59e0b' },
+  wrong: { label: "OK / NG doesn't match", chip: 'bg-red-100 text-red-700', dot: '#ef4444' },
+  none: { label: 'Not saved', chip: 'bg-gray-100 text-gray-600', dot: '#d1d5db' },
+};
+const PLAIN_LABEL = { match: 'Matches your mark', wrong: "Doesn't match your mark", none: 'Not marked' };
+const stLabel = (k) => (plain() ? PLAIN_LABEL[k] : STATE[k].label);
+const chipHtml = (k) => `<span class="rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE[k].chip}">${stLabel(k)}</span>`;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => (t.style.opacity = 0), 2600); }
+function modal(html) { $('#modal').innerHTML = html ? `<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4"><div class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl" role="dialog">${html}</div></div>` : ''; }
+function pageHead(extra = '') {
+  return `<div class="flex min-h-[60px] flex-wrap items-baseline gap-2 bg-white px-5 py-4">
+    <div class="text-3xl font-medium">Instances</div>
+    <div class="flex flex-wrap items-baseline gap-2 text-xl font-medium"><span class="text-gray-400">›</span><span>Instance Details</span><span class="text-gray-400">›</span><span>Hinge Line A</span><span class="text-gray-400">›</span><a href="#run" data-act="go" data-view="run" class="${extra ? 'text-f-primary hover:underline' : ''}">Testing</a>${extra}</div>
+  </div>`;
+}
+
+/* ════════════════════════ Screen: Run a new test ════════════════════════ */
+const DR_ROWS = [
+  { id: 'hu', annot: [36, 36] }, { id: 'br', annot: [30, 30] }, { id: 'hs', annot: [26, 30] }, { id: 'hl', annot: [30, 30] },
+  { id: 'hg', v: 'Housing', c: 'Gasket', err: "Can't be tested: bead inspection isn't set up for this capture yet (bead width and gap rules are missing)." },
+];
+function runView() {
+  const bg = `${pageHead()}<div class="p-5"><div class="mb-6 flex border-b border-gray-200"><span class="px-6 py-3 font-medium text-gray-500">Instance Overview</span><span class="border-b-2 border-f-primary px-6 py-3 font-medium text-f-primary">Testing</span></div>
+    <div class="mx-auto max-w-6xl"><div class="flex justify-between"><div><h1 class="text-xl font-bold">Testing</h1><p class="mt-1 text-gray-600">Try this instance's current setup on folders of saved images before you use it on the line.</p></div><span class="${btnP}">Run Test</span></div></div></div>`;
+  const modeCard = (m, title, text) => `<label class="flex cursor-pointer items-start gap-3 rounded-lg border-2 p-4 ${S.mode === m ? 'border-f-primary bg-orange-50/60' : 'border-gray-200 hover:border-gray-300'}">
+      <input id="mode-${m}" type="radio" name="mode" value="${m}" data-act="setMode" data-mode="${m}" class="mt-1 accent-[#ff4301]" ${S.mode === m ? 'checked' : ''}>
+      <span><span class="block font-semibold text-gray-900">${title}</span><span class="mt-0.5 block text-sm text-gray-600">${text}</span></span>
+    </label>`;
+  const annot = S.mode === 'annot';
+  const rows = DR_ROWS.map((r) => {
+    const v = r.v || CAPS[r.id].v, c = r.c || CAPS[r.id].c, on = !r.err && S.dr.f[r.id];
+    const folder = r.err
+      ? `<div class="flex items-center gap-2"><button disabled class="cursor-not-allowed rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-400">Choose folder</button><span title="${r.err}">${ICON.err}</span></div>`
+      : on
+        ? `<div class="inline-flex items-center gap-2 rounded-md p-2 text-sm shadow-md ring-1 ring-gray-100">${ICON.folder}<span class="font-medium">${CAPS[r.id].folder}</span><button data-act="clearFolder" data-row="${r.id}" class="px-1 text-gray-500 hover:text-gray-800" aria-label="Remove folder">✕</button></div>`
+        : `<button data-act="pickFolder" data-row="${r.id}" class="rounded-md border border-f-primary px-3 py-1.5 text-sm font-semibold text-f-primary hover:bg-f-primary/5">Choose folder</button>`;
+    let an = '';
+    if (annot) {
+      if (r.err || !on) an = '<span class="text-gray-400">—</span>';
+      else if (r.annot[0] === r.annot[1]) an = `<span class="inline-flex items-center gap-1.5 text-sm text-emerald-800">${ICON.ok}${r.annot[0]} of ${r.annot[1]} images</span>`;
+      else an = `<span class="inline-flex items-center gap-1.5 text-sm text-amber-900" title="Annotation files are missing for ${r.annot[1] - r.annot[0]} of ${r.annot[1]} images. You can enter their expected results yourself.">${ICON.warn}${r.annot[0]} of ${r.annot[1]} images</span>`;
+    }
+    return `<tr class="${r.err ? 'bg-red-50/40' : ''}"><td class="px-3 py-3 font-medium ${r.err ? 'text-gray-500' : ''}">${v}</td><td class="px-3 py-3 font-medium ${r.err ? 'text-gray-500' : ''}">${c}</td><td class="px-3 py-3">${folder}</td>${annot ? `<td class="px-3 py-3">${an}</td>` : ''}</tr>`;
+  }).join('');
+  const ready = DR_ROWS.filter((r) => !r.err && S.dr.f[r.id]).length;
+  const foot = S.dr.up
+    ? `<div class="flex flex-col gap-2"><div class="flex items-center justify-between text-sm"><span class="flex items-center gap-2"><span class="spin"></span>Uploading images${annot ? ' and annotation files' : ''}</span><span class="tab-num text-gray-600">${S.dr.up} of ${totalImgs()}</span></div><div class="h-2 overflow-hidden rounded-full bg-gray-200"><div class="h-full bg-f-primary" style="width:${(S.dr.up / totalImgs()) * 100}%"></div></div></div>`
+    : `<div class="flex flex-wrap items-center justify-between gap-4"><div class="text-sm text-gray-700"><b>${ready}</b> captures will be tested · <span class="text-red-800">1 can't be tested</span></div>
+       <div class="flex gap-3"><button class="${btnS}" data-act="toast" data-msg="Closes the drawer.">Cancel</button><button class="${btnP}" data-act="startTest" ${ready ? '' : 'disabled'}>Start Testing</button></div></div>`;
+  return `<div class="pointer-events-none select-none opacity-60" aria-hidden="true">${bg}</div>
+  <div class="fixed inset-x-0 bottom-0 z-[100] bg-black/50" style="top:var(--vb)"></div>
+  <div class="fixed bottom-0 right-0 z-[110] flex w-full max-w-4xl flex-col bg-white shadow-2xl" style="top:var(--vb)" role="dialog" aria-label="Run a new test">
+    <div class="flex h-[50px] items-center justify-between border-b px-4 text-lg font-semibold"><span>Run a new test</span><span class="text-2xl leading-none text-gray-600">×</span></div>
+    <div class="flex-1 overflow-y-auto"><div class="mx-auto flex max-w-3xl flex-col gap-5 p-6">
+      <fieldset class="flex flex-col gap-2"><legend class="mb-2 text-[15px] font-semibold text-gray-900">What's in your test folders?</legend>
+        <div class="grid gap-3 sm:grid-cols-2">
+          ${modeCard('annot', 'Images with annotations', 'Each image has an annotation file. It fills in the expected result.')}
+          ${modeCard('plain', 'Images only', 'No annotation files. You mark the images you check OK or NG.')}
+        </div>
+      </fieldset>
+      <div class="flex flex-col gap-1.5 text-sm text-gray-700">
+        <p class="text-[15px] font-semibold text-gray-900">Choose a folder of test images for each capture you want to test.</p>
+        ${annot ? '<p>Each annotation file has the same name as its image; segmentation and bead masks go in a "masks" folder.</p>' : ''}
+        <p class="flex items-start gap-1.5 text-gray-500">${ICON.shield}<span>Tests never send PLC signals, trigger integrations or change production reports.</span></p>
+      </div>
+      <div class="overflow-x-auto"><table class="w-full min-w-[560px]"><thead><tr class="bg-f-primary">${thO('Variant')}${thO('Capture')}${thO('Dataset folder')}${annot ? thO('Annotation files') : ''}</tr></thead><tbody class="divide-y divide-gray-200">${rows}</tbody></table></div>
+    </div></div>
+    <div class="border-t border-gray-300 bg-white px-6 py-4">${foot}</div>
+  </div>`;
+}
+
+/* ════════════════════════ Screen: results page ════════════════════════ */
+function resultsView() {
+  const tab = (key, label) => `<button data-act="tab" data-tab="${key}" class="px-6 py-3 font-medium ${S.tab === key ? 'border-b-2 border-f-primary text-f-primary' : 'text-gray-500 hover:text-gray-700'}" ${S.tab === key ? 'aria-current="page"' : ''}>${label}</button>`;
+  return `${pageHead('<span class="text-gray-400">›</span><span>Test 15</span>')}
+  <div class="px-4 pb-16 pt-2 sm:px-5">
+    <div class="mx-auto flex max-w-[1400px] flex-col gap-5">
+      <div><a href="#run" data-act="go" data-view="run" class="text-sm font-semibold text-f-primary hover:underline">← Back to all tests</a></div>
+      <div>
+        <h1 class="flex flex-wrap items-center gap-3 text-2xl font-bold">Test 15 results <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Completed</span></h1>
+        <p class="mt-1 text-sm text-gray-600">Ran 28 Oct 2026, 11:05 AM by you · ${totalImgs()} images across 4 captures · ${S.mode === 'annot' ? 'Images with annotations' : 'Images only'}</p>
+      </div>
+      <div class="flex justify-center"><div class="inline-flex border-b border-gray-300">${tab('summary', 'Summary')}${tab('results', 'Module Results')}</div></div>
+      ${S.tab === 'summary' ? summaryTab() : playTab()}
+    </div>
+  </div>`;
+}
+function summaryTab() {
+  const rows = CAP_IDS.map((c) => {
+    const ng = IMGS[c].filter((img) => imgV(CAPS[c].mods.map((id) => verdictOf(id, outputOf(id, img.m[id], EMC[id])))) === 'NG').length;
+    return `<tr><td class="px-4 py-3 font-medium">${cn(c)}</td><td class="tab-num px-4 py-3">${CAPS[c].n}</td><td class="tab-num px-4 py-3 font-semibold text-emerald-700">${CAPS[c].n - ng}</td><td class="tab-num px-4 py-3 font-semibold text-red-700">${ng}</td><td class="tab-num px-4 py-3">${CAPS[c].ms} ms</td></tr>`;
+  }).join('');
+  return `<div class="overflow-x-auto rounded-lg border border-gray-200"><table class="w-full min-w-[640px] text-sm"><thead><tr class="bg-f-primary">${thO('Variant – Capture')}${thO('Images tested')}${thO('OK')}${thO('NG')}${thO('Average inference time per image')}</tr></thead><tbody class="divide-y divide-gray-200">${rows}</tbody></table></div>
+  <p class="text-xs text-gray-500">OK / NG at the thresholds the test ran with.</p>`;
+}
+
+/* ─── Module Results: the playground ─── */
+function draftFor(cap, i) {
+  if (D && D.cap === cap && D.i === i) return D;
+  const saved = isSaved(cap, i);
+  if (plain()) { D = { cap, i, mark: markOf(cap, i) || modelV(cap, i, S.thr) }; return D; }
+  D = { cap, i, m: Object.fromEntries(CAPS[cap].mods.map((id) => [id, saved ? clone(expOf(cap, i, id)) : outputOf(id, IMGS[cap][i].m[id], EMC[id])])) };
+  return D;
+}
+const draftDirty = () => !isSaved(D.cap, D.i) || (plain() ? D.mark !== markOf(D.cap, D.i) : CAPS[D.cap].mods.some((id) => !sameOut(D.m[id], expOf(D.cap, D.i, id))));
+function visList(cap) {
+  const all = IMGS[cap].map((_, i) => i), f = S.filter;
+  if (f === 'todo') return all.filter((i) => !isSaved(cap, i));
+  if (f === 'saved') return all.filter((i) => isSaved(cap, i));
+  if (f === 'markok' || f === 'markng') return plain() ? all.filter((i) => markOf(cap, i) === (f === 'markok' ? 'OK' : 'NG')) : all;
+  if (f === 'wrong') return all.filter((i) => isSaved(cap, i) && imgState(cap, i, S.thr) === 'wrong');
+  if (f === 'nofix') { const nf = noFixImgs(); return all.filter((i) => nf.some(([c, j]) => c === cap && j === i)); }
+  return all;
+}
+
+function playTab() {
+  const cap = S.cap, list = visList(cap);
+  if (list.length && !list.includes(S.idx)) S.idx = list[0];
+  const capChips = CAP_IDS.map((c) => `<button data-act="cap" data-cap="${c}" class="flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm ${c === cap ? 'border-f-primary bg-orange-50/70' : 'border-gray-200 hover:border-gray-300'}"><span class="font-semibold">${cn(c)}</span><span class="tab-num rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600" title="${plain() ? 'Images marked' : 'Expected results saved'}">${savedIdx(c).length}/${CAPS[c].n}</span></button>`).join('');
+  const filters = plain()
+    ? [['all', 'All images'], ['todo', 'Not marked'], ['markok', 'Marked OK'], ['markng', 'Marked NG'], ['wrong', "Doesn't match your mark"], ['nofix', 'No threshold fixes']]
+    : [['all', 'All images'], ['todo', 'Not saved'], ['saved', 'Saved'], ['wrong', "OK / NG doesn't match"], ['nofix', 'No threshold fixes']];
+  const filterSel = `<label class="flex items-center gap-2 text-sm"><span class="text-gray-600">Show</span><select id="filter" class="rounded-md border border-gray-300 bg-white px-2 py-1.5 font-medium">
+      ${filters.map(([k, l]) => `<option value="${k}" ${S.filter === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+  const legend = plain() ? ['match', 'wrong', 'none'] : ['match', 'okng', 'wrong', 'none'];
+  const head = `<div id="score">${scoreHtml()}</div>
+    <div class="flex flex-wrap items-center justify-between gap-3"><div class="flex flex-wrap gap-2">${capChips}</div>${filterSel}</div>
+    <div class="flex flex-wrap items-center gap-3"><div id="dots" class="flex flex-wrap gap-1">${dotsHtml()}</div><div class="flex flex-wrap gap-3 text-xs text-gray-600">${legend.map((k) => `<span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-full" style="background:${STATE[k].dot}"></span>${stLabel(k)}</span>`).join('')}</div></div>`;
+  if (!list.length) return `${head}<div class="rounded-xl border border-dashed border-gray-300 px-6 py-10 text-center text-gray-600">No images in ${cn(cap)} match this filter.</div>`;
+
+  const i = S.idx, img = IMGS[cap][i], pos = list.indexOf(i);
+  draftFor(cap, i);
+  return `${head}
+    <div class="grid gap-5 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+      <figure class="flex min-w-0 flex-col gap-2 xl:sticky xl:self-start" style="top:calc(var(--vb) + 12px)">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm"><span class="font-mono text-gray-700">${img.file}</span>
+          <label class="flex cursor-pointer items-center gap-2 text-gray-700"><span>Show what the model found</span><button data-act="toggleShow" class="sw ${S.show ? 'on' : ''}" aria-pressed="${S.show}" aria-label="Show what the model found"><span></span></button></label></div>
+        <div id="ana" class="mx-auto aspect-square w-full max-w-[460px] overflow-hidden rounded-lg border border-[#e0e0e0]">${imgSvg(cap, i, S.show, S.thr)}</div>
+        <div class="flex items-center justify-center gap-3 text-sm"><button data-act="move" data-d="-1" class="rounded-full border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-40" ${pos ? '' : 'disabled'} aria-label="Previous image">‹</button><span class="tab-num text-gray-600">Image ${pos + 1} of ${list.length}${S.filter !== 'all' ? ' in this filter' : ''}</span><button data-act="move" data-d="1" class="rounded-full border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-40" ${pos < list.length - 1 ? '' : 'disabled'} aria-label="Next image">›</button></div>
+      </figure>
+      <div class="flex min-w-0 flex-col gap-4">
+        <div id="imgHead">${imgHeadHtml()}</div>
+        ${CAPS[cap].mods.map(cardHtml).join('')}
+        <div class="flex flex-wrap items-center justify-end gap-3"><span id="saveState" class="mr-auto text-sm">${saveStateHtml()}</span><button class="${btnS}" data-act="save">${plain() ? 'Save mark' : 'Save expected result'}</button><button class="${btnP}" data-act="saveNext">Save and next</button></div>
+      </div>
+    </div>`;
+}
+function scoreHtml() {
+  const n = totalSaved(), N = totalImgs();
+  const a = imgScore(EMC), b = imgScore(S.thr), best = n ? imgScore(bestAll()) : null, nf = n ? noFixImgs().length : 0, ch = changedKnobs().length;
+  const block = (label, body, sub = '') => `<div class="flex min-w-0 flex-col justify-center px-4 py-3"><div class="text-xs font-medium uppercase tracking-wide text-gray-500">${label}</div><div class="mt-0.5 text-xl font-semibold">${body}</div>${sub ? `<div class="text-xs text-gray-500">${sub}</div>` : ''}</div>`;
+  const delta = b.right === a.right ? '' : `<span class="ml-1 text-sm font-semibold ${b.right > a.right ? 'text-emerald-700' : 'text-red-700'}">${b.right > a.right ? '+' : ''}${b.right - a.right}</span>`;
+  return `<div class="grid overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] [&>*]:border-gray-200 lg:[&>*:not(:last-child)]:border-r">
+    ${block(plain() ? 'Images marked' : 'Expected results saved', `<span class="tab-num">${n}</span> <span class="text-base font-normal text-gray-500">of ${N} images</span>`)}
+    ${block(plain() ? 'Right OK / NG on marked images' : 'Right OK / NG on saved images', n ? `<span class="tab-num text-gray-400">${a.right}</span> <span class="text-gray-400">→</span> <span class="tab-num">${b.right}</span> <span class="text-base font-normal text-gray-500">of ${n}</span>${delta}` : '—', 'EMC values → your values')}
+    ${block('Best thresholds can do', n ? `<span class="tab-num">${best.right}</span> <span class="text-base font-normal text-gray-500">of ${n}</span> <button data-act="tryBest" class="ml-1 text-sm font-semibold text-f-purple hover:underline">Try these values</button>` : '—')}
+    ${block('No threshold fixes', n ? (nf ? `<button data-act="showNoFix" class="tab-num text-red-700 hover:underline">${nf} image${nf > 1 ? 's' : ''}</button>` : '<span class="text-emerald-700">0 images</span>') : '—')}
+    <div class="flex flex-col justify-center gap-2 px-4 py-3"><button class="${btnP} w-full whitespace-nowrap" data-act="askApply" ${ch ? '' : 'disabled'}>Update thresholds at EMC${ch ? ` (${ch})` : ''}</button>${plain() ? `<button class="${btnS} w-full whitespace-nowrap" data-act="askDownload">Download images</button>` : ''}</div>
+  </div>`;
+}
+function dotsHtml() {
+  const cap = S.cap;
+  return IMGS[cap].map((_, i) => {
+    const st = isSaved(cap, i) ? imgState(cap, i, S.thr) : 'none';
+    return `<button data-act="jump" data-i="${i}" title="${short(i)} · ${stLabel(st)}" aria-label="${short(i)}, ${stLabel(st)}" class="h-4 w-4 rounded-full ${i === S.idx ? 'ring-2 ring-gray-900 ring-offset-1' : ''}" style="background:${STATE[st].dot}"></button>`;
+  }).join('');
+}
+function imgHeadHtml() {
+  if (plain()) {
+    const { cap, i } = D, mv = modelV(cap, i, S.thr), st = imgState(cap, i, S.thr, D.mark);
+    const seg = ['OK', 'NG'].map((v) => `<button data-act="mark" data-v="${v}" aria-pressed="${D.mark === v}" class="px-4 py-1 text-sm font-bold ${D.mark === v ? (v === 'OK' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white') : 'bg-white text-gray-600 hover:bg-gray-50'}">${v}</button>`).join('');
+    return `<div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-3"><span class="font-semibold">Image result</span>
+      <span class="flex flex-wrap items-center gap-2 text-sm text-gray-600">Model ${pillOK(mv)} <span class="ml-2">Your mark</span> <span class="inline-flex overflow-hidden rounded-md border border-gray-300 divide-x divide-gray-300" role="group" aria-label="Your mark">${seg}</span> ${chipHtml(st)}</span></div>`;
+  }
+  const { cap, i } = D, mods = CAPS[cap].mods, d = IMGS[cap][i].m;
+  const mv = imgV(mods.map((id) => verdictOf(id, outputOf(id, d[id], S.thr[id])))), ev = imgV(mods.map((id) => verdictOf(id, D.m[id])));
+  const st = imgState(cap, i, S.thr, D.m);
+  return `<div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-3"><span class="font-semibold">Image result</span>
+    <span class="flex flex-wrap items-center gap-2 text-sm text-gray-600">Model ${pillOK(mv)} <span>Expected</span> ${pillOK(ev)} <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE[st].chip}">${STATE[st].label}</span></span></div>`;
+}
+function saveStateHtml() {
+  if (!isSaved(D.cap, D.i)) return `<span class="text-gray-500">${plain() ? 'Not marked' : 'Expected result not saved'}</span>`;
+  return draftDirty() ? '<span class="font-semibold text-amber-800">Changed, not saved</span>' : `<span class="inline-flex items-center gap-1 font-semibold text-emerald-700">${ICON.ok}Saved</span>`;
+}
+
+// One card per module: what the model finds at these thresholds, what was expected, and the thresholds
+function cardHtml(id) {
+  const m = MODS[id], ks = knobs(id);
+  const sliders = ks.length
+    ? ks.map((k) => `<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span class="w-40 text-sm font-medium">${k.label}</span>
+        <input id="rng-${id}-${k.key}" type="range" min="${k.min}" max="${k.max}" step="${k.step}" value="${S.thr[id][k.key]}" data-mod="${id}" data-knob="${k.key}" class="min-w-[140px] flex-1" aria-label="${m.name} ${k.label} threshold">
+        <span id="val-${id}-${k.key}" class="tab-num w-11 text-right text-sm font-semibold">${pct(S.thr[id][k.key])}</span>
+        <span class="tab-num w-16 text-xs text-gray-500">EMC ${pct(EMC[id][k.key])}</span>
+      </div>`).join('')
+    : '<p class="text-sm text-gray-500">No thresholds for a code reader.</p>';
+  return `<section class="flex flex-col gap-3 rounded-xl border border-gray-200 p-4" aria-label="${m.name}">
+    <div class="flex flex-wrap items-start justify-between gap-2"><div><h3 class="font-semibold">${m.name}</h3><div class="text-xs text-gray-500">${m.typeName} · Ground truth in EMC: <span class="font-medium text-gray-700">${gtText(id)}</span></div></div><span id="st-${id}"></span></div>
+    <div class="grid gap-3 ${plain() ? '' : 'sm:grid-cols-2'}">
+      <div class="flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2.5"><div class="text-xs font-medium uppercase tracking-wide text-gray-500">Model finds</div><div id="out-${id}" class="flex flex-wrap items-center justify-between gap-2"></div></div>
+      ${plain() ? '' : `<div class="flex flex-col gap-2 rounded-lg border border-f-purple/40 bg-violet-50/40 px-3 py-2.5"><div class="text-xs font-medium uppercase tracking-wide text-f-purple">Expected</div><div class="flex flex-wrap items-center justify-between gap-2"><div class="flex flex-wrap items-center gap-2">${editorHtml(id)}</div><span id="ev-${id}"></span></div></div>`}
+    </div>
+    <div id="fix-${id}" class="empty:hidden"></div>
+    <div class="flex flex-col gap-2 border-t border-gray-100 pt-3">${sliders}</div>
+    <div id="foot-${id}" class="text-xs text-gray-600"></div>
+  </section>`;
+}
+function editorHtml(id) {
+  const m = MODS[id], v = D.m[id];
+  const step = (cls, n) => `<span class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-sm"><span class="px-1 font-medium">${cls}</span><button data-act="dec" data-mod="${id}" data-cls="${cls}" class="h-6 w-6 rounded hover:bg-gray-100" aria-label="Fewer ${cls}">−</button><span class="tab-num w-4 text-center font-semibold">${n}</span><button data-act="inc" data-mod="${id}" data-cls="${cls}" class="h-6 w-6 rounded hover:bg-gray-100" aria-label="More ${cls}">+</button></span>`;
+  switch (m.type) {
+    case 'det': case 'seg': return m.classes.map((c) => step(c, v[c])).join('');
+    case 'cls': return `<select id="exp-${id}" data-mod="${id}" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm font-medium">${m.classes.map((c) => `<option ${v === c ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
+    case 'ocr': return `<input id="exp-${id}" data-mod="${id}" value="${esc(v)}" class="w-36 rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-sm" aria-label="Expected text" spellcheck="false">`;
+    case 'bead': return `<span class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-sm"><span class="px-1 font-medium">gap</span><button data-act="dec" data-mod="${id}" class="h-6 w-6 rounded hover:bg-gray-100" aria-label="Shorter gap">−</button><span class="tab-num w-4 text-center font-semibold">${v}</span><button data-act="inc" data-mod="${id}" class="h-6 w-6 rounded hover:bg-gray-100" aria-label="Longer gap">+</button></span><span class="text-xs text-gray-500">calipers</span>`;
+    default: return `<select id="exp-${id}" data-mod="${id}" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm font-medium">${['Readable', 'Not readable'].map((c) => `<option ${v === c ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
+  }
+}
+// Everything that follows the thresholds or the expected result, without re-rendering the sliders
+function refreshLive() {
+  if (S.view !== 'results' || S.tab !== 'results' || !D || !$('#ana')) return;
+  const { cap, i } = D, d = IMGS[cap][i].m;
+  $('#ana').innerHTML = imgSvg(cap, i, S.show, S.thr);
+  $('#score').innerHTML = scoreHtml();
+  $('#dots').innerHTML = dotsHtml();
+  $('#imgHead').innerHTML = imgHeadHtml();
+  $('#saveState').innerHTML = saveStateHtml();
+  for (const id of CAPS[cap].mods) {
+    const o = outputOf(id, d[id], S.thr[id]);
+    $(`#out-${id}`).innerHTML = `<span class="text-sm font-semibold">${esc(fmtOut(id, o))}</span>${pillOK(verdictOf(id, o))}`;
+    knobs(id).forEach((k) => { const e = $(`#val-${id}-${k.key}`); if (e) e.textContent = pct(S.thr[id][k.key]); });
+    if (plain()) continue; // Images only: OK / NG is marked for the whole image, not per module
+    const st = modState(id, d[id], D.m[id], S.thr[id]);
+    $(`#ev-${id}`).innerHTML = pillOK(verdictOf(id, D.m[id]));
+    $(`#st-${id}`).innerHTML = `<span class="rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE[st].chip}">${STATE[st].label}</span>`;
+    const fx = canFix(id, d[id], D.m[id], cap, i);
+    $(`#fix-${id}`).innerHTML = !fx.verdict
+      ? `<div class="flex items-start gap-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">${ICON.err}<span>No threshold gives the expected OK / NG on this image.</span></div>`
+      : !fx.output ? `<div class="flex items-start gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700">${ICON.warn}<span>A threshold can give the expected OK / NG here, but not this exact result.</span></div>` : '';
+    const sc = modScore(id, S.thr[id]), sa = modScore(id, EMC[id]);
+    $(`#foot-${id}`).innerHTML = sc.n ? `Saved images in ${cn(cap)}: right OK / NG on <b class="tab-num">${sc.right} of ${sc.n}</b> at these values · <span class="tab-num">${sa.right}</span> at EMC values` : '';
+  }
+  save();
+}
+
+/* ─── Download images (Images only) ─── */
+const DL_OPTS = [['ok', 'OK images'], ['ng', 'NG images'], ['all', 'All images']];
+const dlList = (which, cap) => IMGS[cap].map((_, i) => i).filter((i) => which === 'all' || markOf(cap, i) === which.toUpperCase());
+const dlName = () => `Hinge Line A - Test 15 - ${S.dl.which === 'all' ? 'All' : S.dl.which.toUpperCase()}.zip`;
+function dlHtml() {
+  const W = S.dl.which, ch = changedKnobs().length;
+  const opts = DL_OPTS.map(([k, label]) => {
+    const n = CAP_IDS.reduce((s, c) => s + dlList(k, c).length, 0);
+    return `<label data-act="dlWhich" data-v="${k}" class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border-2 px-4 py-3 ${W === k ? 'border-f-primary bg-orange-50/60' : 'border-gray-200 hover:border-gray-300'}">
+      <span class="flex items-center gap-3"><input type="radio" name="dlw" value="${k}" class="accent-[#ff4301]" ${W === k ? 'checked' : ''}><span class="font-semibold">${label}</span></span><span class="tab-num text-sm text-gray-600">${n} images</span></label>`;
+  }).join('');
+  const caps = CAP_IDS.map((c) => {
+    const n = dlList(W, c).length, on = S.dl.caps[c] && n > 0;
+    return `<label data-act="dlCap" data-cap="${c}" class="flex items-center justify-between gap-3 px-4 py-2.5 ${n ? 'cursor-pointer' : 'cursor-not-allowed text-gray-400'}">
+      <span class="flex items-center gap-3"><input type="checkbox" class="h-4 w-4 accent-[#ff4301]" ${on ? 'checked' : ''} ${n ? '' : 'disabled'}><span class="font-medium">${cn(c)}</span></span><span class="tab-num text-sm ${n ? 'text-gray-600' : ''}">${n} images</span></label>`;
+  }).join('');
+  const total = CAP_IDS.reduce((s, c) => s + (S.dl.caps[c] ? dlList(W, c).length : 0), 0);
+  return `<h2 class="text-xl font-semibold">Download images</h2>
+    <fieldset class="mt-5 flex flex-col gap-2"><legend class="mb-2 text-sm font-semibold text-gray-900">Images</legend>${opts}</fieldset>
+    <fieldset class="mt-5"><legend class="mb-2 text-sm font-semibold text-gray-900">Captures</legend><div class="divide-y divide-gray-100 rounded-lg border border-gray-200">${caps}</div></fieldset>
+    <div class="mt-5 flex items-center justify-between gap-3 rounded-md bg-gray-50 px-4 py-2.5 text-sm"><span class="text-gray-600">Labels</span><span class="font-medium">At the thresholds on screen${ch ? ` · ${ch} changed from EMC` : ''}</span></div>
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-3"><span class="flex min-w-0 items-center gap-2 text-sm text-gray-600">${ICON.folder}<span class="truncate">${esc(dlName())}</span></span>
+      <span class="flex gap-3"><button class="${btnS}" data-act="closeModal">Cancel</button><button class="${btnP}" data-act="dlGo" ${total ? '' : 'disabled'}>Download${total ? ` (${total})` : ''}</button></span></div>`;
+}
+const setHash = (h) => { try { history.replaceState(null, '', `#${h}`); } catch (e) { /* sandboxed */ } };
+function askDownload() {
+  modal(dlHtml()); setHash('download');
+  if (window.self !== window.top) parent.postMessage({ type: 'testing-v2-nav', to: 'edge-download' }, '*');
+}
+// What the Vision upload screen shows: the file name and the images in each capture folder
+function dlGo() {
+  const caps = CAP_IDS.filter((c) => S.dl.caps[c] && dlList(S.dl.which, c).length);
+  const files = Object.fromEntries(caps.map((c) => [c, dlList(S.dl.which, c).map(short)]));
+  try { localStorage.setItem('edge-testing-v2-dl', JSON.stringify({ which: S.dl.which, caps, files })); } catch (e) { /* storage unavailable */ }
+  modal(''); setHash('results');
+  toast(`Downloading ${dlName()}`);
+}
+function askApply() {
+  const list = changedKnobs();
+  modal(`<h2 class="text-xl font-semibold">Update thresholds at EMC?</h2>
+    <ul class="mt-4 divide-y divide-gray-100 rounded-lg border border-gray-200 text-sm">${list.map((d) => `<li class="flex justify-between gap-3 px-4 py-2.5"><span>${MODS[d.id].name} · ${d.k.label}</span><span class="tab-num">${pct(d.a)} → <b>${pct(d.b)}</b></span></li>`).join('')}</ul>
+    <p class="mt-3 text-sm text-gray-600">Only Hinge Line A changes; other instances that use these models keep their values.</p>
+    <div class="mt-5 flex justify-end gap-3"><button class="${btnS}" data-act="closeModal">Cancel</button><button class="${btnP}" data-act="apply">Update</button></div>`);
+}
+
+/* ════════════════════════ render ════════════════════════ */
+const VSTEPS = [['run', '1 · Run a new test'], ['summary', '2 · Summary'], ['results', '3 · Module Results']];
+const curV = () => (S.view === 'run' ? 'run' : S.tab);
+function render() {
+  $('#app').innerHTML = S.view === 'run' ? runView() : resultsView();
+  const cv = curV();
+  $('#vSteps').innerHTML = VSTEPS.map(([k, l]) => `<button data-act="vstep" data-k="${k}" class="viewer-tab rounded px-2.5 py-1 hover:bg-white/10" ${k === cv ? 'aria-current="step"' : ''}>${l}</button>`).join('');
+  $$('[data-act="setMode"]', $('#viewerBar')).forEach((b) => { const on = b.dataset.mode === S.mode; b.className = `px-2.5 py-1 ${on ? 'bg-white text-gray-900' : 'hover:bg-white/10'}`; b.setAttribute('aria-pressed', on); });
+  $('[data-act="demoFill"]').textContent = plain() ? 'Mark every image (demo)' : 'Fill expected results (demo)';
+  try { history.replaceState(null, '', `#${cv}`); } catch (e) { /* sandboxed */ }
+  fitBar();
+  refreshLive();
+  save();
+}
+// The viewer bar wraps on narrow screens; keep the drawer and rail below it
+function fitBar() { document.documentElement.style.setProperty('--vb', `${$('#viewerBar').offsetHeight}px`); }
+window.addEventListener('resize', fitBar);
+
+/* ════════════════════════ events ════════════════════════ */
+function goStep(k) {
+  if (k === 'run') { S.view = 'run'; return; }
+  S.view = 'results'; S.tab = k;
+}
+function setIdx(i) { S.idx = i; D = null; }
+// Demo: mark every image with what it really shows
+function demoMarks() { for (const c of CAP_IDS) { S.mark[c] = {}; IMGS[c].forEach((_, i) => { S.mark[c][i] = trueV(c, i); }); } }
+function saveDraft() {
+  const store = plain() ? S.mark : S.exp;
+  store[D.cap] = store[D.cap] || {};
+  store[D.cap][D.i] = plain() ? D.mark : clone(D.m);
+  S.ver++;
+}
+function nextIdx() {
+  const l = visList(S.cap), p = l.indexOf(D.i);
+  if (S.filter === 'todo') { const nl = visList(S.cap); return nl[0]; }
+  return l[p + 1];
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const a = b.dataset.act;
+  if (!(a === 'setMode' && b.tagName === 'INPUT')) e.preventDefault();
+  switch (a) {
+    case 'vstep': goStep(b.dataset.k); break;
+    case 'go': S.view = b.dataset.view; break;
+    case 'setMode': S.mode = b.dataset.mode; D = null; S.ver++; if (!(plain() ? ['all', 'todo', 'markok', 'markng', 'wrong', 'nofix'] : ['all', 'todo', 'saved', 'wrong', 'nofix']).includes(S.filter)) S.filter = 'all'; break;
+    case 'demoFill':
+      if (plain()) { demoMarks(); toast('Every image marked (demo).'); } else {
+        for (const c of CAP_IDS) { S.exp[c] = {}; IMGS[c].forEach((img, i) => { S.exp[c][i] = Object.fromEntries(CAPS[c].mods.map((id) => [id, clone(img.m[id].t)])); }); }
+        toast('Expected results filled in for every image (demo).');
+      }
+      D = null; S.ver++; S.view = 'results'; S.tab = 'results'; break;
+    case 'mark': D.mark = b.dataset.v; refreshLive(); return;
+    case 'askDownload': askDownload(); return;
+    case 'dlWhich': S.dl.which = b.dataset.v; modal(dlHtml()); return;
+    case 'dlCap': if (dlList(S.dl.which, b.dataset.cap).length) { S.dl.caps[b.dataset.cap] = !S.dl.caps[b.dataset.cap]; modal(dlHtml()); } return;
+    case 'dlGo': dlGo(); save(); return;
+    case 'reset': S = fresh(); D = null; toast('Prototype reset.'); break;
+    case 'toast': toast(b.dataset.msg); return;
+    case 'pickFolder': S.dr.f[b.dataset.row] = true; break;
+    case 'clearFolder': S.dr.f[b.dataset.row] = false; break;
+    case 'startTest': {
+      S.dr.up = 1; render();
+      const N = totalImgs(), tick = () => { S.dr.up = Math.min(N, S.dr.up + 17); if (S.dr.up >= N) { S.dr.up = null; S.view = 'results'; S.tab = 'results'; render(); toast('Test 15 completed.'); } else { render(); setTimeout(tick, 90); } };
+      setTimeout(tick, 90); return;
+    }
+    case 'tab': S.tab = b.dataset.tab; break;
+    case 'cap': S.cap = b.dataset.cap; setIdx(0); break;
+    case 'jump': setIdx(+b.dataset.i); if (!visList(S.cap).includes(S.idx)) S.filter = 'all'; break;
+    case 'move': { const l = visList(S.cap), p = l.indexOf(S.idx) + +b.dataset.d; if (l[p] !== undefined) setIdx(l[p]); break; }
+    case 'toggleShow': S.show = !S.show; break;
+    case 'inc': case 'dec': {
+      const id = b.dataset.mod, dv = a === 'inc' ? 1 : -1;
+      if (b.dataset.cls) D.m[id][b.dataset.cls] = Math.max(0, Math.min(9, D.m[id][b.dataset.cls] + dv));
+      else D.m[id] = Math.max(0, Math.min(40, D.m[id] + dv));
+      b.parentElement.querySelector('.tab-num').textContent = b.dataset.cls ? D.m[id][b.dataset.cls] : D.m[id];
+      refreshLive(); return;
+    }
+    case 'save': saveDraft(); toast(plain() ? `Marked ${short(D.i)} ${D.mark}.` : `Saved the expected result for ${short(D.i)}.`); refreshLive(); return;
+    case 'saveNext': { saveDraft(); const n = nextIdx(); if (n !== undefined) setIdx(n); else toast(`Saved. That was the last image in ${cn(S.cap)} for this filter.`); break; }
+    case 'tryBest': S.thr = clone(bestAll()); toast('Thresholds set to the best values for your saved images.'); break;
+    case 'showNoFix': { S.filter = 'nofix'; const nf = noFixImgs(); if (nf.length && !nf.some(([c]) => c === S.cap)) S.cap = nf[0][0]; setIdx(visList(S.cap)[0] ?? 0); break; }
+    case 'askApply': askApply(); return;
+    case 'apply': modal(''); S.applied = true; toast('Thresholds updated in Edit Module Configurations for Hinge Line A.'); return;
+    case 'closeModal': modal(''); if (location.hash === '#download') setHash('results'); return;
+    default: return;
+  }
+  render();
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.id === 'filter') { S.filter = t.value; D = null; render(); }
+  if (t.tagName === 'SELECT' && t.id.startsWith('exp-')) { D.m[t.dataset.mod] = t.value; refreshLive(); }
+});
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.dataset.knob) { S.thr[t.dataset.mod][t.dataset.knob] = r2(+t.value); refreshLive(); }
+  if (t.tagName === 'INPUT' && t.id === 'exp-ocr') { D.m.ocr = t.value.trim(); refreshLive(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (S.view !== 'results' || S.tab !== 'results' || $('#modal').innerHTML) return;
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName) && document.activeElement.type !== 'range') return;
+  const l = visList(S.cap), p = l.indexOf(S.idx);
+  if (e.key === 'ArrowRight' && l[p + 1] !== undefined) { setIdx(l[p + 1]); render(); }
+  if (e.key === 'ArrowLeft' && l[p - 1] !== undefined) { setIdx(l[p - 1]); render(); }
+});
+
+// #download: Module Results in Images only mode with the Download images dialog open (marks filled in if there are none)
+function openDownload() {
+  if (!plain()) { S.mode = 'plain'; D = null; S.ver++; }
+  if (!totalSaved()) { demoMarks(); D = null; S.ver++; }
+  goStep('results'); render(); modal(dlHtml()); setHash('download');
+}
+// Open the view named in the link (#run, #summary, #results, #download)
+function fromHash() { const h = location.hash.slice(1); if (h === 'download') return openDownload(); modal(''); if (VSTEPS.some(([k]) => k === h) && h !== curV()) { goStep(h); render(); } }
+window.addEventListener('hashchange', fromHash);
+const h0 = location.hash.slice(1);
+if (VSTEPS.some(([k]) => k === h0)) goStep(h0);
+// #marked (for screenshots): Images only, every image marked, opened on the first image the model gets wrong
+if (h0 === 'marked') {
+  S.mode = 'plain'; if (!totalSaved()) demoMarks(); S.ver++; S.cap = 'hu'; S.filter = 'all';
+  setIdx(Math.max(0, IMGS.hu.findIndex((_, i) => imgState('hu', i, S.thr) === 'wrong'))); goStep('results');
+}
+render();
+if (h0 === 'download') openDownload();
+</script>
+
+</html>

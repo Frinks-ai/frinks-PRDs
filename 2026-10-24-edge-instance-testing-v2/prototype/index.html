@@ -13,7 +13,9 @@
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 14px; background: var(--bar); color: var(--ink); font-size: 13px; border-bottom: 1px solid #000; }
   .title { font-weight: 600; color: #fff; margin-right: 6px; }
   .group { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-  nav { display: flex; flex-wrap: wrap; gap: 4px; }
+  nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  nav .group { margin: 0 4px 0 8px; }
+  nav .group:first-child { margin-left: 0; }
   nav button, .ctl button { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
   nav button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .ctl { margin-left: auto; display: flex; align-items: center; gap: 6px; }
@@ -26,7 +28,6 @@
 <body>
 <header>
   <span class="title">Edge · Instance Testing v2</span>
-  <span class="group">Frinks Edge</span>
   <nav id="steps" aria-label="Workflow steps"></nav>
   <div class="ctl">
     <div class="seg" role="group" aria-label="Today or after change">
@@ -42,11 +43,17 @@ const STEPS = [
   { id: 'edge-instances', label: 'Instance Details', today: 'after.html#vt=0&today=1', after: 'after.html#vt=0' },
   { id: 'edge-testing-tab', label: 'Testing tab', today: 'today.html?state=s1', after: 'after.html#vt=1&hist=1' },
   { id: 'edge-run-test', label: 'Run a new test', today: 'today.html?state=s2', after: 'after.html#vt=2' },
+  { id: 'edge-test-mode', label: 'Test mode', today: 'today.html?state=s2', after: 'review.html#run' },
   { id: 'edge-test-running', label: 'Test running', today: 'today.html?state=running', after: 'after.html#vt=3' },
   { id: 'edge-test-results', label: 'Results summary', today: 'today.html?state=s4', after: 'after.html#vt=4' },
-  { id: 'edge-module-results', label: 'Module results', today: 'today.html?state=s4', after: 'after.html#vt=4&tab=module' },
-  { id: 'edge-performance-metrics', label: 'Performance metrics', today: 'today.html?state=s4', after: 'after.html#vt=4&tab=metrics&annot=1' },
+  { id: 'edge-module-results', label: 'Module results', today: 'today.html?state=s4', after: 'review.html#results' },
+  { id: 'edge-download', label: 'Download images', today: 'today.html?state=s4', after: 'review.html#download' },
+  { id: 'vision-upload', group: 'Frinks Vision', label: 'Upload with labels', today: 'vision-dataset-upload.html?mode=today&state=upload', after: 'vision-dataset-upload.html?mode=after&state=upload' },
+  { id: 'vision-uploaded', label: 'Uploaded images', today: 'vision-dataset-upload.html?mode=today&state=uploaded', after: 'vision-dataset-upload.html?mode=after&state=uploaded' },
+  { id: 'vision-datasets', label: 'Datasets & Annotations', today: 'vision-dataset-upload.html?mode=today&state=datasets', after: 'vision-dataset-upload.html?mode=after&state=datasets' },
+  { id: 'vision-annotate', label: 'Correct the labels', today: 'vision-dataset-upload.html?mode=today&state=job', after: 'vision-dataset-upload.html?mode=after&state=job' },
 ];
+STEPS[0].group = 'Frinks Edge';
 const KEY = 'edge-testing-v2-shell';
 let st = { mode: 'after' };
 try { st = { ...st, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) {}
@@ -58,7 +65,7 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catc
 
 function paint() {
   document.getElementById('steps').innerHTML = STEPS.map((s, i) =>
-    `<button data-i="${i}" ${i === cur ? 'aria-current="step"' : ''}>${i + 1} · ${s.label}</button>`).join('');
+    `${s.group ? `<span class="group">${s.group}</span>` : ''}<button data-i="${i}" ${i === cur ? 'aria-current="step"' : ''}>${i + 1} · ${s.label}</button>`).join('');
   document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === st.mode)));
   document.getElementById('back').disabled = cur === 0;
   document.getElementById('next').disabled = cur === STEPS.length - 1;

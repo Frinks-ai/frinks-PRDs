@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vision Dataset Upload</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>
+  // frinksvision-frontend/tailwind.config.js
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'f-primary': '#ff4301', 'f-secondary': '#ff4301', 'f-flat': '#fadbce', 'f-light': '#fdece5f5',
+          'f-gray': '#E5E5E5', 'f-light-gray': '#D9D9D9', 'f-dark-gray': '#7A7E80', 'f-light-purple': '#C6C4FF',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  /* frinksvision-frontend/src/index.css */
+  html, body { font-size: 16px; height: 100vh; width: 100vw; overflow-y: hidden; color: black; }
+  :root { font-family: 'Outfit', sans-serif; font-optical-sizing: auto; line-height: 1.5; font-weight: 400; font-style: normal; min-height: 100vh; height: fit-content; scroll-behavior: smooth; color-scheme: light; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  @media (max-width: 1281px) { * { font-size: 96%; } }
+  body { background: #fff; }
+  /* react-hot-toast */
+  .rht { position: fixed; z-index: 9999; inset: 16px; pointer-events: none; display: flex; justify-content: center; align-items: flex-start; }
+  .rht > div { display: flex; align-items: center; background: #fff; color: #363636; line-height: 1.3; box-shadow: 0 3px 10px rgba(0,0,0,.1), 0 3px 3px rgba(0,0,0,.05); max-width: 700px; pointer-events: auto; padding: 8px 10px; border-radius: 8px; gap: 2px; }
+  .rht .msg { margin: 4px 10px; }
+  /* prototype-only switch, hidden inside the walkthrough iframe */
+  .pv { position: fixed; right: 16px; bottom: 16px; z-index: 100001; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: #111; color: #e5e7eb; font: 500 12px/1 Outfit, sans-serif; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  .pv button { font: inherit; color: inherit; background: transparent; border: 0; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+  .pv button[aria-pressed="true"] { background: #fff; color: #111; }
+  .pv select { font: inherit; background: #222; color: #e5e7eb; border: 1px solid #333; border-radius: 6px; padding: 5px 6px; }
+  .cv-box { cursor: crosshair; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="dd"></div>
+<div id="toast"></div>
+<div id="pv"></div>
+<script>
+'use strict';
+/* ═══════════ sample data (matches the Edge screens: review.html) ═══════════ */
+const PROJECT = 'Hinge Assembly';
+const CAP = { hu: { v: 'Hinge U', c: 'Right Part' }, br: { v: 'Bracket', c: 'Weld View' } };
+const capName = (id) => `${CAP[id].v} · ${CAP[id].c}`;
+const FOLDER = ['pin & burr', '06:00 - 12:00', 'Edge test 15 NG'];
+const MODS = [
+  { id: 'pin', name: 'Pin detection', store: 'assembly', classes: ['pin', 'burr'] },
+  { id: 'finish', name: 'Surface finish', store: 'classification', classes: ['clean', 'scratch', 'dent'] },
+];
+const EMC = { pin: { pin: 0.45, burr: 0.45 } };
+const RES = '2048 × 2048';
+const DEF_FILES = ['IMG_0004', 'IMG_0007', 'IMG_0010', 'IMG_0016', 'IMG_0019', 'IMG_0023'];
+const DEF_BR = 6;
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const r2 = (v) => Math.round(v * 100) / 100;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const PINS = [[110, 110], [290, 110], [110, 290], [290, 290]];
+// Hinge U · Right Part images, generated exactly as on the Edge screens so IMG_0004 here is IMG_0004 there
+const HU = (() => {
+  const r = rng(11), arr = [];
+  const probs = (top, c, second) => { const o = { clean: 0, scratch: 0, dent: 0 }; o[top] = c; const others = Object.keys(o).filter((k) => k !== top); const s = second || others[0]; o[s] = r2((1 - c) * 0.75); o[others.find((k) => k !== s)] = r2(1 - c - o[s]); return o; };
+  for (let i = 0; i < 36; i++) {
+    const pinC = PINS.map(() => r2(0.72 + 0.25 * r()));
+    const noise = r() < 0.45 ? [{ cls: 'burr', conf: r2(0.04 + 0.16 * r()), pos: [120 + r() * 160, 120 + r() * 160] }] : [];
+    const burrPos = [80 + r() * 240, r() < 0.5 ? 72 + r() * 10 : 318 + r() * 10];
+    arr.push({
+      pin: { dets: [...pinC.map((c, j) => ({ cls: 'pin', conf: c, pos: PINS[j] })), ...noise], t: { pin: 4, burr: 0 }, vis: { burrPos } },
+      finish: { p: probs('clean', r2(0.76 + 0.22 * r())), t: 'clean', vis: {} },
+    });
+  }
+  const P = (i) => arr[i].pin, F = (i) => arr[i].finish;
+  const burr = (i, v, vis = {}) => { P(i).dets.push({ cls: 'burr', conf: v, pos: P(i).vis.burrPos }); P(i).t.burr = 1; Object.assign(P(i).vis, vis); };
+  [[3, 0.82], [9, 0.67], [15, 0.91], [22, 0.74], [30, 0.6]].forEach(([i, v]) => burr(i, v));
+  [[6, 0.38], [18, 0.41], [27, 0.36]].forEach(([i, v]) => burr(i, v, { small: true }));
+  P(33).dets = P(33).dets.filter((d) => d.cls === 'pin'); P(33).t.burr = 1; P(33).vis.faint = true;
+  [[11, 0.41], [25, 0.39]].forEach(([i, v]) => { P(i).dets[2].conf = v; P(i).vis.weak = true; });
+  P(13).dets = P(13).dets.filter((d) => d.cls === 'pin').concat([{ cls: 'burr', conf: 0.29, pos: [200, 160] }]);
+  P(20).dets.push({ cls: 'burr', conf: 0.88, pos: [212, 172] }); P(20).vis.glare = [212, 172];
+  P(28).dets.splice(1, 1); P(28).t.pin = 3; P(28).vis.missing = true;
+  [[4, 'scratch', 0.86], [10, 'scratch', 0.78], [17, 'dent', 0.83], [24, 'dent', 0.71]].forEach(([i, k, c]) => Object.assign(F(i), { p: probs(k, c), t: k, vis: { kind: k } }));
+  [[8, 0.63], [29, 0.65]].forEach(([i, c]) => Object.assign(F(i), { p: probs('clean', c, 'scratch'), t: 'scratch', vis: { kind: 'scratch', faint: true } }));
+  [[14, 0.55], [31, 0.52]].forEach(([i, c]) => Object.assign(F(i), { p: probs('clean', c) }));
+  Object.assign(F(21), { p: { clean: 0.14, scratch: 0.81, dent: 0.05 }, vis: { shine: true } });
+  return arr;
+})();
+const DEFS = `<defs>
+  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cfd4da"/><stop offset=".5" stop-color="#b3b9c1"/><stop offset="1" stop-color="#9aa1aa"/></linearGradient>
+  <radialGradient id="dent"><stop offset="0" stop-color="#4b5563" stop-opacity=".75"/><stop offset="1" stop-color="#4b5563" stop-opacity="0"/></radialGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>`;
+const jag = (cx, cy, s, r) => Array.from({ length: 9 }, (_, k) => { const a = (k / 9) * Math.PI * 2, rr = s * (0.55 + r() * 0.7); return `${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`; }).join(' ');
+const tfOf = (i) => { const r = rng(100 + i); return { rot: (r() - 0.5) * 6, dx: (r() - 0.5) * 12, dy: (r() - 0.5) * 12 }; };
+// The plate: same drawing as Edge (drawHU without the result overlay)
+function drawHU(i) {
+  const m = HU[i], r = rng(100 + i), rot = (r() - 0.5) * 6, dx = (r() - 0.5) * 12, dy = (r() - 0.5) * 12;
+  const p = m.pin, f = m.finish;
+  let s = `<rect width="400" height="400" fill="#2b2f36"/><g transform="translate(${dx.toFixed(1)} ${dy.toFixed(1)}) rotate(${rot.toFixed(1)} 200 200)">`;
+  s += '<rect x="60" y="60" width="280" height="280" rx="16" fill="url(#metal)" stroke="#6b7280" stroke-width="2"/>';
+  PINS.forEach(([x, y], j) => {
+    if (p.vis.missing && j === 1) { s += `<circle cx="${x}" cy="${y}" r="13" fill="#1f2937" stroke="#9ca3af" stroke-width="2"/>`; return; }
+    s += `<g opacity="${p.vis.weak && j === 2 ? 0.5 : 1}"><circle cx="${x}" cy="${y}" r="13" fill="#4b5563"/><circle cx="${x - 4}" cy="${y - 4}" r="4.5" fill="#d1d5db" opacity=".7"/></g>`;
+  });
+  if (p.t.burr) { const [bx, by] = p.vis.burrPos; s += `<polygon points="${jag(bx, by, p.vis.faint ? 4 : p.vis.small ? 6 : 9, r)}" fill="#92400e" opacity="${p.vis.faint ? 0.55 : 0.9}"/>`; }
+  if (p.vis.glare) s += `<ellipse cx="${p.vis.glare[0]}" cy="${p.vis.glare[1]}" rx="22" ry="7" fill="#fff" opacity=".7" filter="url(#blur)" transform="rotate(-25 ${p.vis.glare[0]} ${p.vis.glare[1]})"/>`;
+  if (f.vis.kind === 'scratch') s += `<path d="M150 150 L 258 236" stroke="#f3f4f6" stroke-width="${f.vis.faint ? 1.5 : 2.5}" opacity="${f.vis.faint ? 0.45 : 0.95}" stroke-linecap="round"/>`;
+  if (f.vis.kind === 'dent') s += '<ellipse cx="205" cy="205" rx="30" ry="20" fill="url(#dent)"/>';
+  if (f.vis.shine) s += '<rect x="120" y="185" width="170" height="10" fill="#fff" opacity=".35" filter="url(#blur)" transform="rotate(-12 200 190)"/>';
+  return s + '</g>';
+}
+// What the Edge label file holds for an image: the model's findings at the EMC thresholds, in image coordinates
+function edgeLabels(i) {
+  const m = HU[i], { rot, dx, dy } = tfOf(i), a = (rot * Math.PI) / 180;
+  const at = ([x, y]) => [200 + (x - 200) * Math.cos(a) - (y - 200) * Math.sin(a) + dx, 200 + (x - 200) * Math.sin(a) + (y - 200) * Math.cos(a) + dy];
+  const out = [];
+  m.pin.dets.filter((d) => d.conf >= EMC.pin[d.cls]).sort((x, y) => (x.cls === y.cls ? 0 : x.cls === 'pin' ? -1 : 1)).forEach((d) => {
+    const [cx, cy] = at(d.pos), h = d.cls === 'pin' ? 19 : m.pin.vis.small ? 10 : 14;
+    out.push({ cls: d.cls, x1: cx - h, y1: cy - h, x2: cx + h, y2: cy + h, src: 'edge' });
+  });
+  return out;
+}
+const edgeFinish = (i) => { const p = HU[i].finish.p; return Object.keys(p).reduce((a, b) => (p[a] >= p[b] ? a : b)); };
+
+/* ═══════════ shared Edge download (localStorage, written by review.html) ═══════════ */
+function readDl() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem('edge-testing-v2-dl') || 'null'); } catch (e) { d = null; }
+  const which = d && ['ok', 'ng', 'all'].includes(d.which) ? d.which : 'ng';
+  const hu = d && d.files && Array.isArray(d.files.hu) && d.files.hu.length ? d.files.hu : (d && d.caps && !d.caps.includes('hu') ? [] : DEF_FILES);
+  const files = hu.filter((n) => /^IMG_\d{4}$/.test(n) && +n.slice(4) >= 1 && +n.slice(4) <= 36);
+  const br = d && d.files && Array.isArray(d.files.br) ? d.files.br.length : DEF_BR;
+  return { which, files: files.length ? files : DEF_FILES, br: br || DEF_BR };
+}
+let DL = readDl();
+const zipName = () => `Hinge Line A - Test 15 - ${DL.which === 'all' ? 'All' : DL.which.toUpperCase()}.zip`;
+const idxOf = (n) => +n.slice(4) - 1;
+
+/* ═══════════ icons (copied from the real components) ═══════════ */
+const I = {
+  home: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500 hover:text-f-primary transition-colors"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  chevR: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 flex-shrink-0"><path d="m9 18 6-6-6-6"/></svg>',
+  info: (size = 16, cls = 'text-gray-500 hover:scale-110') => `<span class="relative inline-flex items-center pointer-events-auto"><span role="button" tabindex="0" class="pointer-events-auto inline-flex shrink-0 items-center justify-center rounded-full transition-transform focus:outline-none focus:ring-2 focus:ring-f-primary ${cls}"><svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span></span>`,
+  upload: '<svg class="cursor-pointer" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 9V11.6667C13 12.0203 12.8595 12.3594 12.6095 12.6095C12.3594 12.8595 12.0203 13 11.6667 13H2.33333C1.97971 13 1.64057 12.8595 1.39052 12.6095C1.14048 12.3594 1 12.0203 1 11.6667V9M10.3333 4.33333L7 1M7 1L3.66667 4.33333M7 1V9" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  back: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>',
+  sort: (on) => `<svg width="32" height="32" class="w-15px color-black cursor-pointer rotate-0" viewBox="0 0 32 32" fill="none"><path d="M8 12L16 20L24 12" stroke="${on ? 'black' : '#AAAAAA'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  check: '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" class="text-white" height="12" width="12"><path d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"/></svg>',
+  close: '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" class="cursor-pointer" height="16" width="16"><path d="M289.94 256l95-95A24 24 0 00351 127l-95 95-95-95a24 24 0 00-34 34l95 95-95 95a24 24 0 1034 34l95-95 95 95a24 24 0 0034-34z"/></svg>',
+  tick: '<svg class="inline h-4 w-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>',
+  arrowDown: '<svg width="8" height="5" viewBox="0 0 8 5" fill="none" class="-mr-1 pt-1 size-3 text-gray-400 my-auto"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.00018 4.34229L7.37243 1.00796L6.7538 0.395268L4.00018 3.11863L1.24743 0.395268L0.62793 1.00796L4.00018 4.34229Z" fill="#4F4F4F"/></svg>',
+  rowChev: '<svg class="w-6 h-6 text-gray-700" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>',
+  fileBlue: '<svg class="w-4 h-4" width="16" height="20" viewBox="0 0 16 20" fill="none"><path d="M8.83334 1.66699H3.00001C2.55798 1.66699 2.13406 1.84259 1.8215 2.15515C1.50894 2.46771 1.33334 2.89163 1.33334 3.33366V16.667C1.33334 17.109 1.50894 17.5329 1.8215 17.8455C2.13406 18.1581 2.55798 18.3337 3.00001 18.3337H13C13.442 18.3337 13.866 18.1581 14.1785 17.8455C14.4911 17.5329 14.6667 17.109 14.6667 16.667V7.50033M8.83334 1.66699L14.6667 7.50033M8.83334 1.66699V7.50033H14.6667" stroke="#ff4301" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  dots: '<svg class="w-4 h-4 text-gray-500" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/></svg>',
+  upDown: '<svg width="16" height="24" viewBox="0 0 16 24" fill="none" class="h-5 w-5 text-gray-400"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 5.29297L11.8545 9.14597L11.1475 9.85397L8.00048 6.70697L4.85448 9.85397L4.14648 9.14597L8.00048 5.29297Z" fill="#757A83"/><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 18.707L11.8545 14.854L11.1475 14.146L8.00048 17.293L4.85448 14.146L4.14648 14.854L8.00048 18.707Z" fill="#757A83"/></svg>',
+  // react-feather (24 px, stroke 2)
+  f: (inner, size = 24, cls = '') => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls}">${inner}</svg>`,
+};
+const FE = {
+  chevronsDown: '<polyline points="7 13 12 18 17 13"></polyline><polyline points="7 6 12 11 17 6"></polyline>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>',
+  edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>',
+  trash: '<polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>',
+  chevronsLeft: '<polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline>',
+  chevronLeft: '<polyline points="15 18 9 12 15 6"></polyline>',
+  chevronRight: '<polyline points="9 18 15 12 9 6"></polyline>',
+  chevronsRight: '<polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline>',
+  chevronDown: '<polyline points="6 9 12 15 18 9"></polyline>',
+};
+// Annotation toolbar (assembly/components/Actions.tsx + shared/icons)
+const TOOL = {
+  shortcut: '<svg class="w-6 h-6" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',
+  fit: '<svg class="w-6 h-6" viewBox="0 0 30 30" fill="none" style="transform:scaleX(-1);margin-right:-0.5rem"><path d="M10.6667 4H6.66667C5.95942 4 5.28115 4.28095 4.78105 4.78105C4.28095 5.28115 4 5.95942 4 6.66667V10.6667M28 10.6667V6.66667C28 5.95942 27.719 5.28115 27.219 4.78105C26.7189 4.28095 26.0406 4 25.3333 4H21.3333M21.3333 28H25.3333C26.0406 28 26.7189 27.719 27.219 27.219C27.719 26.7189 28 26.0406 28 25.3333V21.3333M17 14.5V7.5M17 7.5L13.5 10M17 7.5L20.5 10M20 17H27M27 17L24 13M27 17L24 21M4 21.3333V25.3333C4 26.0406 4.28095 26.7189 4.78105 27.219C5.28115 27.719 5.95942 28 6.66667 28H10.6667H15C16.1046 28 17 27.1046 17 26V19C17 17.8954 16.1046 17 15 17H6C4.89543 17 4 17.8954 4 19V21.3333Z" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  zoom: '<svg class="w-6 h-6" viewBox="0 0 30 30" fill="none"><path d="M10.6667 4H6.66667C5.95942 4 5.28115 4.28095 4.78105 4.78105C4.28095 5.28115 4 5.95942 4 6.66667V10.6667M28 10.6667V6.66667C28 5.95942 27.719 5.28115 27.219 4.78105C26.7189 4.28095 26.0406 4 25.3333 4H21.3333M21.3333 28H25.3333C26.0406 28 26.7189 27.719 27.219 27.219C27.719 26.7189 28 26.0406 28 25.3333V21.3333M4 21.3333V25.3333C4 26.0406 4.28095 26.7189 4.78105 27.219C5.28115 27.719 5.95942 28 6.66667 28H10.6667" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5043 11.2727V20H10.6591V13.0241H10.608L8.60938 14.277V12.6406L10.7699 11.2727H12.5043ZM15.6566 18.9858C15.3754 18.9858 15.1339 18.8864 14.9322 18.6875C14.7333 18.4886 14.6339 18.2472 14.6339 17.9631C14.6339 17.6847 14.7333 17.446 14.9322 17.2472C15.1339 17.0483 15.3754 16.9489 15.6566 16.9489C15.9293 16.9489 16.168 17.0483 16.3725 17.2472C16.5771 17.446 16.6793 17.6847 16.6793 17.9631C16.6793 18.1506 16.631 18.3224 16.5344 18.4787C16.4407 18.6321 16.3171 18.7557 16.1637 18.8494C16.0103 18.9403 15.8413 18.9858 15.6566 18.9858ZM15.6566 14.7031C15.3754 14.7031 15.1339 14.6037 14.9322 14.4048C14.7333 14.206 14.6339 13.9645 14.6339 13.6804C14.6339 13.402 14.7333 13.1648 14.9322 12.9688C15.1339 12.7699 15.3754 12.6705 15.6566 12.6705C15.9293 12.6705 16.168 12.7699 16.3725 12.9688C16.5771 13.1648 16.6793 13.402 16.6793 13.6804C16.6793 13.8707 16.631 14.044 16.5344 14.2003C16.4407 14.3537 16.3171 14.4759 16.1637 14.5668C16.0103 14.6577 15.8413 14.7031 15.6566 14.7031ZM21.9496 11.2727V20H20.1044V13.0241H20.0533L18.0547 14.277V12.6406L20.2152 11.2727H21.9496Z" fill="black"/></svg>',
+  rect: (on) => { const c = on ? '#6B4EFF' : '#0E0F0F'; return `<svg class="w-6 h-6${on ? ' text-f-primary' : ''}" viewBox="0 0 32 32" fill="none"><rect x="4.5" y="4.5" width="23" height="23" fill="none" stroke="${c}" stroke-width="${on ? 2 : 1}"/><circle cx="4" cy="4" r="4" fill="${c}"/><circle cx="4" cy="28" r="4" fill="${c}"/><circle cx="28" cy="4" r="4" fill="${c}"/><circle cx="28" cy="28" r="4" fill="${c}"/></svg>`; },
+  poly: '<svg class="w-6 h-6" width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M4.36 9.28L16 16.0133L27.64 9.28M16 29.44V16M28 21.3333V10.6667C27.9995 10.199 27.8761 9.73975 27.6421 9.33489C27.408 8.93002 27.0717 8.59382 26.6667 8.36L17.3333 3.02667C16.9279 2.79262 16.4681 2.6694 16 2.6694C15.5319 2.6694 15.0721 2.79262 14.6667 3.02667L5.33333 8.36C4.92835 8.59382 4.59197 8.93002 4.35795 9.33489C4.12392 9.73975 4.00048 10.199 4 10.6667V21.3333C4.00048 21.801 4.12392 22.2603 4.35795 22.6651C4.59197 23.07 4.92835 23.4062 5.33333 23.64L14.6667 28.9733C15.0721 29.2074 15.5319 29.3306 16 29.3306C16.4681 29.3306 16.9279 29.2074 17.3333 28.9733L26.6667 23.64C27.0717 23.4062 27.408 23.07 27.6421 22.6651C27.8761 22.2603 27.9995 21.801 28 21.3333Z" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  brush: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M20.2402 8.625C20.2402 8.48812 20.2946 8.35687 20.3912 8.26031C20.4879 8.16362 20.6191 8.1093 20.7559 8.1093C20.8926 8.1093 21.0238 8.16362 21.1205 8.26031C21.2171 8.35687 21.2715 8.48812 21.2715 8.625V22.7344H0.318359V1.78125H16.3496C16.486 1.78125 16.6173 1.83563 16.7143 1.93219C16.811 2.02892 16.8653 2.1601 16.8653 2.29688C16.8653 2.43365 16.811 2.56483 16.7143 2.66156C16.6174 2.75808 16.4863 2.81234 16.3496 2.8125H1.34961V21.7031H20.2402V8.625Z" stroke="#0E0F0F" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.45377 10.0723C9.34462 10.1548 9.20722 10.1905 9.07174 10.1717C8.93627 10.1525 8.81393 10.0808 8.73143 9.97156C8.69059 9.91753 8.66079 9.85598 8.64374 9.79043C8.62669 9.72488 8.62272 9.65661 8.63205 9.58953C8.6508 9.45453 8.72299 9.33171 8.83221 9.24921C9.08379 9.05923 9.36619 8.91399 9.66705 8.81984C9.95458 8.73102 10.2539 8.68644 10.5549 8.68765C10.7185 8.68812 10.8816 8.70031 11.0438 8.72374C11.2055 8.74718 11.3653 8.7814 11.5233 8.825C11.8374 8.91359 12.1416 9.0364 12.4289 9.19109C12.7144 9.3439 12.9835 9.52437 13.2328 9.73062C13.4766 9.93124 13.6988 10.1572 13.8952 10.4042C14.0567 10.6079 14.2014 10.8244 14.3278 11.0516C14.4478 11.2667 14.5496 11.4922 14.6306 11.7252C14.7854 12.1712 14.864 12.6401 14.8631 13.1122C14.8627 13.3287 14.8477 13.5453 14.8172 13.7595C14.7867 13.9756 14.7431 14.1898 14.686 14.4008C14.6287 14.6147 14.5598 14.8253 14.4797 15.0317C14.3981 15.2426 14.3067 15.4498 14.206 15.6523C14.0872 15.8908 13.9455 16.117 13.7827 16.3278C13.6167 16.543 13.4339 16.7441 13.2352 16.9292C13.0314 17.1195 12.8146 17.2954 12.5864 17.4556C12.3525 17.6192 12.1088 17.7683 11.8561 17.9019C11.3393 18.1753 10.7921 18.3869 10.2258 18.5323C9.94127 18.6064 9.65252 18.6626 9.36096 18.7016C9.0708 18.74 8.77831 18.7597 8.48534 18.7602C8.2308 18.7606 7.97627 18.7447 7.72362 18.7123C7.47237 18.6805 7.22346 18.6303 6.97971 18.5623C6.73585 18.4945 6.49789 18.407 6.26815 18.3008C6.03647 18.1934 5.81494 18.0654 5.60627 17.9183C5.39302 17.7678 5.19476 17.5972 5.01424 17.4087C4.82655 17.2125 4.65855 16.9984 4.51268 16.7694C4.35799 16.5261 4.22674 16.2697 4.12034 16.0025C3.90096 15.4517 3.77252 14.8695 3.76826 14.7928C3.75251 14.5086 3.89787 14.3445 4.09268 14.4266C4.09268 14.4266 4.46627 14.5203 4.84784 14.5559C4.9458 14.5653 5.04424 14.5681 5.14221 14.5644C5.22049 14.5616 5.29784 14.5536 5.37471 14.5405C5.43424 14.5306 5.49331 14.5161 5.55049 14.4969C5.61347 14.4758 5.67423 14.4487 5.7319 14.4158C5.78346 14.3862 5.83127 14.3516 5.87487 14.3122C5.92127 14.2705 5.96252 14.2245 5.99909 14.1739C6.04462 14.1107 6.08416 14.0434 6.11721 13.9728C6.1369 13.9302 6.1533 13.8861 6.16596 13.8411C6.18049 13.7891 6.19174 13.7361 6.20018 13.6826C6.21002 13.6189 6.21799 13.5551 6.22315 13.4905C6.22971 13.4155 6.23534 13.34 6.24049 13.2645C6.2494 13.1145 6.26205 12.965 6.27893 12.8159C6.30002 12.6369 6.33331 12.4597 6.37831 12.2848C6.43179 12.0812 6.50348 11.8827 6.59252 11.6919C6.69752 11.4692 6.82268 11.2569 6.96659 11.0572C7.04627 10.9461 7.16721 10.8711 7.30221 10.8491C7.43721 10.827 7.57549 10.8598 7.68612 10.9395C7.79721 11.0197 7.87221 11.1402 7.89424 11.2752C7.91627 11.4102 7.88346 11.5484 7.80377 11.6595C7.697 11.8075 7.6041 11.9651 7.52627 12.1302C7.46393 12.2637 7.41377 12.4025 7.37627 12.545C7.34299 12.6725 7.31909 12.8028 7.30362 12.9336C7.28862 13.0648 7.27737 13.1966 7.2694 13.3283C7.26424 13.4122 7.25815 13.4956 7.25065 13.5791C7.24315 13.6667 7.23284 13.7544 7.21924 13.8416C7.20424 13.9353 7.18455 14.0281 7.15877 14.1195C7.13112 14.218 7.09549 14.3145 7.05237 14.4073C6.99187 14.5373 6.91921 14.6613 6.83534 14.7777C6.75608 14.887 6.66558 14.9877 6.56534 15.0781C6.46729 15.1668 6.35995 15.2446 6.24518 15.3102C6.12772 15.3778 6.00363 15.4333 5.87487 15.4756C5.76752 15.5112 5.65831 15.5384 5.54674 15.5572C5.46612 15.5709 5.3564 15.5863 5.21759 15.6034C5.14052 15.6128 5.10405 15.6778 5.13616 15.7485C5.22051 15.9341 5.30268 16.0897 5.38268 16.2153C5.49237 16.3873 5.61846 16.5481 5.75909 16.6958C5.89409 16.8364 6.04174 16.9634 6.20065 17.0755C6.35862 17.187 6.52643 17.2836 6.70174 17.3652C6.8806 17.4479 7.0659 17.5159 7.2558 17.5686C7.45174 17.6234 7.6519 17.6637 7.85393 17.6895C8.06299 17.7158 8.27346 17.7294 8.48393 17.7289C8.7319 17.7284 8.9794 17.712 9.22502 17.6792C9.47534 17.6459 9.72377 17.5972 9.96846 17.5339C10.4564 17.4083 10.9285 17.2259 11.3742 16.9902C11.5889 16.8767 11.7961 16.7501 11.9944 16.6109C12.1833 16.4787 12.3628 16.333 12.5316 16.1755C12.6893 16.0284 12.8346 15.8687 12.9661 15.6978C13.088 15.5403 13.1939 15.3711 13.283 15.193C13.3692 15.0191 13.448 14.8409 13.5178 14.6595C13.5849 14.487 13.6425 14.3112 13.6903 14.1327C13.7363 13.9625 13.7714 13.79 13.7963 13.6156C13.8197 13.4483 13.8314 13.2795 13.8319 13.1103C13.8328 12.7545 13.7733 12.4006 13.6571 12.0641C13.5952 11.8877 13.5183 11.7169 13.4274 11.5536C13.3279 11.3754 13.2142 11.2055 13.0875 11.0455C12.9362 10.8547 12.7649 10.6808 12.5766 10.5266C12.3797 10.3634 12.1669 10.2205 11.9414 10.1C11.7202 9.98046 11.4867 9.88624 11.2449 9.81828C11.13 9.78593 11.0128 9.76156 10.8947 9.74421C10.7813 9.72781 10.6664 9.71937 10.5516 9.7189C10.3556 9.71796 10.1606 9.74703 9.97315 9.80468C9.7859 9.86333 9.61019 9.95388 9.45377 10.0723ZM14.6217 8.29156C14.525 8.38825 14.3938 8.44257 14.2571 8.44257C14.1203 8.44257 13.9891 8.38825 13.8924 8.29156C13.7958 8.19487 13.7415 8.06378 13.7415 7.9271C13.7415 7.79042 13.7958 7.65934 13.8924 7.56265L21.0894 0.36565C21.254 0.201025 21.5213 0.201025 21.6859 0.365697L23.6455 2.32554C23.8101 2.49021 23.8101 2.75759 23.6455 2.92221L16.4377 10.1295C16.341 10.2261 16.2099 10.2804 16.0732 10.2804C15.9365 10.2804 15.8055 10.2261 15.7088 10.1295C15.6608 10.0817 15.6227 10.0249 15.5967 9.96229C15.5707 9.8997 15.5573 9.8326 15.5574 9.76484C15.5574 9.62843 15.6117 9.49718 15.7088 9.40015L22.1867 2.92221C22.3513 2.75759 22.3514 2.49021 22.1868 2.32554L21.6859 1.82445C21.5213 1.65978 21.254 1.65973 21.0894 1.8244L14.6217 8.29156Z" stroke="#0E0F0F" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  line: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><line x1="8.5" y1="15.5" x2="15.5" y2="8.5" stroke="#0E0F0F" stroke-width="2" stroke-linecap="round"/><circle cx="6" cy="18" r="3" fill="#0E0F0F" stroke="#0E0F0F" stroke-width="1"/><circle cx="18" cy="6" r="3" fill="#0E0F0F" stroke="#0E0F0F" stroke-width="1"/></svg>',
+};
+
+/* ClassChip colour (shared/components/ClassChip.tsx) */
+const hashString = (str) => { let hash = 0; for (let i = 0; i < str.length; i++) { hash = (hash << 5) - hash + str.charCodeAt(i); hash |= 0; } hash ^= hash >>> 16; hash = Math.imul(hash, 0x45d9f3b); hash ^= hash >>> 16; hash = Math.imul(hash, 0x45d9f3b); hash ^= hash >>> 16; return hash; };
+const hslToHex = (h, s, l) => { s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); const toHex = (x) => Math.round(255 * x).toString(16).padStart(2, '0'); return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`; };
+const clsColor = (name) => hslToHex((((hashString('cls-' + name) % 360) + 360) % 360), 85, 38);
+const chip = (name, color) => { const c = color || clsColor(name); return `<span class="relative inline-flex items-center rounded-md py-0.5 whitespace-nowrap text-sm font-medium px-2" style="background-color:${c}35;color:${c};border:1px solid ${c}70">${esc(name)}</span>`; };
+
+/* ═══════════ state ═══════════ */
+const STATES = ['folder', 'upload', 'wrong-capture', 'uploaded', 'datasets', 'job', 'saved'];
+const Q = new URLSearchParams(location.search);
+const EMBED = window.self !== window.top;
+const S = {
+  state: STATES.includes(Q.get('state')) ? Q.get('state') : 'folder',
+  mode: Q.get('mode') === 'today' ? 'today' : 'after',
+  choice: 'edge', picked: 'hu',     // Upload dialog (after)
+  status: null,                       // Upload Status modal: { n, done }
+  plain: false,                       // after mode, uploaded with the "Images" choice
+  uploadedDone: true,
+  saved: new Set(), idx: 0,
+  shapes: {}, finish: {}, open: Q.get('open') === 'finish' ? 'finish' : 'pin',
+  selCls: null, draft: null, hl: null, sel: null, del: null, dd: null, pager: false,
+};
+const after = () => S.mode === 'after';
+function presetFor(state) {
+  S.status = null; S.selCls = null; S.draft = null; S.hl = null; S.sel = null; S.del = null; S.pager = false;
+  if (state === 'upload') { S.choice = 'edge'; S.picked = 'hu'; }
+  if (state === 'wrong-capture') { S.choice = 'edge'; S.picked = 'br'; }
+  if (state === 'folder') S.uploadedDone = false;
+  if (state === 'uploaded' || state === 'datasets') S.uploadedDone = true;
+  if (state === 'job') { S.uploadedDone = true; S.saved = new Set(); S.idx = 0; S.shapes = {}; S.finish = {}; S.open = Q.get('open') === 'finish' ? 'finish' : 'pin'; }
+  if (state === 'saved') { S.uploadedDone = true; S.saved = new Set([0]); S.idx = 1; S.shapes = {}; S.finish = {}; S.open = null; }
+}
+presetFor(S.state);
+const files = () => DL.files;
+const shapesOf = (k) => { const n = files()[k]; if (!S.shapes[n]) S.shapes[n] = after() && !S.plain ? edgeLabels(idxOf(n)) : []; return S.shapes[n]; };
+const finishOf = (k) => { const n = files()[k]; if (S.finish[n] === undefined) S.finish[n] = after() && !S.plain ? edgeFinish(idxOf(n)) : ''; return S.finish[n]; };
+
+function setUrl() {
+  try { history.replaceState(null, '', `${location.pathname}?state=${S.state}&mode=${S.mode}`); } catch (e) { /* file:// in some browsers */ }
+}
+function post(to) { if (EMBED) { try { parent.postMessage({ type: 'testing-v2-nav', to }, '*'); } catch (e) { /* ignore */ } } }
+// Workflow step of each state, so the shell highlights the right one
+const STEP_OF = { upload: 'vision-upload', uploaded: 'vision-uploaded', datasets: 'vision-datasets', job: 'vision-annotate', saved: 'vision-annotate' };
+function go(state, opts = {}) {
+  if (opts.preset !== false) presetFor(state);
+  S.state = state; setUrl(); render();
+  if (STEP_OF[state]) post(STEP_OF[state]);
+}
+
+/* ═══════════ chrome ═══════════ */
+const SIDE_ICONS = [
+  ['Recipe Management', '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><g clip-path="url(#clip0_5827_1475)"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.285 19.4995 16.5843 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.8959 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.8959 16.96 19.71L16.9 19.65C16.6643 19.4195 16.365 19.2648 16.0406 19.206C15.7162 19.1472 15.3816 19.1869 15.08 19.32C14.7842 19.4468 14.532 19.6572 14.3543 19.9255C14.1766 20.1938 14.0813 20.5082 14.08 20.83V21C14.08 21.5304 13.8693 22.0391 13.4942 22.4142C13.1191 22.7893 12.6104 23 12.08 23C11.5496 23 11.0409 22.7893 10.6658 22.4142C10.2907 22.0391 10.08 21.5304 10.08 21V20.91C10.0723 20.579 9.96512 20.258 9.77251 19.9887C9.5799 19.7194 9.31074 19.5143 9 19.4C8.69838 19.2669 8.36381 19.2272 8.03941 19.286C7.71502 19.3448 7.41568 19.4995 7.18 19.73L7.12 19.79C6.93425 19.976 6.71368 20.1235 6.47088 20.2241C6.22808 20.3248 5.96783 20.3766 5.705 20.3766C5.44217 20.3766 5.18192 20.3248 4.93912 20.2241C4.69632 20.1235 4.47575 19.976 4.29 19.79C4.10405 19.6043 3.95653 19.3837 3.85588 19.1409C3.75523 18.8981 3.70343 18.6378 3.70343 18.375C3.70343 18.1122 3.75523 17.8519 3.85588 17.6091C3.95653 17.3663 4.10405 17.1457 4.29 16.96L4.35 16.9C4.58054 16.6643 4.73519 16.365 4.794 16.0406C4.85282 15.7162 4.81312 15.3816 4.68 15.08C4.55324 14.7842 4.34276 14.532 4.07447 14.3543C3.80617 14.1766 3.49179 14.0813 3.17 14.08H3C2.46957 14.08 1.96086 13.8693 1.58579 13.4942C1.21071 13.1191 1 12.6104 1 12.08C1 11.5496 1.21071 11.0409 1.58579 10.6658C1.96086 10.2907 2.46957 10.08 3 10.08H3.09C3.42099 10.0723 3.742 9.96512 4.0113 9.77251C4.28059 9.5799 4.48572 9.31073 4.6 9C4.73312 8.69838 4.77282 8.36381 4.714 8.03941C4.65519 7.71502 4.50054 7.41568 4.27 7.18L4.21 7.12C4.02405 6.93425 3.87653 6.71368 3.77588 6.47088C3.67523 6.22808 3.62343 5.96783 3.62343 5.705C3.62343 5.44217 3.67523 5.18191 3.77588 4.93912C3.87653 4.69632 4.02405 4.47575 4.21 4.29C4.39575 4.10405 4.61632 3.95653 4.85912 3.85588C5.10192 3.75523 5.36217 3.70343 5.625 3.70343C5.88783 3.70343 6.14808 3.75523 6.39088 3.85588C6.63368 3.95653 6.85425 4.10405 7.04 4.29L7.1 4.35C7.33568 4.58054 7.63502 4.73519 7.95941 4.794C8.28381 4.85282 8.61838 4.81311 8.92 4.68H9C9.29577 4.55324 9.54802 4.34275 9.72569 4.07446C9.90337 3.80617 9.99872 3.49179 10 3.17V3C10 2.46957 10.2107 1.96086 10.5858 1.58579C10.9609 1.21071 11.4696 1 12 1C12.5304 1 13.0391 1.21071 13.4142 1.58579C13.7893 1.96086 14 2.46957 14 3V3.09C14.0013 3.41179 14.0966 3.72617 14.2743 3.99447C14.452 4.26276 14.7042 4.47324 15 4.6C15.3016 4.73311 15.6362 4.77282 15.9606 4.714C16.285 4.65519 16.5843 4.50054 16.82 4.27L16.88 4.21C17.0657 4.02405 17.2863 3.87653 17.5291 3.77588C17.7719 3.67523 18.0322 3.62343 18.295 3.62343C18.5578 3.62343 18.8181 3.67523 19.0609 3.77588C19.3037 3.87653 19.5243 4.02405 19.71 4.21C19.896 4.39575 20.0435 4.61632 20.1441 4.85912C20.2448 5.10191 20.2966 5.36217 20.2966 5.625C20.2966 5.88783 20.2448 6.14808 20.1441 6.39088C20.0435 6.63368 19.896 6.85425 19.71 7.04L19.65 7.1C19.4195 7.33568 19.2648 7.63501 19.206 7.95941C19.1472 8.28381 19.1869 8.61838 19.32 8.92V9C19.4468 9.29577 19.6572 9.54802 19.9255 9.72569C20.1938 9.90337 20.5082 9.99872 20.83 10H21C21.5304 10 22.0391 10.2107 22.4142 10.5858C22.7893 10.9609 23 11.4696 23 12C23 12.5304 22.7893 13.0391 22.4142 13.4142C22.0391 13.7893 21.5304 14 21 14H20.91C20.5882 14.0013 20.2738 14.0966 20.0055 14.2743C19.7372 14.452 19.5268 14.7042 19.4 15Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></g><defs><clipPath id="clip0_5827_1475"><rect width="24" height="24" fill="white"/></clipPath></defs></svg>'],
+  ['Datasets & Annotations', '<svg width="21" height="21" viewBox="0 0 21 21" fill="none"><path d="M6 6H6.01M19.59 12.41L12.42 19.58C12.2343 19.766 12.0137 19.9135 11.7709 20.0141C11.5281 20.1148 11.2678 20.1666 11.005 20.1666C10.7422 20.1666 10.4819 20.1148 10.2391 20.0141C9.99632 19.9135 9.77575 19.766 9.59 19.58L1 11V1H11L19.59 9.59C19.9625 9.96473 20.1716 10.4716 20.1716 11C20.1716 11.5284 19.9625 12.0353 19.59 12.41Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
+  ['AI Models', '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 1V4M15 1V4M9 20V23M15 20V23M20 9H23M20 14H23M1 9H4M1 14H4M6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4ZM9 9H15V15H9V9Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
+  ['Instances', '<svg width="20" height="22" viewBox="0 0 20 22" fill="none"><path d="M11 1L1 13H10L9 21L19 9H10L11 1Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
+];
+// shared/layouts/project/sidebar.tsx (Datasets & Annotations is the active NavLink on every screen here)
+function sidebar() {
+  const items = SIDE_ICONS.map(([name, svg], i) => `<li class="group relative transition-all duration-300">
+      <a href="#" data-act="nav" data-to="${i === 1 ? 'datasets' : ''}" class="${i === 1 ? 'active bg-white/20 text-white' : 'text-white hover:bg-white/20 hover:text-white'} flex w-full items-center justify-center rounded-md py-2 duration-300 overflow-hidden"><div class="flex items-center justify-center">${svg}</div></a>
+      <div role="tooltip" class="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 px-2.5 py-1.5 text-xs font-semibold text-white bg-f-primary rounded shadow-[0_4px_12px_rgba(0,0,0,0.3)] opacity-0 -translate-x-1 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none w-max max-w-[200px] break-words whitespace-normal">${esc(name)}</div>
+    </li>`).join('');
+  return `<div class="fixed left-0 top-0 bottom-0 flex w-[80px] flex-col items-center border-r border-r-gray-300 bg-[#1e1c1c] px-2 py-6 shadow-md transition-all duration-300" style="z-index:9999">
+    <a href="#" class="mb-10 mt-3 flex items-center justify-center overflow-hidden transition-all duration-300"><svg width="58" height="58" viewBox="0 0 230 58" fill="none" preserveAspectRatio="xMinYMid slice" style="width:58px" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_84_12245)">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.3373 23.3047C19.4945 23.3047 19.6219 23.4253 19.6219 23.5742L19.6219 30.8503C19.6219 30.9991 19.4945 31.1197 19.3373 31.1197C19.1801 31.1197 19.0527 30.9991 19.0527 30.8503L19.0527 23.5742C19.0527 23.4253 19.1801 23.3047 19.3373 23.3047Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.7337 24.7076C25.7015 24.8533 25.5507 24.9467 25.3968 24.9162L19.2783 23.7035C19.1244 23.673 19.0258 23.5302 19.058 23.3845C19.0902 23.2389 19.241 23.1455 19.3949 23.176L25.5134 24.3886C25.6673 24.4191 25.7659 24.5619 25.7337 24.7076Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M20.9018 23.5742C21.0589 23.5742 21.1864 23.6949 21.1864 23.8437V32.3325C21.1864 32.4813 21.0589 32.602 20.9018 32.602C20.7446 32.602 20.6172 32.4813 20.6172 32.3325V23.8437C20.6172 23.6949 20.7446 23.5742 20.9018 23.5742Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M22.4672 23.8437C22.6244 23.8437 22.7518 23.9644 22.7518 24.1132L22.7518 33.8147C22.7518 33.9635 22.6244 34.0842 22.4672 34.0842C22.31 34.0842 22.1826 33.9635 22.1826 33.8147L22.1826 24.1132C22.1826 23.9644 22.31 23.8437 22.4672 23.8437Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M24.0326 24.1128C24.1898 24.1128 24.3172 24.2334 24.3172 24.3823V35.2964C24.3172 35.4452 24.1898 35.5659 24.0326 35.5659C23.8755 35.5659 23.748 35.4452 23.748 35.2964V24.3823C23.748 24.2334 23.8755 24.1128 24.0326 24.1128Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.4555 24.3828C25.6127 24.3828 25.7401 24.5035 25.7401 24.6523V36.6444C25.7401 36.7932 25.6127 36.9138 25.4555 36.9138C25.2983 36.9138 25.1709 36.7932 25.1709 36.6444V24.6523C25.1709 24.5035 25.2983 24.3828 25.4555 24.3828Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0527 7H39.9697C40.1269 7 40.2543 7.12065 40.2543 7.26948C40.2543 7.41832 40.1269 7.53897 39.9697 7.53897H19.6219V16.0529L25.6487 15.2193H35.7721C35.9293 15.2193 36.0567 15.3399 36.0567 15.4888C36.0567 15.6376 35.9293 15.7583 35.7721 15.7583H25.69L19.0527 16.6763V7Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M20.6885 8.48193H37.7636C37.9207 8.48193 38.0481 8.60259 38.0481 8.75142C38.0481 8.90025 37.9207 9.0209 37.7636 9.0209H21.2576V16.0949C21.2576 16.2437 21.1302 16.3644 20.9731 16.3644C20.8159 16.3644 20.6885 16.2437 20.6885 16.0949V8.48193Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M22.2539 9.96387H36.412C36.5692 9.96387 36.6966 10.0845 36.6966 10.2334C36.6966 10.3822 36.5692 10.5028 36.412 10.5028H22.8231V15.8925C22.8231 16.0414 22.6957 16.162 22.5385 16.162C22.3813 16.162 22.2539 16.0414 22.2539 15.8925V9.96387Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M23.8193 11.4463H34.0644C34.2216 11.4463 34.349 11.5669 34.349 11.7158C34.349 11.8646 34.2216 11.9853 34.0644 11.9853H24.3885V15.6907C24.3885 15.8395 24.2611 15.9602 24.1039 15.9602C23.9467 15.9602 23.8193 15.8395 23.8193 15.6907V11.4463Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.3135 12.7939H32.9261C33.0833 12.7939 33.2107 12.9146 33.2107 13.0634C33.2107 13.2123 33.0833 13.3329 32.9261 13.3329H25.8826V15.4888C25.8826 15.6376 25.7552 15.7583 25.5981 15.7583C25.4409 15.7583 25.3135 15.6376 25.3135 15.4888V12.7939Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.865 16.8354L33.998 16.944C34.1552 16.9463 34.2805 17.0689 34.278 17.2177C34.2755 17.3665 34.146 17.4852 33.9889 17.4829L26.8798 17.3747L19.3567 17.8614C19.1999 17.8715 19.0641 17.7594 19.0534 17.6109C19.0427 17.4624 19.1611 17.3338 19.3179 17.3237L26.865 16.8354Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.8698 18.1353L32.7569 18.2437C32.9141 18.2466 33.039 18.3696 33.0359 18.5184C33.0329 18.6672 32.903 18.7855 32.7459 18.7826L26.875 18.6744L19.3481 18.9449C19.1911 18.9506 19.0589 18.8346 19.0529 18.6859C19.047 18.5371 19.1695 18.412 19.3265 18.4064L26.8698 18.1353Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0528 19.7007C19.055 19.5518 19.1843 19.4329 19.3414 19.4351L31.265 19.5976C31.4222 19.5997 31.5478 19.7221 31.5455 19.8709C31.5432 20.0197 31.414 20.1386 31.2568 20.1365L19.3332 19.974C19.1761 19.9719 19.0505 19.8495 19.0528 19.7007Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0531 20.7743C19.0611 20.6257 19.1948 20.5113 19.3518 20.5189L27.2108 20.8977H29.8533C30.0105 20.8977 30.1379 21.0183 30.1379 21.1672C30.1379 21.316 30.0105 21.4367 29.8533 21.4367H27.1964L19.3229 21.0572C19.1659 21.0496 19.0451 20.923 19.0531 20.7743Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0539 21.9558C19.068 21.8075 19.2063 21.6982 19.3629 21.7116L26.968 22.3604H28.4457C28.6028 22.3604 28.7302 22.4811 28.7302 22.6299C28.7302 22.7787 28.6028 22.8994 28.4457 22.8994H26.9424L19.3118 22.2483C19.1553 22.235 19.0398 22.104 19.0539 21.9558Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path d="M9.48544 14.0082H7.28711V-0.0317383H21.3271V2.16659H9.48544V14.0082Z" fill="white" />
+<path d="M21.3271 44.1406H7.28711V30.1006H9.48544V41.9422H21.3271V44.1406Z" fill="white" />
+<path d="M50.4033 14.0082H48.2049V2.16659H36.3633V-0.0317383H50.4033V14.0082Z" fill="white" />
+<path d="M50.4033 44.1406H36.3633V41.9422H48.2049V30.1006H50.4033V44.1406Z" fill="white" />
+      </g>
+      <defs><clipPath id="clip0_84_12245"><rect width="230" height="51.427" fill="white"/></clipPath></defs>
+    </svg></a>
+    <ul class="mt-8 flex w-full flex-col gap-2">${items}</ul>
+    <div class="flex w-full grow flex-col justify-end gap-2">
+      <a href="#" class="flex w-full cursor-pointer items-center justify-center rounded-md py-2 text-white duration-300 hover:bg-white/20 transition-all overflow-hidden"><svg width="18" height="20" viewBox="0 0 18 20" fill="none"><path d="M1.5 7.49984L9 1.6665L16.5 7.49984V16.6665C16.5 17.1085 16.3244 17.5325 16.0118 17.845C15.6993 18.1576 15.2754 18.3332 14.8333 18.3332H3.16667C2.72464 18.3332 2.30072 18.1576 1.98816 17.845C1.67559 17.5325 1.5 17.1085 1.5 16.6665V7.49984Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+  </div>`;
+}
+// shared/ui/Breadcrumb.tsx inside shared/layouts/main/heading.tsx
+function heading(items) {
+  const crumbs = items.map((it, i) => {
+    const last = i === items.length - 1, active = it.active !== undefined ? it.active : last;
+    const tr = it.noTruncate ? '' : 'max-w-[150px] sm:max-w-[200px]';
+    const lbl = `<span class="inline-flex items-center gap-1.5 min-w-0"><span class="${it.noTruncate ? '' : 'truncate'}">${esc(it.label)}</span>${it.info ? I.info(15) : ''}</span>`;
+    const title = it.info ? '' : ` title="${esc(it.label)}"`;
+    let el;
+    if (it.to && !active && !it.disabled) el = `<a href="#" data-act="nav" data-to="${it.to}" class="px-2 py-1 font-medium text-gray-600 hover:text-f-primary hover:bg-gray-100 rounded-md transition-all duration-200 inline-flex items-center ${tr}"${title}>${lbl}</a>`;
+    else if (it.disabled) el = `<span class="px-2 py-1 font-medium text-gray-600 rounded-md cursor-default select-none inline-flex items-center ${tr}"${title}>${lbl}</span>`;
+    else el = `<span class="px-2 py-1 font-semibold text-gray-900 rounded-md inline-flex items-center ${tr}"${title} aria-current="page">${lbl}</span>`;
+    return I.chevR + el;
+  }).join('');
+  return `<div class="flex items-center justify-between mt-1 gap-2 h-[60px] px-5 bg-white py-4"><div class="flex items-baseline gap-2"><div class="flex items-baseline text-xl font-medium gap-2">
+    <nav aria-label="Breadcrumb" class="flex items-center space-x-1 sm:space-x-2 text-sm text-gray-500 mb-4 px-1 py-2"><a href="#" class="flex items-center px-2 py-1 hover:text-f-primary hover:bg-gray-100 rounded-md transition-all duration-200" title="Go to Home">${I.home}</a>${crumbs}</nav>
+  </div></div><div></div></div>`;
+}
+const th = (inner, idx, extra = '') => `<th scope="col" class="group sticky top-0 z-10 px-2 py-2 pt-4 pb-4 text-center text-base font-medium text-white ${extra}">${inner}${idx !== undefined ? '<div class="absolute top-2.5 right-0 bottom-2.5 w-0.5 cursor-col-resize rounded-2xl bg-white group-last:hidden"></div>' : ''}</th>`;
+const thInfo = (label, tip) => `<span class="inline-flex items-center justify-center gap-1 whitespace-nowrap">${label}${I.info(16, 'text-white')}</span>`;
+const td = (inner, cls = '', attrs = '') => `<td class="px-2 py-2 text-black overflow-visible ${cls}" ${attrs}><div class="flex h-full w-full items-center justify-center text-center">${inner}</div></td>`;
+const checkbox = (on) => `<label class="border border-f-light-gray shadow shadow-f-dark-gray rounded-md w-6 flex items-center justify-center h-6 cursor-pointer ${on ? 'bg-f-primary' : 'bg-white'}">${on ? I.check : ''}</label>`;
+function table(cols, widths, head, body) {
+  return `<div class="flow-root h-full w-full overflow-x-auto"><div class="w-max min-w-full"><table class="min-w-full max-h-full divide-y divide-gray-300">
+    <colgroup>${widths.map((w) => `<col style="width:${w ? w + 'px' : 'auto'}">`).join('')}</colgroup>
+    <thead class="sticky top-0 z-10"><tr class="bg-f-primary relative">${head}</tr></thead>
+    <tbody class="max-h-full min-h-[800px] divide-y divide-gray-200 overflow-y-auto bg-white">${body}</tbody>
+  </table></div></div>`;
+}
+// shared/ui/Button.tsx
+function btn(label, { size = 'lg', variant, color = 'primary', disabled = false, act = '', cls = '', attrs = '' } = {}) {
+  const sz = { lg: 'text-sm px-6 py-2 rounded-md', md: 'text-sm px-3 py-1.5 rounded-md', normal: 'text-sm px-3 py-1 rounded-md', xs: 'text-xs px-2 py-1 rounded-sm' }[size];
+  let c = color === 'success' ? 'bg-green-500 text-white hover:bg-green-400 px-4 duration-100' : 'bg-f-primary text-white hover:bg-f-primary/90';
+  if (variant === 'border') c = 'bg-transparent border hover:opacity-70 border-f-primary text-f-primary hover:bg-white/90';
+  if (disabled) c = 'bg-gray-200 text-gray-500 hover:bg-gray-300 cursor-not-allowed';
+  // tailwind-variants merges classes, so the border variant's colour replaces border-transparent
+  const base = `font-semibold h-fit cursor-pointer border ${variant === 'border' && !disabled ? '' : 'border-transparent'}`;
+  return `<button type="button" ${act ? `data-act="${act}"` : ''} ${attrs} ${disabled ? 'disabled' : ''} class="${base} ${sz} ${c} ${cls} disabled:cursor-not-allowed disabled:border-transparent disabled:bg-gray-300 disabled:text-gray-500">${label}</button>`;
+}
+// shared/ui/Modal.tsx (portal: z-50, under the z-9999 sidebar)
+const modal = (inner, bodyStyle = '') => `<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300 opacity-100" role="dialog" aria-modal="true">
+  <div class="relative w-full max-w-md transform rounded-lg bg-white shadow-lg outline-none transition-transform duration-300 scale-100" tabindex="-1" style="${bodyStyle}">${inner}</div></div>`;
+const modalHeader = (title) => `<div class="flex items-center justify-between border-b-[1px] p-5"><h3 class="font-semibold flex items-center gap-1.5">${title}</h3><span data-act="closeDialog">${I.close}</span></div>`;
+const radio = (on) => `<label class="w-6 h-6 rounded-full flex items-center justify-center border cursor-pointer drop-shadow hover:drop-shadow-xl text-white ${on ? 'bg-f-primary border-f-primary' : ''}"><div class="w-2 h-2 rounded-full transition-transform duration-200 ease-in-out bg-white ${on ? 'scale-100' : 'scale-0'}"></div></label>`;
+
+/* ═══════════ folder images page (modules/project/folder-images/index.tsx) ═══════════ */
+const UP_AT = ['6:05:12 pm', '6:05:12 pm', '6:05:13 pm', '6:05:13 pm', '6:05:13 pm', '6:05:14 pm'];
+const capAt = (n) => { const i = idxOf(n); const s = 10 * 60 * 60 + 42 * 60 + i * 23; const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return `29/10/2026, ${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')} am`; };
+function folderPage() {
+  const showImgs = S.state === 'uploaded' && !S.status;
+  const list = showImgs ? files() : [];
+  const tag = after() && !S.plain;
+  const cols = [['', false], ['S.No.', false], ['File Name', true], ['Date Created', true], ['Date Modified', true, 'When the image was captured on the line, not when it was uploaded.'], ['Is Annotated', false, 'Whether this image has been labelled. Training only uses folders where every image is annotated.']];
+  const head = cols.map(([t, sort, tip], i) => {
+    if (t === '' && list.length) return th(`<div class="flex items-center justify-center"><span>${checkbox(false)}</span></div>`, 0);
+    const inner = `<span class="inline-flex w-fit items-center whitespace-nowrap"><span>${t}</span>${sort ? `<span class="inline-flex items-center">&nbsp;<span title="Sort by ${t}">${I.sort(t === 'File Name')}</span></span>` : ''}</span>`;
+    return th(tip ? `<span class="inline-flex items-center justify-center gap-1 whitespace-nowrap">${inner}${I.info(16, 'text-white')}</span>` : inner, i);
+  }).join('');
+  const body = list.map((n, i) => `<tr class=" ">
+      ${td(`<span>${checkbox(false)}</span>`)}
+      ${td(i + 1)}
+      ${td(`<a href="#">${n}.png</a>${tag ? '<span class="ml-2 whitespace-nowrap rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">Edge labels</span>' : ''}`)}
+      ${td(`29/10/2026, ${UP_AT[i % UP_AT.length]}`)}
+      ${td(capAt(n))}
+      ${td(S.saved.has(i) ? 'True' : 'False')}
+    </tr>`).join('');
+  const crumbs = [
+    { label: PROJECT, to: 'nop', noTruncate: true }, { label: 'Datasets & Annotations', to: 'datasets' },
+    { label: CAP.hu.c, disabled: true }, { label: FOLDER[0], disabled: true }, { label: FOLDER[1], disabled: true }, { label: FOLDER[2], disabled: true },
+    { label: 'Dataset Images', active: true },
+  ];
+  return `${heading(crumbs)}
+    <div class="flex items-center justify-end px-5 pt-5 pb-2"><div class="flex items-center gap-4">
+      <button data-act="nav" data-to="datasets" title="Go to the Annotation page for this project." class="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-1.5 text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors shadow-sm font-medium border border-gray-300">${I.back}Back</button>
+      <label data-act="uploadBtn" tabindex="0" class="flex cursor-pointer items-center gap-2 rounded-lg bg-f-primary px-4 py-1.5 text-white hover:bg-f-secondary">${I.upload}Upload Dataset Images</label>
+    </div></div>
+    <div class="px-5 pt-0 pb-5"><div class="placeholder:*: relative shadow-md sm:rounded-lg">
+      ${table(6, [60, null, null, null, null, null], head, body)}
+    </div></div>`;
+}
+
+/* Upload Status modal — exactly today's (incl. the 700px card in the 448px Modal box) */
+function uploadStatus() {
+  const st = S.status, names = files();
+  const done = Math.min(st.done, names.length);
+  const rows = names.map((n, i) => {
+    const ok = i < done;
+    return `<div class="flex items-center justify-between">
+      <div class="w-[100px] overflow-hidden text-ellipsis">${n}.png</div>
+      <div class="${ok ? 'bg-[#ff4301]' : ''} h-[4px] w-[250px] rounded-[2px]"></div>
+      <div class="mb-2 ml-4 flex items-center justify-between"><span class="text-sm font-medium text-gray-700">${done} out of ${names.length} images uploaded</span></div>
+      <div class="flex items-center gap-2">
+        <div class="${ok ? 'flex w-[110px] items-center gap-1 text-green-500' : 'invisible w-[110px]'}">${ok ? I.tick : 'Error!'}</div>
+        <button class="rounded-full bg-[#ff4301] px-2 py-1 text-white invisible" title="Try uploading this image again.">Retry upload</button>
+      </div>
+    </div>`;
+  }).join('');
+  const all = done === names.length;
+  return modal(`<div class="flex w-[700px] flex-col rounded-[10px] bg-white">
+    <div class="border-b-[1px] border-[#E3E5E5] p-5 py-4 text-[20px] font-semibold flex items-center gap-1.5">Upload Status</div>
+    <div class="flex max-h-[290px] flex-col gap-2 overflow-y-scroll px-8 py-5">${rows}</div>
+    ${all ? `<div class="flex items-center justify-center border-t-[1px] border-[#E3E5E5] p-2"><button data-act="statusClose" class="cursor-pointer rounded-full bg-[#E7E7FF20] p-4 px-10 text-[16px] font-semibold text-[#ff4301]" title="Close this dialog and refresh the image list.">Close</button></div>` : ''}
+  </div>`);
+}
+let statusTimer = null;
+function startStatus() {
+  S.status = { done: 0 };
+  clearInterval(statusTimer);
+  statusTimer = setInterval(() => {
+    if (!S.status) { clearInterval(statusTimer); return; }
+    S.status.done++;
+    if (S.status.done >= files().length) { clearInterval(statusTimer); toast('All images uploaded successfully!'); }
+    render();
+  }, 220);
+}
+
+/* After: Upload Dataset Images dialog — Images | Images with labels from Edge testing */
+function uploadDialog() {
+  const c = S.choice, p = S.picked;
+  const opt = (k, label) => `<div data-act="choice" data-v="${k}" class="flex cursor-pointer items-center gap-3 py-1.5">${radio(c === k)}<span class="${c === k ? 'font-medium' : ''}">${label}</span></div>`;
+  const row = (k, v) => `<div class="flex items-start justify-between gap-4 px-4 py-2.5"><span class="text-gray-500">${k}</span><span class="text-right">${v}</span></div>`;
+  const ok = (v) => `<span class="inline-flex items-center gap-1.5">${v}${I.tick}</span>`;
+  let body = '';
+  if (c === 'edge') {
+    body += `<div class="mt-3 flex items-center gap-3 pl-9">${btn('Choose folder', { size: 'md', variant: 'border', act: 'pick' })}</div>`;
+    if (p === 'hu') {
+      const n = files().length;
+      body += `<div class="mt-4 divide-y divide-gray-200 rounded-md border border-gray-200 text-sm">
+        ${row('Folder', `<span class="font-medium">${esc(capName('hu'))}</span><br><span class="text-xs text-gray-500">${esc(zipName())}</span>`)}
+        ${row('Images', `<span class="font-medium">${n}</span>`)}
+        ${row('Labels', `${MODS.map((m) => `<span class="block">${m.name} · <span class="font-medium">${n} images</span></span>`).join('')}`)}
+        ${row('Format', ok('PNG'))}
+        ${row('Resolution', ok(RES))}
+        ${row('File names', ok('No duplicates'))}
+      </div>`;
+    } else if (p === 'br') {
+      body += `<div class="mt-4 divide-y divide-gray-200 rounded-md border border-gray-200 text-sm">
+        ${row('Folder', `<span class="font-medium">${esc(capName('br'))}</span><br><span class="text-xs text-gray-500">${esc(zipName())}</span>`)}
+        ${row('Images', `<span class="font-medium">${DL.br}</span>`)}
+      </div>
+      <div class="mt-3 flex items-start gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-[13px] text-red-700"><svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span>These labels are for ${esc(capName('br'))}. Upload them into a dataset folder of that capture.</span></div>`;
+    }
+  }
+  const canUpload = c === 'edge' && p === 'hu';
+  const footer = c === 'images'
+    ? `${btn('Cancel', { variant: 'border', act: 'closeDialog' })}${btn('Choose images', { act: 'chooseImages' })}`
+    : `${btn('Cancel', { variant: 'border', act: 'closeDialog' })}${btn('Upload', { act: 'doUpload', disabled: !canUpload })}`;
+  return modal(`${modalHeader('Upload Dataset Images')}
+    <div class="overflow-auto p-5">${opt('images', 'Images')}${opt('edge', 'Images with labels from Edge testing')}${body}</div>
+    <div class="border-t-[1px] p-5"><div class="flex flex-row justify-end gap-4">${footer}</div></div>`);
+}
+
+/* ═══════════ Datasets & Annotations (annotation/index.tsx + GlobalHierarchicalTable.tsx) ═══════════ */
+function datasetsPage() {
+  const n = S.uploadedDone ? files().length : 0, a = S.uploadedDone ? S.saved.size : 0;
+  const filters = ['Variant Name', 'Capture', 'Dataset Folder 1', 'Is Deleted'].map((h) => `<div class="relative inline-block text-left mt-2"><div class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm cursor-pointer text-gray-900 hover:bg-gray-50">${h}${I.arrowDown}</div></div>`).join('');
+  const cnt = (x, y) => `<span class="font-medium ${y > 0 && x === y ? 'text-green-600' : 'text-yellow-600'}">${x}/${y}</span>`;
+  const date = (d, pl = '') => `<td class="px-2 py-2 text-black overflow-visible text-sm text-gray-500 whitespace-nowrap ${pl}"><div class="flex h-full w-full items-center justify-center text-center"><span class="cursor-default">${d}</span></div></td>`;
+  const nameCell = (level, name, extra = '', expanded = false) => {
+    const lead = level < 2
+      ? `<span class="text-xs w-6 inline-flex items-center justify-center transition-transform duration-200 ${expanded ? 'rotate-90' : ''}">${I.rowChev}</span>`
+      : `<span data-act="nav" data-to="uploaded" class="w-4 inline-flex items-center justify-center cursor-pointer hover:opacity-80">${I.fileBlue}</span>`;
+    const clock = level === 1 ? '<span class="relative inline-flex items-center mr-1"><span class="text-gray-700 text-xs">🕐</span></span>' : '';
+    const cls = level === 0 ? 'text-md text-black' : level === 1 ? 'text-gray-900 font-medium text-sm' : 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-sm';
+    return `<td class="px-2 py-2 text-black overflow-visible min-w-[180px] whitespace-nowrap"><div class="flex h-full w-full items-center justify-start text-left"><div class="flex items-center gap-2 ${level < 2 ? 'cursor-pointer select-none' : ''}" style="padding-left:${level * 32 + 24}px">${lead}${clock}<span class="${cls}" ${level === 2 ? `data-act="nav" data-to="${extra ? 'uploaded' : 'nop'}"` : ''}>${esc(name)}</span>${level === 2 ? `<div class="ml-3 flex items-center gap-2"><span ${extra ? 'data-act="nav" data-to="uploaded"' : ''} class="text-f-primary hover:text-f-primary/80 underline cursor-pointer text-sm whitespace-nowrap">View Datasets</span><span class="relative inline-flex"><span ${extra && n ? 'data-act="startJob"' : ''} class="text-sm whitespace-nowrap ${n || !extra ? 'text-f-primary hover:text-f-primary/80 underline cursor-pointer' : 'text-gray-400 cursor-not-allowed underline'}">View Annotations</span></span></div>` : ''}</div></div></td>`;
+  };
+  const menu = (mine) => `<td class="px-0 py-2 text-black overflow-visible"><div class="flex h-full w-full items-center justify-center text-center"><div class="relative flex items-center justify-center"><div class="group flex">
+      <button class="p-1.5 hover:bg-gray-200 rounded-md transition-colors">${I.dots}</button>
+      <div class="absolute right-0 w-48 bg-white border border-gray-200 shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50" style="top:100%;margin-top:-2px"><ul class="py-1 text-sm text-gray-700">
+        <li><button ${mine ? 'data-act="startJob"' : ''} class="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center justify-between gap-2">Start Annotation</button></li>
+        <li><button class="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center justify-between gap-2">Configure Auto-Annotation</button></li>
+        <li><button ${mine ? 'data-act="nav" data-to="uploaded"' : ''} class="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center justify-between gap-2">Upload Images</button></li>
+        <li><button class="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center justify-between gap-2">Rename Folder</button></li>
+        <li><button class="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors text-red-600 flex items-center justify-between gap-2">Delete Folder</button></li>
+      </ul></div></div></div></div></td>`;
+  const blank = '<td class="px-2 py-2 text-black overflow-visible whitespace-nowrap"><div class="flex h-full w-full items-center justify-center text-center"></div></td>';
+  const vc = (v) => `<td class="px-2 py-2 text-black overflow-visible whitespace-nowrap"><div class="flex h-full w-full items-center justify-center text-center"><div class="w-full text-center overflow-hidden text-ellipsis whitespace-nowrap">${esc(v)}</div></div></td>`;
+  const coverage = (cls) => td(cls ? `<div class="flex flex-wrap gap-1 max-w-[250px]">${cls.map((c) => chip(c)).join('')}</div>` : '');
+  const rec = td('<span class="text-gray-400">—</span>', 'text-center text-sm');
+  const rowCls = (lvl) => `min-h-[500px] cursor-pointer hover:bg-gray-100 ${lvl === 0 ? 'bg-white' : lvl === 1 ? 'bg-gray-50/60' : 'bg-gray-50/30'}  hover:bg-orange-50/40 transition-colors cursor-pointer`;
+  const R = (lvl, o) => `<tr class="${rowCls(lvl)}">${lvl === 0 ? vc(o.v) + vc(o.c) : blank + blank}${nameCell(lvl, o.name, o.mine, o.open)}${coverage(lvl === 0 ? o.cls : null)}${rec}${td(lvl === 2 ? `<span ${o.mine && o.n ? 'data-act="startJob"' : ''} class="cursor-pointer hover:underline hover:opacity-80 transition-all inline-block">${cnt(o.a, o.n)}</span>` : cnt(o.a, o.n), 'text-center')}${date(o.cr)}${date(o.md, 'pl-10')}${lvl === 2 ? menu(o.mine) : td('', 'px-0 py-2')}</tr>`;
+  const rows = [
+    R(0, { v: CAP.hu.v, c: CAP.hu.c, name: FOLDER[0], cls: ['pin', 'burr'], a: 64 + a, n: 64 + n, cr: '14/10/2026', md: '29/10/2026', open: true }),
+    R(1, { name: FOLDER[1], a: 40 + a, n: 40 + n, cr: '14/10/2026', md: '29/10/2026', open: true }),
+    R(2, { name: 'Line images 14 Oct', a: 40, n: 40, cr: '14/10/2026', md: '16/10/2026' }),
+    R(2, { name: FOLDER[2], a, n, cr: '29/10/2026', md: '29/10/2026', mine: true }),
+    `<tr class="bg-gray-50/30"><td colspan="2"></td><td colspan="1" class="px-2"><div class="flex justify-center w-full"><button class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1 my-2 transition-colors">+ Add dataset</button></div></td><td colspan="7"></td></tr>`,
+    R(1, { name: '12:00 - 18:00', a: 24, n: 24, cr: '14/10/2026', md: '15/10/2026' }),
+    R(0, { v: CAP.hu.v, c: CAP.hu.c, name: 'surface finish', cls: ['clean', 'scratch', 'dent'], a: 30, n: 30, cr: '14/10/2026', md: '17/10/2026' }),
+    R(0, { v: CAP.br.v, c: CAP.br.c, name: 'weld seam', cls: ['weld', 'spatter', 'porosity'], a: 30, n: 30, cr: '12/10/2026', md: '18/10/2026' }),
+  ].join('');
+  const head = [
+    th(thInfo('Variant'), 0), th(thInfo('Capture'), 1), th(thInfo('Folder'), 2), th(thInfo('Class coverage'), 3), th(thInfo('Recommended'), 4),
+    th(thInfo('Annotated'), 5), th(thInfo('Date created'), 6), `<th colspan="2" scope="col" class="group sticky top-0 z-10 px-2 py-2 pt-4 pb-4 text-center text-base font-medium text-white">${thInfo('Date modified')}</th>`,
+  ].join('');
+  return `${heading([{ label: PROJECT, to: 'nop' }, { label: 'Datasets & Annotations', active: true, info: true }])}
+    <div class="flex items-center justify-between px-5 pt-5 pb-2">
+      <div class="flex flex-row self-end gap-8 z-30 pb-1" style="position:sticky;top:0">${filters}</div>
+      <div class="relative gap-2 items-center flex">${btn('Run Recommender', { size: 'md' })}</div>
+    </div>
+    <div class="px-5 pb-5 pt-0"><div class="placeholder:*: relative shadow-md sm:rounded-lg">${table(9, [140, 180, 360, 250, 80, 80, 125, 125, 40], head, rows)}</div></div>`;
+}
+
+/* ═══════════ annotation job (anotation-job-temp/index.tsx) ═══════════ */
+function selectBox(value, placeholder, key, cls = '') {
+  return `<div class="relative w-full"><button type="button" data-act="dd" data-k="${key}" class="relative w-full min-w-[95px] cursor-default rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus:ring-1 focus:ring-f-primary focus:border-f-primary text-sm text-gray-900 ${cls}">
+    <span class="block truncate ${value ? '' : 'text-gray-500'}">${esc(value || placeholder)}</span>
+    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">${I.upDown}</span></button></div>`;
+}
+function moduleCard(m, k, num) {
+  const open = S.open === m.id;
+  const header = `<div class="flex w-full items-center justify-between px-6 py-4" data-act="mod" data-m="${m.id}">
+      <div class="flex items-center gap-3 text-[18px] font-semibold"><span class="">${num}.  ${esc(m.name)}</span></div>
+      <span class="relative inline-flex">${I.f(FE.chevronsDown, 24, open ? 'rotate-180' : 'rotate-0')}</span></div>`;
+  let body = '';
+  if (open && m.store === 'assembly') {
+    const shapes = shapesOf(k);
+    const chips = m.classes.map((c) => `<li data-act="cls" data-c="${c}" class="rounded-md cursor-pointer ${S.selCls === c ? 'inset-shadow-gray shadow-lg shadow-gray-600/80 ring-[2px] ring-gray-500' : ''}">${chip(c)}</li>`).join('');
+    const confirm = S.selCls ? `<div class="mt-[10px] flex justify-center gap-2">${btn('Cancel', { size: 'normal', variant: 'border', act: 'cancelDraw' })}${btn('Confirm', { size: 'normal', act: 'confirmDraw', disabled: !S.draft })}</div>` : '';
+    const rows = shapes.map((s, i) => `<span class="w-full"><div class="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-4 py-1.5 duration-100 ${S.sel === i ? 'bg-green-200 hover:bg-green-100' : 'bg-white hover:bg-gray-100'}">
+        <span>${i + 1}.</span>
+        <div class="flex grow items-center justify-between gap-2">
+          <div class="flex w-full max-w-sm gap-2">${selectBox(s.cls, 'Select Option', `shape:${i}`)}</div>
+          <div class="flex gap-2">
+            <span data-act="eye" data-i="${i}">${I.f(FE.eye, 18, 'mr-2 cursor-pointer')}</span>
+            <span data-act="editShape" data-i="${i}">${I.f(FE.edit, 18, 'mr-2 cursor-pointer')}</span>
+            <span data-act="delShape" data-i="${i}">${I.f(FE.trash, 16, 'mr-2 cursor-pointer')}</span>
+          </div>
+        </div></div></span>`).join('');
+    const labels = shapes.length
+      ? `<div class="mb-4 break-all pl-2"><div class="break-all">Current class labels for the image</div></div><div class="flex flex-col overflow-y-auto">${rows}</div>`
+      : '<div><div style="color:#888;font-style:italic;margin-top:8px">No templates annotated yet</div></div>';
+    body = `<div class="px-6 pb-4"><div class="flex flex-col gap-2">
+      <div class="text-[14px]">Click the classes below to label them</div>
+      <div class=""><ul class="flex flex-wrap gap-4">${chips}</ul></div>
+      ${confirm}
+      <div class="rounded-md my-2 py-5">${labels}</div>
+    </div></div>`;
+  } else if (open) {
+    body = `<div class="px-6 pb-4"><div class="flex flex-col gap-2">
+      <div>Select the classification for this module’s input search area</div>
+      ${selectBox(finishOf(k), 'Select classification', 'finish', 'w-fit')}
+    </div></div>`;
+  }
+  return `<div class="min-w-[400px] rounded-[8px] border-[1px] border-[#292C2E] transition-all cursor-pointer">${header}${body}</div>`;
+}
+function canvas(k) {
+  const n = files()[k], i = idxOf(n), shapes = shapesOf(k);
+  const box = (s, j, draft) => {
+    const c = clsColor(s.cls), x = Math.min(s.x1, s.x2), y = Math.min(s.y1, s.y2), w = Math.abs(s.x2 - s.x1), h = Math.abs(s.y2 - s.y1);
+    const fill = S.hl === j && !draft ? `${c}4D` : 'transparent';
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${fill}" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke" ${draft ? 'stroke-dasharray="6 4"' : ''}/>` +
+      `<text x="${(x + 1.2).toFixed(1)}" y="${(y + 8.6).toFixed(1)}" font-size="7.6" font-weight="700" fill="${c}" font-family="Arial, sans-serif" style="filter:drop-shadow(0.4px 0.4px 0 #000)">${esc(s.cls)}</text>`;
+  };
+  const marks = shapes.map((s, j) => box(s, j)).join('') + (S.draft ? box(S.draft, -1, true) : '');
+  return `<div class="relative" style="height:92%;aspect-ratio:1/1;max-width:96%">
+    <svg id="cv" class="${S.selCls ? 'cv-box' : ''}" viewBox="0 0 400 400" width="100%" height="100%" style="display:block">${DEFS}${drawHU(i)}${marks}</svg>
+  </div>`;
+}
+function pager(k, total) {
+  const nums = Array.from({ length: Math.min(total, 6) }, (_, j) => Math.min(Math.max(k - 3, 0), Math.max(total - 6, 0)) + j + 1);
+  const li = (e) => `<li data-act="page" data-i="${e - 1}" class="${S.saved.has(e - 1) ? 'bg-green-500' : 'undefined'} h-[1.5rem] w-[1.5rem] border-r-[50%] text-center rounded-full hover:bg-gray-200 ${e === k + 1 ? 'cursor-pointer font-bold' : 'cursor-pointer text-gray-600'} ">${e}</li>`;
+  const grid = S.pager ? `<div class="absolute bottom-full right-0 z-50 mb-1 w-80 rounded border border-gray-300 bg-white shadow-lg">
+      <div class="border-b border-gray-200 p-3"><input type="text" placeholder="Enter Image number" class="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"></div>
+      <div class="p-3"><div class="grid grid-cols-5 gap-2">${Array.from({ length: total }, (_, j) => { const on = j === k, g = S.saved.has(j); return `<div data-act="page" data-i="${j}" class="cursor-pointer rounded-full h-8 w-8 flex items-center justify-center text-sm hover:ring-2 hover:ring-blue-300 transition-all ${on ? 'bg-blue-100 font-semibold ring-2 ring-blue-500' : g ? 'bg-green-500' : 'bg-yellow-500'} ${g ? 'text-white' : 'text-black'}">${j + 1}</div>`; }).join('')}</div></div>
+      <div class="border-t border-gray-200 p-3"><div class="flex items-center justify-center gap-1">
+        <button disabled class="cursor-pointer rounded p-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50">${I.f(FE.chevronsLeft, 16)}</button><button disabled class="cursor-pointer rounded p-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50">${I.f(FE.chevronLeft, 16)}</button>
+        <button class="h-8 w-8 rounded-full text-sm cursor-pointer bg-blue-500 text-white font-semibold">1</button>
+        <button disabled class="cursor-pointer rounded p-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50">${I.f(FE.chevronRight, 16)}</button><button disabled class="cursor-pointer rounded p-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50">${I.f(FE.chevronsRight, 16)}</button>
+      </div></div></div>` : '';
+  return `<div class="flex w-full content-center justify-center gap-4">
+    <nav class="mb-6 flex items-center"><ul class="mx-auto flex gap-1 rounded-full border border-gray-300 px-2 py-1.5">
+      <li data-act="page" data-i="${Math.max(k - 5, 0)}" class="cursor-pointer">${I.f(FE.chevronsLeft)}</li>
+      <li data-act="page" data-i="${Math.max(k - 1, 0)}" class="cursor-pointer">${I.f(FE.chevronLeft)}</li>
+      ${nums.map(li).join('')}
+      <li data-act="page" data-i="${Math.min(k + 1, total - 1)}" class="cursor-pointer">${I.f(FE.chevronRight)}</li>
+      <li data-act="page" data-i="${Math.min(k + 5, total - 1)}" class="cursor-pointer">${I.f(FE.chevronsRight)}</li>
+    </ul></nav>
+    <div class="relative"><span class="relative inline-flex"><button data-act="pager" class="flex items-center gap-2 rounded border border-gray-300 bg-white px-3 py-1 text-sm hover:bg-gray-50">${k + 1}${I.f(FE.chevronDown, 16, `transform ${S.pager ? 'rotate-180' : ''} transition-transform`)}</button></span>${grid}
+      <p class="mt-1 text-xs text-green-500">Range: 1 to ${total}</p></div>
+  </div>`;
+}
+function jobPage() {
+  const k = S.idx, total = files().length, n = files()[k];
+  // Loaded boxes come in as user-drawn (frinksvision-frontend core/annotation.ts), so Edge labels hide the Mark Annotated prompt too
+  const userDrawn = shapesOf(k).length > 0;
+  const annotated = S.saved.has(k) || userDrawn;
+  const tools = [
+    ['Shortcut', TOOL.shortcut, true], ['Fit to frame', TOOL.fit, true], ['Default Zoom', TOOL.zoom, true],
+    ['Rectangular Selection (Ctrl + 1)', TOOL.rect(!!S.selCls), !!S.selCls], ['Polygon Selection (Ctrl + 2)', TOOL.poly, false],
+    ['Brush Tool', TOOL.brush, false], ['Line Tool (Ctrl + 3)', TOOL.line, false],
+  ].map(([t, svg, on]) => `<span class="relative"><li title="${t}" class="flex select-none flex-col items-center p-2 ${on ? 'opacity-100' : 'cursor-not-allowed opacity-30'}">${svg}</li></span>`).join('');
+  return `<div class="grid h-screen grid-cols-12 scroll-auto">
+    <div class="col-span-3 grid grid-rows-12 border-r-[1px] border-black" style="height:100vh">
+      <div class="relative z-40 col-span-full row-span-11 flex flex-col bg-white">
+        <h1 class="flex items-center gap-2 border-b-[1px] px-6 pb-6 pt-6 text-3xl font-bold">Annotation Job</h1>
+        <div class="mb-[80px] h-full flex-col items-center justify-center overflow-y-auto overflow-x-hidden">
+          <div class="text-md w-full overflow-hidden text-ellipsis whitespace-nowrap px-3 py-3">${n}.png</div>
+          <div class="grow"><div class="flex flex-col gap-4 overflow-y-scroll p-3 pb-4">${MODS.map((m, j) => moduleCard(m, k, j + 1)).join('')}</div></div>
+          <div class="flex w-full items-center justify-center py-1">${btn('Copy Annotation')}</div>
+          ${annotated ? '' : `<div class="mb-15 mt-[20px] border-t-2 pt-4 text-center">No Annotations ? ${btn('Mark Annotated', { act: 'markAnnotated' })}</div>`}
+          <div class="mb-20"></div>
+        </div>
+        <div class="absolute bottom-0 w-full border-t-[1px] border-black bg-white pt-2">
+          <div class="flex justify-center pb-2">${btn('Save &amp; Next', { act: 'saveNext' })}</div>
+          ${pager(k, total)}
+        </div>
+      </div>
+      <div class="row-span-1 flex items-center border-t-[1px] border-black bg-white px-6">${btn('Exit', { variant: 'border', act: 'exitJob' })}</div>
+    </div>
+    <div class="col-span-9 row-span-11 flex flex-col items-center justify-center bg-[#EAEDF1]">
+      <div class="flex h-full w-full flex-col items-center justify-center gap-4" style="max-height:91.65vh">${canvas(k)}</div>
+      <div class="flex w-full grow justify-end border-t-[1px] border-black bg-white px-6"><div class="flex h-full flex-row-reverse items-center justify-between bg-white"><ul class="flex items-center gap-6 px-4">${tools}</ul></div></div>
+    </div>
+  </div>`;
+}
+function deleteModal() {
+  return modal(`${modalHeader('Delete Annotation')}<div class="overflow-auto p-5"><div class="mb-4">Are you sure you want to delete this annotation?</div>
+    <div class="flex flex-row-reverse gap-4">${btn('Cancel', { cls: 'px-4', act: 'delCancel' })}${btn('Confirm', { cls: 'px-4', act: 'delConfirm' })}</div></div>`);
+}
+
+/* ═══════════ render ═══════════ */
+function view() {
+  const st = S.state;
+  const effective = !after() && (st === 'wrong-capture') ? 'upload' : st;
+  if (effective === 'job' || effective === 'saved') return jobPage() + (S.del !== null ? deleteModal() : '');
+  if (effective === 'datasets') return datasetsPage();
+  let out = folderPage();
+  if (effective === 'upload' || effective === 'wrong-capture') {
+    if (after() && !S.status) out += uploadDialog();
+    else { if (!S.status) startStatus(); out += uploadStatus(); }
+  } else if (S.status) out += uploadStatus();
+  return out;
+}
+function render() {
+  document.getElementById('app').innerHTML = `${sidebar()}<div class="h-full min-h-screen md:ml-[80px]" style="height:100vh;overflow-y:auto">${view()}</div>`;
+  document.getElementById('dd').innerHTML = ddHtml();
+  renderPv();
+  bindCanvas();
+}
+
+/* select dropdown (shared/ui/SelectInput.tsx) */
+function ddHtml() {
+  if (!S.dd) return '';
+  const { key, rect } = S.dd;
+  const opts = key === 'finish' ? MODS[1].classes : MODS[0].classes;
+  const cur = key === 'finish' ? finishOf(S.idx) : shapesOf(S.idx)[+key.split(':')[1]].cls;
+  return `<div style="position:fixed;left:${rect.left}px;top:${rect.bottom + 4}px;width:${Math.max(rect.width, 160)}px" class="z-[99999] max-h-60 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+    ${opts.map((o) => `<div data-act="ddPick" data-v="${o}" class="relative cursor-default select-none py-2 pl-10 pr-4 ${o === cur ? 'bg-f-primary text-white' : 'text-gray-900 hover:bg-gray-100'}"><span class="block truncate ${o === cur ? 'font-semibold' : 'font-normal'}">${o}</span>${o === cur ? '<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-white"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg></span>' : ''}</div>`).join('')}
+  </div>`;
+}
+
+/* toast (react-hot-toast, top-center, 4 s) */
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.innerHTML = `<div class="rht"><div><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#61d345"/><path d="M6 10.4l2.6 2.5L14 7.6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="msg">${esc(msg)}</div></div></div>`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+/* prototype switch (only when opened on its own) */
+function renderPv() {
+  const el = document.getElementById('pv');
+  if (EMBED || Q.get('shot') === '1') { el.innerHTML = ''; return; }
+  const labels = { folder: 'Folder', upload: 'Upload', 'wrong-capture': 'Wrong capture', uploaded: 'Uploaded', datasets: 'Datasets & Annotations', job: 'Annotation job', saved: 'After Save & Next' };
+  el.innerHTML = `<div class="pv"><button data-pv="today" aria-pressed="${!after()}">Today</button><button data-pv="after" aria-pressed="${after()}">After</button>
+    <select id="pvState">${STATES.map((s) => `<option value="${s}" ${s === S.state ? 'selected' : ''}>${labels[s]}</option>`).join('')}</select></div>`;
+}
+
+/* ═══════════ events ═══════════ */
+document.addEventListener('click', (e) => {
+  const pv = e.target.closest('[data-pv]');
+  if (pv) { S.mode = pv.dataset.pv; S.shapes = {}; S.finish = {}; S.plain = false; go(S.state); return; }
+  const a = e.target.closest('[data-act]');
+  if (S.dd && !(a && (a.dataset.act === 'ddPick' || a.dataset.act === 'dd'))) { S.dd = null; render(); if (!a) return; }
+  if (!a) { if (S.pager && !e.target.closest('.relative')) { S.pager = false; render(); } return; }
+  e.preventDefault();
+  const act = a.dataset.act, k = S.idx;
+  switch (act) {
+    case 'nav': if (a.dataset.to && a.dataset.to !== 'nop') { const t = a.dataset.to; if (t === 'uploaded' && !S.uploadedDone) go('folder'); else go(t, { preset: t !== 'uploaded' && t !== 'datasets' ? true : false }); } return;
+    case 'uploadBtn':
+      if (after()) { S.choice = 'images'; S.picked = null; S.status = null; S.state = 'upload'; setUrl(); render(); }
+      else { S.state = 'upload'; S.status = null; setUrl(); render(); }
+      post('vision-upload'); return;
+    case 'closeDialog': go('folder'); return;
+    case 'choice': S.choice = a.dataset.v; if (S.choice === 'images') S.picked = null; render(); return;
+    case 'pick': S.picked = 'hu'; render(); return;
+    case 'chooseImages': S.plain = true; S.shapes = {}; S.finish = {}; S.state = 'upload'; startStatus(); render(); return;
+    case 'doUpload':
+      S.plain = false; S.shapes = {}; S.finish = {}; S.uploadedDone = true; S.saved = new Set();
+      S.state = 'uploaded'; setUrl(); startStatus(); render(); post('vision-uploaded'); return;
+    case 'statusClose': {
+      const wasUpload = S.state === 'upload';
+      S.status = null; S.uploadedDone = true; S.saved = new Set(); S.state = 'uploaded'; setUrl(); render();
+      if (wasUpload) post('vision-uploaded');
+      return;
+    }
+    case 'startJob': S.uploadedDone = true; S.idx = 0; S.open = 'pin'; S.selCls = null; S.draft = null; S.hl = null; S.sel = null; S.pager = false; S.state = S.saved.size ? 'saved' : 'job'; setUrl(); render(); post('vision-annotate'); return;
+    case 'mod': S.open = S.open === a.dataset.m ? null : a.dataset.m; S.selCls = null; S.draft = null; render(); return;
+    case 'cls': S.selCls = S.selCls === a.dataset.c ? null : a.dataset.c; S.draft = null; render(); return;
+    case 'cancelDraw': S.draft = null; render(); return;
+    case 'confirmDraw': if (S.draft) { shapesOf(k).push({ ...S.draft, src: 'user' }); S.draft = null; } render(); return;
+    case 'eye': { const i = +a.dataset.i; S.hl = S.hl === i ? null : i; render(); return; }
+    case 'editShape': { const i = +a.dataset.i; S.sel = S.sel === i ? null : i; render(); return; }
+    case 'delShape': S.del = +a.dataset.i; render(); return;
+    case 'delCancel': S.del = null; render(); return;
+    case 'delConfirm': shapesOf(k).splice(S.del, 1); S.del = null; S.hl = null; S.sel = null; render(); return;
+    case 'dd': { const r = a.getBoundingClientRect(); S.dd = S.dd && S.dd.key === a.dataset.k ? null : { key: a.dataset.k, rect: { left: r.left, bottom: r.bottom, width: r.width } }; render(); return; }
+    case 'ddPick': {
+      const v = a.dataset.v, key = S.dd.key;
+      if (key === 'finish') S.finish[files()[k]] = v; else shapesOf(k)[+key.split(':')[1]].cls = v;
+      S.dd = null; render(); return;
+    }
+    case 'markAnnotated': S.saved.add(k); render(); return;
+    case 'saveNext': {
+      S.saved.add(k); S.selCls = null; S.draft = null; S.hl = null; S.sel = null; S.pager = false;
+      if (S.idx !== Math.min(k + 1, files().length - 1)) S.open = null;
+      S.idx = Math.min(k + 1, files().length - 1); S.state = 'saved'; setUrl(); render(); return;
+    }
+    case 'page': if (S.idx !== +a.dataset.i) S.open = null; S.idx = +a.dataset.i; S.pager = false; S.selCls = null; S.draft = null; S.hl = null; S.sel = null; render(); return;
+    case 'pager': S.pager = !S.pager; render(); return;
+    case 'exitJob': S.state = 'datasets'; setUrl(); S.selCls = null; render(); post('vision-datasets'); return;
+    default:
+  }
+});
+document.addEventListener('change', (e) => { if (e.target.id === 'pvState') { S.shapes = {}; S.finish = {}; S.plain = false; go(e.target.value); } });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (S.dd) { S.dd = null; render(); } else if (S.del !== null) { S.del = null; render(); } else if (['upload', 'wrong-capture'].includes(S.state) && after() && !S.status) go('folder');
+});
+// Drag a rectangle on the canvas once a class is chosen (Rectangular Selection auto-arms)
+function bindCanvas() {
+  const cv = document.getElementById('cv');
+  if (!cv || !S.selCls) return;
+  const pt = (ev) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(400, ((ev.clientX - r.left) / r.width) * 400)), Math.max(0, Math.min(400, ((ev.clientY - r.top) / r.height) * 400))]; };
+  cv.addEventListener('mousedown', (ev) => {
+    ev.preventDefault();
+    const [x, y] = pt(ev); S.draft = { cls: S.selCls, x1: x, y1: y, x2: x, y2: y };
+    const move = (m) => { const [x2, y2] = pt(m); S.draft.x2 = x2; S.draft.y2 = y2; const svg = document.getElementById('cv'); if (svg) { const k = S.idx; const keep = S.draft; render(); S.draft = keep; } };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); if (S.draft && (Math.abs(S.draft.x2 - S.draft.x1) < 3 || Math.abs(S.draft.y2 - S.draft.y1) < 3)) S.draft = null; render(); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  });
+}
+window.addEventListener('storage', (e) => {
+  if (e.key && e.key !== 'edge-testing-v2-dl') return;
+  DL = readDl(); S.shapes = {}; S.finish = {}; if (S.idx >= files().length) S.idx = 0; render();
+});
+render();
+</script>
+</body>
+</html>
