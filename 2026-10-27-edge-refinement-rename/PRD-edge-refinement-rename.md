@@ -161,7 +161,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC6.5** On every Vision screen, no data request or response in the browser inspect tool's Network tab (the Fetch/XHR and WebSocket entries) contains the word "matting", including job messages and chat answers, except text a user typed themselves (for example a module they named "Matting") and chat answers given before the release.
 - **AC6.6** On every Edge screen (Deployments, Instance Details, Integrations, Analysed Image Configurations, Dashboard Builder, Reports & Analytics, Health), no data request or response in the Network tab (the Fetch/XHR and WebSocket entries) contains the word "matting", except text a user typed themselves and cycle results or Health errors recorded before the release.
 - **AC6.7** Using Vision and Edge screens with the module writes nothing containing the word "matting" to the inspect tool's Console, except text a user typed themselves and data recorded before the release.
-- **AC6.8** The Vision and Edge frontend code the browser loads (inspect tool's Sources tab) contains no word "matting".
+- **AC6.8** The Vision and Edge frontend code the browser loads (inspect tool's Sources tab) contains no word "matting", except the old filter value Vision reads so that a Recipe Management filter saved before the release still shows "Edge Refinement" (AC2.3).
 
 ### US7 — (removed): chat assistant manuals are out of scope (PM, 28 Oct 2026).
 
@@ -257,7 +257,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 ## 8. How we'll know it worked
 | Measure | Target |
 |---|---|
-| Staging run with the inspect tools open on every Vision and Edge screen used | No Network, Console or Sources text contains the word "matting" (except user-typed text and data from before the release) |
+| Staging run with the inspect tools open on every Vision and Edge screen used | No Network, Console or Sources text contains the word "matting" (except user-typed text, data from before the release, and the saved-filter value AC6.8 allows) |
 | Staging run: recipe with ER_1 trained, recommended, deployed and run on Edge, with a forced database and model-load error | No screen, key, report, Health error or chat answer shows "matting" |
 | Same staging image before and after the release | Same refined masks and the same OK/NG |
 
@@ -302,6 +302,7 @@ Every line names the US / AC ids it touched.
 - 28 Oct 2026 — Duplicate pass on the review round: AC5.3 (removed): covered by AC6.5, which now names job messages and chat answers; AC6.5, AC6.6 narrowed to data requests (Fetch/XHR, WebSocket) so AC6.8 alone checks the loaded code; AC13.1 trimmed (the 'never Matting' clause is AC6.5); AC4.1 trimmed to the ER test (the no-MATTING clause is AC6.6). Contradictions fixed: AC6.1, AC6.2 limited so the AI engine keeps its internal name; AC6.7 gets the AC6.5 exceptions; AC12.7 now points existing modules at the new entry; AC12.10 is Vision-only; Out of scope no longer says variables keep the old name (Tanay Deo)
 - 28 Oct 2026 — Approved (review-round version); no AC changes. Tickets synced: Epic FP-3895, Story FP-3896 (Tanay Deo)
 - 29 Oct 2026 — PM decision: no Matting modules exist in the Vision production database, so existing Vision modules need no handling. AC12.2 (removed); AC12.10 (removed); Summary and the Recipe editor row of the impact map no longer mention renaming existing MAT_ modules. AC12.1 (entry and settings table rename) and AC12.11 (older-Edge download guard, which protects modules made after the release) unchanged. Timeline line added (SPRINT 26-15, where the tickets sit). Approved with this change at the PM's instruction (Tanay Deo)
+- 29 Oct 2026 — PM decision: AC6.8 allows one exception, the old filter value Vision reads so that Recipe Management filters saved before the release keep working (AC2.3), in the same way AC6.5 allows exceptions. Without it, the mapping would be dropped and old saved filters would lose the Matting tick. The test-plan row for the inspect tools now names the exception. Approved with this change at the PM's instruction (Tanay Deo)
 
 ## Checked, not affected
 - vision-projects, vision-variants: the module has no project or variant setting.
