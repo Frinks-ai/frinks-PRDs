@@ -4,7 +4,7 @@
 **Product:** Vision + Edge
 **Status:** Approved
 **Date:** 29 October 2026
-**Owner:** Tanay Deo
+**Owner:** Deb
 **Timeline:** 10 Nov – 23 Nov 2026
 **Related:** None
 **Code checked:** 28–29 Oct 2026 — 10 repos at their latest default-branch commit (list in Appendix B)
@@ -345,6 +345,7 @@ None.
 Repos checked: frinksvision-frontend, frinksvision-backend, frinksedge-deployment-frontend, frinksedge-deployment-backend, frinksedge-inferencing-backend, frinksedge-plc-backend, frinksedge-report, frinksedge-report-frontend, frinksedge-health, auto-training-backend (synced 28 Oct 2026).
 
 ## Changelog
+- 29 Oct 2026 — Owner changed from Tanay Deo to Deb. No AC changes. (Tanay Deo)
 - 29 Oct 2026 — Approved; Timeline 10 Nov – 23 Nov 2026. Q2 decided: a deleted model counts as missing (AC2.6 added). Q1 moved out to its own PRD (AC14.4 points to it). (Tanay Deo)
 - 29 Oct 2026 — Draft written from the signed-off prototype (US1–US14). Duplicate pass: AC10.4 (removed): covered by AC4.5, AC7.7, AC8.1, AC9.1; AC1.9 (removed): covered by AC1.2, AC1.4; AC12.5, AC13.2, AC1.10, AC1.11 trimmed; AC2.4 tooltip shortened. (Tanay Deo)
 
