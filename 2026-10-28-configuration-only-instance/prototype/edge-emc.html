@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Module Configurations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=block" rel="stylesheet">
+<style>
+/* ---- Tailwind 3 preflight (subset) + src/index.css ---- */
+*,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4;font-family:'Outfit',sans-serif}
+html,body{font-size:16px;height:100vh;width:100vw;overflow-y:hidden;color:#000}
+body.overflow-auto{overflow:auto}
+:root{font-family:'Outfit',sans-serif;line-height:1.5;font-weight:400;font-size:16px;color-scheme:light;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+body{margin:0;line-height:inherit;background:#fff}
+button,input{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}
+button{text-transform:none;-webkit-appearance:button;background-color:transparent;background-image:none;cursor:pointer}
+:disabled{cursor:default}
+svg{display:block;vertical-align:middle}
+table{text-indent:0;border-color:inherit;border-collapse:collapse}
+th{font-weight:inherit}
+ul{list-style:none;margin:0;padding:0}
+h3,p{margin:0;font-size:inherit;font-weight:inherit}
+label{cursor:default}
+input::placeholder{opacity:1;color:#9ca3af}
+::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}
+@media (max-width:1281px){*{font-size:96%}}
+
+/* ---- Sidebar (shared/layouts/main/sidebar.jsx, collapsed = default) ---- */
+.sb{position:fixed;left:0;top:0;z-index:100;display:flex;flex-direction:column;align-items:center;height:100vh;width:114px;border-right:1px solid #d1d5db;background:#1e1c1c;padding:24px 8px;overflow:hidden;white-space:nowrap;box-shadow:0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1)}
+.sb-top{display:flex;min-height:0;width:100%;flex:1 1 0%;flex-direction:column}
+.sb-logo{margin:12px 0 40px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sb-nav{margin-top:32px;min-height:0;width:100%;flex:1 1 0%;overflow:hidden}
+.sb-nav>ul{display:flex;width:100%;flex-direction:column;gap:8px;padding-bottom:16px}
+.sb-grp{display:flex;flex-direction:column;border-radius:8px}
+.sb-grp:hover{background:rgb(255 255 255/.1)}
+.sb-grp.open{padding-bottom:12px}
+.sb-item{display:flex;align-items:center;border-radius:6px;padding:8px 36px;color:#fff;overflow:hidden;cursor:pointer;text-decoration:none}
+a.sb-item:hover{background:rgb(255 255 255/.2)}
+.sb-ico{display:flex;width:24px;flex-shrink:0;align-items:center;justify-content:center}
+.sb-bottom{margin-top:8px;display:flex;width:100%;flex-shrink:0;flex-direction:column;gap:8px;padding-top:12px}
+.sb-expand{display:flex;width:100%;align-items:center;justify-content:center;border-radius:6px;padding:8px 0;color:#fff}
+
+/* ---- Main layout + Heading (shared/layouts/main/index.jsx, heading.jsx) ---- */
+.main{position:relative;height:100%;min-height:100vh;width:calc(100% - 114px);margin-left:114px;overflow-x:auto;background:#fff}
+.heading{margin-top:4px;display:flex;height:60px;align-items:baseline;gap:8px;background:#fff;padding:16px 20px}
+.h-main{font-size:30px;line-height:36px;font-weight:500}
+.h-sub{display:flex;align-items:baseline;gap:8px;font-size:20px;line-height:28px;font-weight:500}
+.self-center{align-self:center}
+.tip{position:relative;display:inline-flex;align-items:center}
+.tip-i{display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;color:#6b7280;transition:transform .15s;cursor:default}
+.tip-i:hover{transform:scale(1.1)}
+.tip-i.white{color:#fff}
+.tip-i:focus{outline:none}
+.tip-i:focus-visible{box-shadow:0 0 0 2px #ff4301}
+/* Tooltip bubble (shared/components/Tooltip.jsx:208-221) */
+.tt{position:fixed;z-index:99999;max-width:300px;width:max-content;white-space:normal;overflow-wrap:break-word;pointer-events:none;border-radius:4px;border:1px solid #d1d5db;background:#f3f4f6;padding:4px 8px;font-size:12px;line-height:16px;color:#4b5563;box-shadow:0 1px 2px 0 rgb(0 0 0/.05)}
+
+/* ---- Inferencing Customization card + fixed footer (inferencing-customizations/index.jsx) ---- */
+.box{margin:20px auto;border:1px solid #e5e7eb;border-radius:4px;background:#fff}
+.box-in{padding:16px 16px 80px;min-height:84vh}
+.foot{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;border-top:1px solid #e5e7eb}
+.foot-in{display:flex;justify-content:flex-end;gap:12px;border-top:1px solid #e5e7eb;padding:12px 20px}
+.ib{position:relative;display:inline-block}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;height:fit-content;cursor:pointer;border:1px solid transparent;font-size:14px;line-height:20px;padding:8px 24px;border-radius:6px}
+.w24{width:96px}
+.btn-border{background:transparent;border-color:#ff4301;color:#ff4301}
+.btn-flat,.btn-pri{color:#fff;background:#ff4301;border-color:transparent}
+.btn:not(:disabled):hover{opacity:.7}
+.btn-pri:not(:disabled):hover{opacity:1;background:rgb(255 67 1/.9)}
+.btn:disabled{background:#d1d5db;color:#6b7280;border-color:transparent;cursor:not-allowed;pointer-events:none}
+
+/* ---- EMC (EditModuleConfigurations.jsx, InstanceSelector.jsx) ---- */
+.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}
+.col4{display:flex;flex-direction:column;gap:16px}
+.col6{display:flex;flex-direction:column;gap:24px}
+.w-full{width:100%}
+.lbl-inst{margin-bottom:8px;display:block;font-size:14px;line-height:20px;font-weight:600;color:#000}
+.lbl{margin-bottom:4px;display:block;font-size:14px;line-height:20px;font-weight:500;color:#000}
+.lbl-row{margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.lbl-row .lbl{margin-bottom:0}
+.banner{margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;padding:14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;color:#065f46;font-size:12px;line-height:16px;box-shadow:0 1px 2px 0 rgb(0 0 0/.05)}
+.banner a{font-weight:600;text-decoration:underline;margin-left:4px;color:#064e3b}
+.banner .x{color:#059669;padding:4px;cursor:pointer}
+
+/* SelectInput (shared/ui/SelectInput.jsx) */
+.sel{position:relative}
+.sel-btn{position:relative;width:100%;min-width:120px;cursor:default;border-radius:6px;border:1px solid #d1d5db;background:#fff;padding:8px 40px 8px 12px;text-align:left;box-shadow:0 1px 2px 0 rgb(0 0 0/.05);font-size:14px;line-height:20px;color:#111827}
+.sel-btn:focus{outline:none;border-color:#ff4301;box-shadow:0 0 0 1px #ff4301}
+.sel-btn:disabled{cursor:not-allowed;background:#f3f4f6;color:#9ca3af}
+.sel-txt{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-ph{color:#6b7280}
+.sel-arr{pointer-events:none;position:absolute;top:0;bottom:0;right:0;display:flex;align-items:center;padding-right:8px}
+.sel-arr svg{height:20px;width:20px}
+.sel-list{position:fixed;z-index:9999;max-height:240px;overflow:auto;border-radius:6px;background:#fff;padding:4px 0;font-size:14px;line-height:20px;box-shadow:0 0 0 1px rgb(0 0 0/.05),0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
+.sel-list li{position:relative;cursor:default;user-select:none;padding:8px 16px 8px 40px;color:#111827}
+.sel-list li.on{background:#ff4301;color:#fff}
+.sel-list li .t{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
+.sel-list li.sel-d .t{font-weight:600}
+.sel-list li .tick{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:12px;color:#000}
+.sel-list li .tick svg{height:20px;width:20px}
+
+/* Table (shared/ui/Table.jsx) */
+.tbl{display:flow-root;width:100%;overflow-x:auto;overflow-y:visible}
+.tbl table{min-width:100%}
+.tbl table>thead+tbody{border-top:1px solid #d1d5db}
+.tbl thead{position:sticky;top:0;z-index:10}
+.tbl thead tr{background:#ff4301;position:relative}
+.tbl th{position:sticky;top:0;padding:16px 8px;text-align:center;font-size:16px;line-height:24px;font-weight:500;color:#fff}
+.th-in{display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.rh{position:absolute;bottom:10px;right:0;top:10px;width:2px;cursor:col-resize;border-radius:16px;background:#fff}
+.tbl th:last-child .rh{display:none}
+.tbl tbody{background:#fff}
+.tbl tbody>tr+tr{border-top:1px solid #e5e7eb}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:hover{background:#f3f4f6}
+.tbl td{overflow:visible;padding:8px;color:#000}
+.td-in{display:flex;height:100%;width:100%;align-items:center;justify-content:center;text-align:center}
+.fc{display:flex;flex-direction:column}
+.fc-c{display:flex;flex-direction:column;align-items:center}
+.fr-c{display:flex;width:100%;align-items:center;justify-content:center;gap:8px}
+.cls{font-size:14px;font-weight:500;color:#000}
+.h4{height:16px}
+.err{height:16px;font-size:11px;line-height:16px;color:#ef4444}
+.num{width:100%;min-width:80px;border-radius:5px;border:1px solid #e5e7eb;padding:8px;font-size:14px;line-height:14px;background:#fff}
+.num:focus,.th-num:focus,.txt:focus{outline:2px solid #000;outline-offset:0}
+.th-num{width:100%;min-width:120px;border-radius:5px;border:1px solid #e5e7eb;padding:8px;font-size:12px;line-height:16px;background:#fff}
+
+/* Locked threshold cell (model-tied setting, no model yet) */
+.lockw{position:relative;display:block;width:100%}
+.lockw input{pointer-events:none;background:#f3f4f6;color:#9ca3af;cursor:not-allowed;padding-right:30px}
+.lockw .lk{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none}
+.lockw.xs{width:96px}
+.lock-hint{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:12px;line-height:16px;font-weight:400;color:#6b7280;text-transform:none;letter-spacing:0;vertical-align:middle}
+.lock-hint svg{color:#9ca3af}
+
+/* Sections (sections/*.jsx) */
+.sec{display:flex;flex-direction:column;gap:16px}
+.sec-title{font-size:16px;font-weight:600}
+.sub-lbl{font-size:14px;font-weight:500}
+.b14{font-size:14px;font-weight:700;color:#000}
+.g2{gap:8px}
+.ro{width:100%;border-radius:5px;border:1px solid #e5e7eb;background:#f9fafb;padding:8px;font-size:12px;line-height:16px;color:#374151;text-align:left}
+.txt{width:100%;border-radius:5px;border:1px solid #d1d5db;padding:8px;font-size:12px;line-height:16px;background:#fff;color:#000}
+.txt.bad{border-color:#ef4444}
+.rm-row{display:flex;max-width:448px;align-items:center;gap:12px}
+.rm-lbl{white-space:nowrap;font-size:14px;font-weight:500;color:#000}
+.sw{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+.sw input{position:absolute;width:1px;height:1px;opacity:0}
+.sw .tr{position:relative;height:24px;width:44px;border-radius:9999px;background:#e5e7eb}
+.sw .tr::after{content:'';position:absolute;left:2px;top:2px;height:20px;width:20px;border-radius:9999px;border:1px solid #d1d5db;background:#fff;transition:all .15s}
+.sw input:checked+.tr{background:#ff4301}
+.sw input:checked+.tr::after{transform:translateX(100%);border-color:#fff}
+.ang-in{width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:8px;font-size:13px;line-height:19px;outline:none;color:#000}
+.ang-in:focus,.f13:focus{border-color:#000;box-shadow:0 0 0 1px #000}
+.l13{font-size:13px;font-weight:500;color:#000}
+.req{color:#ef4444}
+.f13{width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:8px;font-size:13px;line-height:19px;outline:none;color:#000}
+.pv{width:100%;max-width:150px;min-width:80px;border:1px solid #e5e7eb;border-radius:4px;padding:6px 8px;font-size:12px;line-height:1;outline:none;color:#000}
+.pv:focus{border-color:#000;box-shadow:0 0 0 1px #000}
+.drag{position:absolute;left:16px;cursor:grab;color:#000}
+.cr-q{margin-bottom:12px;display:block;font-size:14px;line-height:20px;font-weight:600;color:#000}
+.cr-grid{display:grid;width:60%;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.cr-opt{display:flex;align-items:center;gap:12px;cursor:pointer}
+.cr-opt input{width:16px;height:16px;margin:0}
+.cr-opt span{font-size:14px;line-height:20px;font-weight:500;color:#000}
+.cr-in{width:100%;border-radius:6px;border:1px solid #d1d5db;padding:10px;font-size:14px;line-height:20px;outline:none}
+.cr-in:focus{border-color:#3b82f6;box-shadow:0 0 0 1px #3b82f6}
+
+/* Bead Inspection (BeadInspectionConfigEditor.jsx, bead-emc/*) */
+.bd-h{font-size:13px;line-height:19px;font-weight:700;color:#1f2937;text-transform:uppercase;letter-spacing:.05em}
+.bd-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:24px;width:100%;align-items:start}
+.bd-set{grid-column:span 4/span 4;display:flex;flex-direction:column;gap:20px;padding:20px;background:rgb(249 250 251/.5);border:1px solid #e5e7eb;max-height:85vh;overflow-y:auto}
+.bd-can{grid-column:span 8/span 8;background:#fff;border:1px solid #e5e7eb}
+.bd-row{display:flex;gap:6px;width:100%}
+.bd-l{font-size:14px;line-height:20px;font-weight:700;color:#1f2937;width:50%;padding-top:8px;user-select:none}
+.bd-l2{display:flex;align-items:center;gap:6px;width:50%;user-select:none}
+.bd-l2 span.t{font-size:14px;line-height:20px;font-weight:700;color:#1f2937}
+.bd-v{width:50%;padding:8px 12px;font-size:14px;line-height:20px;font-weight:600;overflow-wrap:anywhere}
+.bd-div{height:1px;background:#e5e7eb;margin:4px 0}
+.bd-t{font-size:14px;line-height:20px;font-weight:700;color:#1f2937}
+.ic-g{color:#9ca3af;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ic-g:hover{color:#4b5563}
+.btn-edit{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;font-size:12px;line-height:16px;font-weight:600;color:#e8542b;border:1px solid rgb(232 84 43/.4);border-radius:6px;background:transparent}
+.btn-edit:hover{background:#fff7ed;border-color:#e8542b}
+.btn-edit:disabled{opacity:.4;cursor:not-allowed}
+.bd-stats{display:flex;align-items:center;gap:8px;font-size:12px;line-height:16px;color:#4b5563;font-weight:500}
+.bd-note{font-size:11px;line-height:1.625;color:#6b7280}
+.bd-recalc{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid #f3f4f6}
+.btn-rc{width:100%;padding:6px 12px;border-radius:6px;font-size:12px;line-height:16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-rc.on{background:#e8542b;color:#fff;box-shadow:0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1);cursor:pointer}
+.btn-rc.on:hover{background:#d44820}
+.btn-rc.off{background:#f3f4f6;color:#9ca3af;border:1px solid #e5e7eb;cursor:not-allowed}
+.rc-ok{font-size:11px;line-height:1.25;color:#047857;font-weight:500}
+.rc-warn{font-size:11px;line-height:1.25;color:#b45309;font-weight:600}
+.inp{width:100%;border-radius:6px;border:1px solid #d1d5db;padding:8px 12px;font-size:14px;line-height:20px;background:#fff;outline:1px solid transparent}
+.inp:focus{border-color:#ff4301;outline:2px solid #ff4301}
+.inp.bad{border-color:#ef4444}
+.inp.xs{padding:4px 8px;font-size:16px;line-height:24px}
+.inp:disabled{background:rgb(239 239 239/.3)}
+.unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:500;color:#9ca3af;pointer-events:none;user-select:none;text-transform:lowercase}
+.unit.s{right:8px;font-size:10px}
+.rel{position:relative}
+.bw-err{font-size:12px;line-height:16px;color:#ef4444;font-weight:500;margin-top:2px}
+.ed-box{display:flex;flex-direction:column;gap:12px;padding:12px;background:rgb(236 253 245/.7);border:1px solid #6ee7b7;border-radius:8px}
+.ed-t{font-size:12px;font-weight:700;color:#064e3b;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-pill{padding:2px 8px;font-size:11px;font-weight:700;background:#fff;color:#065f46;border:1px solid #a7f3d0;border-radius:9999px}
+.ed-b{padding:2px 8px;font-size:12px;line-height:16px;font-weight:500;background:#fff;border:1px solid #d1d5db;border-radius:4px;color:#374151}
+.ed-b:hover{background:#f9fafb}
+.ed-b:disabled{opacity:.4;cursor:not-allowed}
+.ed-f{padding:2px 10px;font-size:12px;line-height:16px;font-weight:600;background:#e8542b;color:#fff;border-radius:4px}
+.ed-f:disabled{opacity:.4;cursor:not-allowed}
+.ed-p{font-size:11px;line-height:1.375;color:#065f46;padding-top:4px;border-top:1px solid rgb(167 243 208/.6)}
+.stage{position:relative;width:100%;overflow:hidden;user-select:none;background:#1b1c1e}
+.stage svg.cv{display:block;width:100%}
+.c-tools{position:absolute;top:12px;right:12px;z-index:30;display:flex;align-items:center;gap:6px;background:rgb(255 255 255/.95);border:1px solid #e5e7eb;box-shadow:0 4px 6px -1px rgb(0 0 0/.1);padding:4px;border-radius:8px}
+.c-b{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:#374151}
+.c-b:hover{background:#f3f4f6;color:#e8542b}
+.c-b.on{background:#fff7ed;color:#e8542b}
+.c-rep{display:flex;align-items:center;gap:6px;padding:0 10px;height:32px;border-radius:6px;font-size:12px;font-weight:600;color:#374151}
+.c-rep:hover{background:#f3f4f6;color:#111827}
+.c-rep:disabled{opacity:.4;cursor:not-allowed}
+.c-sep{width:1px;height:16px;background:#e5e7eb}
+.c-leg{position:absolute;bottom:12px;right:12px;z-index:30;display:flex;align-items:center;gap:12px;background:rgb(255 255 255/.95);border:1px solid #e5e7eb;box-shadow:0 4px 6px -1px rgb(0 0 0/.1);padding:6px 12px;border-radius:8px;font-size:12px;line-height:16px}
+.c-st{display:flex;align-items:center;gap:6px;padding-right:8px;border-right:1px solid #e5e7eb;color:#047857;font-weight:500}
+.dotg{width:8px;height:8px;border-radius:9999px;background:#10b981}
+.c-lg{display:flex;align-items:center;gap:12px;color:#4b5563;font-weight:500}
+.c-lg span{display:inline-flex;align-items:center;gap:6px}
+.sq{width:10px;height:10px;border-radius:2px}
+.c-pill{position:absolute;top:12px;left:12px;z-index:30;padding:6px 12px;background:#e8542b;color:#fff;font-size:12px;font-weight:700;border-radius:6px;box-shadow:0 4px 6px -1px rgb(0 0 0/.1)}
+.c-note{position:absolute;bottom:12px;left:12px;z-index:30;max-width:448px;background:#fffbeb;border:1px solid #fcd34d;color:#78350f;padding:10px;border-radius:8px;font-size:12px;display:flex;gap:10px}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Modal (modules/modal/index.jsx), UnsavedChangesModal, WarningModal */
+.ov{position:fixed;left:0;top:0;z-index:99991;width:100vw;height:100vh;background:rgb(107 114 128/.75);display:flex;align-items:center;justify-content:center}
+.mdl{background:#fff;border-radius:8px;text-align:left;box-shadow:0 20px 25px -5px rgb(0 0 0/.1),0 8px 10px -6px rgb(0 0 0/.1)}
+.mdl.third{width:33.3333%}
+.mdl.md{max-width:448px}
+.mdl.lg{max-width:512px;width:100%;padding:24px;border-radius:12px;border:1px solid #e5e7eb}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:16px 24px}
+.mh.bb{border-bottom:1px solid #e5e7eb}
+.mh h3{font-weight:600}
+.mh .x{cursor:pointer}
+.mb{padding:16px 24px}
+.mb.bb{border-bottom:1px solid #e5e7eb}
+.mt2{padding-top:8px}
+.mf{display:flex;justify-content:flex-end;gap:12px;padding:16px 24px}
+.mf.sp{justify-content:space-between;gap:16px}
+.pill-b{height:40px;border-radius:9999px;border:1px solid #e5e7eb;padding:0 16px;cursor:pointer}
+.pill-p{height:40px;border-radius:9999px;border:1px solid #e5e7eb;padding:0 16px;background:#ff4301;color:#fff;cursor:pointer}
+.px6{padding-left:24px;padding-right:24px}
+
+/* react-hot-toast (top-center) */
+.toaster{position:fixed;z-index:9999;top:16px;left:16px;right:16px;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:8px}
+.toast{display:flex;align-items:center;background:#fff;color:#363636;line-height:1.3;box-shadow:0 3px 10px rgba(0,0,0,.1),0 3px 3px rgba(0,0,0,.05);max-width:350px;pointer-events:auto;padding:8px 10px;border-radius:8px;font-size:16px;animation:tin .35s cubic-bezier(.21,1.02,.73,1) forwards}
+.toast .msg{margin:4px 10px;display:flex;justify-content:center;flex:1 1 auto;white-space:pre-line}
+.toast .ok{width:20px;height:20px;border-radius:10px;background:#61d345;position:relative;flex-shrink:0}
+.toast .ok::after{content:'';box-sizing:border-box;position:absolute;border-right:2px solid #fff;border-bottom:2px solid #fff;bottom:6px;left:6px;height:10px;width:6px;transform:rotate(45deg)}
+.toast .er{width:20px;height:20px;border-radius:10px;background:#ff4b4b;position:relative;flex-shrink:0}
+.toast .er::before,.toast .er::after{content:'';position:absolute;border-radius:3px;background:#fff;top:9px;left:4px;height:2px;width:12px;transform:rotate(45deg)}
+.toast .er::after{transform:rotate(-45deg)}
+@keyframes tin{0%{transform:translate3d(0,-200%,0) scale(.6);opacity:.5}100%{transform:translate3d(0,0,0) scale(1);opacity:1}}
+
+/* Today | After change switch (standalone only) */
+.mode-sw{position:fixed;left:134px;bottom:13px;z-index:60;display:inline-flex;border:1px solid #d1d5db;border-radius:999px;padding:2px;background:#fff;box-shadow:0 4px 6px -1px rgb(0 0 0/.1)}
+.mode-sw button{font-size:12px;line-height:18px;font-weight:600;padding:4px 12px;border-radius:999px;color:#6b7280}
+.mode-sw button[aria-pressed="true"]{background:#1e1c1c;color:#fff}
+.in-shell .mode-sw{display:none}
+</style>
+</head>
+<body class="overflow-auto">
+
+<!-- Sidebar (shared/layouts/main/sidebar.jsx, collapsed) -->
+<div class="sb">
+  <div class="sb-top">
+    <a class="sb-logo" href="#" aria-label="Frinks">
+      <svg width="60" height="60" viewBox="0 0 230 52" preserveAspectRatio="xMinYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round">
+          <path fill-rule="evenodd" d="M19.3373 23.3047C19.4945 23.3047 19.6219 23.4253 19.6219 23.5742L19.6219 30.8503C19.6219 30.9991 19.4945 31.1197 19.3373 31.1197C19.1801 31.1197 19.0527 30.9991 19.0527 30.8503L19.0527 23.5742C19.0527 23.4253 19.1801 23.3047 19.3373 23.3047Z"/>
+          <path fill-rule="evenodd" d="M20.9018 23.5742C21.0589 23.5742 21.1864 23.6949 21.1864 23.8437V32.3325C21.1864 32.4813 21.0589 32.602 20.9018 32.602C20.7446 32.602 20.6172 32.4813 20.6172 32.3325V23.8437C20.6172 23.6949 20.7446 23.5742 20.9018 23.5742Z"/>
+          <path fill-rule="evenodd" d="M22.4672 23.8437C22.6244 23.8437 22.7518 23.9644 22.7518 24.1132L22.7518 33.8147C22.7518 33.9635 22.6244 34.0842 22.4672 34.0842C22.31 34.0842 22.1826 33.9635 22.1826 33.8147L22.1826 24.1132C22.1826 23.9644 22.31 23.8437 22.4672 23.8437Z"/>
+          <path fill-rule="evenodd" d="M24.0326 24.1128C24.1898 24.1128 24.3172 24.2334 24.3172 24.3823V35.2964C24.3172 35.4452 24.1898 35.5659 24.0326 35.5659C23.8755 35.5659 23.748 35.4452 23.748 35.2964V24.3823C23.748 24.2334 23.8755 24.1128 24.0326 24.1128Z"/>
+          <path fill-rule="evenodd" d="M25.4555 24.3828C25.6127 24.3828 25.7401 24.5035 25.7401 24.6523V36.6444C25.7401 36.7932 25.6127 36.9138 25.4555 36.9138C25.2983 36.9138 25.1709 36.7932 25.1709 36.6444V24.6523C25.1709 24.5035 25.2983 24.3828 25.4555 24.3828Z"/>
+          <path fill-rule="evenodd" d="M19.0527 7H39.9697C40.1269 7 40.2543 7.12065 40.2543 7.26948C40.2543 7.41832 40.1269 7.53897 39.9697 7.53897H19.6219V16.0529L25.6487 15.2193H35.7721C35.9293 15.2193 36.0567 15.3399 36.0567 15.4888C36.0567 15.6376 35.9293 15.7583 35.7721 15.7583H25.69L19.0527 16.6763V7Z"/>
+          <path fill-rule="evenodd" d="M20.6885 8.48193H37.7636C37.9207 8.48193 38.0481 8.60259 38.0481 8.75142C38.0481 8.90025 37.9207 9.0209 37.7636 9.0209H21.2576V16.0949C21.2576 16.2437 21.1302 16.3644 20.9731 16.3644C20.8159 16.3644 20.6885 16.2437 20.6885 16.0949V8.48193Z"/>
+          <path fill-rule="evenodd" d="M22.2539 9.96387H36.412C36.5692 9.96387 36.6966 10.0845 36.6966 10.2334C36.6966 10.3822 36.5692 10.5028 36.412 10.5028H22.8231V15.8925C22.8231 16.0414 22.6957 16.162 22.5385 16.162C22.3813 16.162 22.2539 16.0414 22.2539 15.8925V9.96387Z"/>
+          <path fill-rule="evenodd" d="M23.8193 11.4463H34.0644C34.2216 11.4463 34.349 11.5669 34.349 11.7158C34.349 11.8646 34.2216 11.9853 34.0644 11.9853H24.3885V15.6907C24.3885 15.8395 24.2611 15.9602 24.1039 15.9602C23.9467 15.9602 23.8193 15.8395 23.8193 15.6907V11.4463Z"/>
+          <path fill-rule="evenodd" d="M26.865 16.8354L33.998 16.944C34.1552 16.9463 34.2805 17.0689 34.278 17.2177C34.2755 17.3665 34.146 17.4852 33.9889 17.4829L26.8798 17.3747L19.3567 17.8614C19.1999 17.8715 19.0641 17.7594 19.0534 17.6109C19.0427 17.4624 19.1611 17.3338 19.3179 17.3237L26.865 16.8354Z"/>
+          <path fill-rule="evenodd" d="M19.0528 19.7007C19.055 19.5518 19.1843 19.4329 19.3414 19.4351L31.265 19.5976C31.4222 19.5997 31.5478 19.7221 31.5455 19.8709C31.5432 20.0197 31.414 20.1386 31.2568 20.1365L19.3332 19.974C19.1761 19.9719 19.0505 19.8495 19.0528 19.7007Z"/>
+          <path fill-rule="evenodd" d="M19.0539 21.9558C19.068 21.8075 19.2063 21.6982 19.3629 21.7116L26.968 22.3604H28.4457C28.6028 22.3604 28.7302 22.4811 28.7302 22.6299C28.7302 22.7787 28.6028 22.8994 28.4457 22.8994H26.9424L19.3118 22.2483C19.1553 22.235 19.0398 22.104 19.0539 21.9558Z"/>
+        </g>
+        <g fill="#f8fafa">
+          <path d="M9.48544 14.0082H7.28711V-0.0317383H21.3271V2.16659H9.48544V14.0082Z"/>
+          <path d="M21.3271 44.1406H7.28711V30.1006H9.48544V41.9422H21.3271V44.1406Z"/>
+          <path d="M50.4033 14.0082H48.2049V2.16659H36.3633V-0.0317383H50.4033V14.0082Z"/>
+          <path d="M50.4033 44.1406H36.3633V41.9422H48.2049V30.1006H50.4033V44.1406Z"/>
+        </g>
+      </svg>
+    </a>
+    <div class="sb-nav">
+      <ul>
+        <li class="sb-grp open"><div class="sb-item" title="Instances"><div class="sb-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2M22 12V18C22 18.5304 21.7893 19.0391 21.4142 19.4142C21.0391 19.7893 20.5304 20 20 20H4C3.46957 20 2.96086 19.7893 2.58579 19.4142C2.21071 19.0391 2 18.5304 2 18V12M22 12L18.55 5.11C18.3844 4.77679 18.1292 4.49637 17.813 4.30028C17.4967 4.10419 17.1321 4.0002 16.76 4H7.24C6.86792 4.0002 6.50326 4.10419 6.18704 4.30028C5.87083 4.49637 5.61558 4.77679 5.45 5.11L2 12M6 16H6.01M10 16H10.01"/></svg></div></div></li>
+        <li class="sb-grp"><div class="sb-item" title="Integrations"><div class="sb-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div></div></li>
+        <li><a class="sb-item" href="#" title="Deployments"><div class="sb-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f7fcfc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9166 10.5834C20.1666 8.3334 20.3072 5.65683 20.2369 4.4634C20.2252 4.2815 20.1476 4.11009 20.0188 3.98121C19.8899 3.85232 19.7185 3.77478 19.5366 3.76308C18.3431 3.69277 15.6684 3.83152 13.4166 6.0834L7.5 12L12 16.5L17.9166 10.5834Z"/><path d="M12.7502 6.75H6.97055C6.77191 6.75009 6.58141 6.82899 6.44087 6.96937L3.22055 10.1897C3.12223 10.2882 3.05327 10.4122 3.0214 10.5477C2.98952 10.6832 2.99598 10.8249 3.04006 10.9569C3.08413 11.089 3.16409 11.2061 3.27097 11.2953C3.37785 11.3845 3.50744 11.4422 3.64524 11.4619L7.50024 12"/><path d="M17.25 11.25V17.0297C17.2499 17.2283 17.171 17.4188 17.0306 17.5594L13.8103 20.7797C13.7118 20.878 13.5878 20.947 13.4523 20.9788C13.3168 21.0107 13.1751 21.0043 13.0431 20.9602C12.911 20.9161 12.7939 20.8362 12.7047 20.7293C12.6155 20.6224 12.5578 20.4928 12.5381 20.355L12 16.5"/><path d="M8.865 17.6098C8.50219 18.4058 7.27969 20.2517 3.75 20.2517C3.75 16.722 5.59594 15.4995 6.39188 15.1367"/></svg></div></a></li>
+        <li><a class="sb-item" href="#" title="Health Monitor"><div class="sb-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f7fcfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div></a></li>
+        <li><a class="sb-item" href="#" title="Analytics &amp; Reports"><div class="sb-ico"><svg width="14" height="18" viewBox="0 0 14 18" fill="none"><path d="M13 17V7M7 17V1M1 17V11" stroke="#f7fcfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></a></li>
+        <li><a class="sb-item" href="#" title="Settings"><div class="sb-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#f7fcfc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"/><path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.285 19.4995 16.5843 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.8959 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.8959 16.96 19.71L16.9 19.65C16.6643 19.4195 16.365 19.2648 16.0406 19.206C15.7162 19.1472 15.3816 19.1869 15.08 19.32C14.7842 19.4468 14.532 19.6572 14.3543 19.9255C14.1766 20.1938 14.0813 20.5082 14.08 20.83V21C14.08 21.5304 13.8693 22.0391 13.4942 22.4142C13.1191 22.7893 12.6104 23 12.08 23C11.5496 23 11.0409 22.7893 10.6658 22.4142C10.2907 22.0391 10.08 21.5304 10.08 21V20.91C10.0723 20.579 9.96512 20.258 9.77251 19.9887C9.5799 19.7194 9.31074 19.5143 9 19.4C8.69838 19.2669 8.36381 19.2272 8.03941 19.286C7.71502 19.3448 7.41568 19.4995 7.18 19.73L7.12 19.79C6.93425 19.976 6.71368 20.1235 6.47088 20.2241C6.22808 20.3248 5.96783 20.3766 5.705 20.3766C5.44217 20.3766 5.18192 20.3248 4.93912 20.2241C4.69632 20.1235 4.47575 19.976 4.29 19.79C4.10405 19.6043 3.95653 19.3837 3.85588 19.1409C3.75523 18.8981 3.70343 18.6378 3.70343 18.375C3.70343 18.1122 3.75523 17.8519 3.85588 17.6091C3.95653 17.3663 4.10405 17.1457 4.29 16.96L4.35 16.9C4.58054 16.6643 4.73519 16.365 4.794 16.0406C4.85282 15.7162 4.81312 15.3816 4.68 15.08C4.55324 14.7842 4.34276 14.532 4.07447 14.3543C3.80617 14.1766 3.49179 14.0813 3.17 14.08H3C2.46957 14.08 1.96086 13.8693 1.58579 13.4942C1.21071 13.1191 1 12.6104 1 12.08C1 11.5496 1.21071 11.0409 1.58579 10.6658C1.96086 10.2907 2.46957 10.08 3 10.08H3.09C3.42099 10.0723 3.742 9.96512 4.0113 9.77251C4.28059 9.5799 4.48572 9.31073 4.6 9C4.73312 8.69838 4.77282 8.36381 4.714 8.03941C4.65519 7.71502 4.50054 7.41568 4.27 7.18L4.21 7.12C4.02405 6.93425 3.87653 6.71368 3.77588 6.47088C3.67523 6.22808 3.62343 5.96783 3.62343 5.705C3.62343 5.44217 3.67523 5.18191 3.77588 4.93912C3.87653 4.69632 4.02405 4.47575 4.21 4.29C4.39575 4.10405 4.61632 3.95653 4.85912 3.85588C5.10192 3.75523 5.36217 3.70343 5.625 3.70343C5.88783 3.70343 6.14808 3.75523 6.39088 3.85588C6.63368 3.95653 6.85425 4.10405 7.04 4.29L7.1 4.35C7.33568 4.58054 7.63502 4.73519 7.95941 4.794C8.28381 4.85282 8.61838 4.81311 8.92 4.68H9C9.29577 4.55324 9.54802 4.34275 9.72569 4.07446C9.90337 3.80617 9.99872 3.49179 10 3.17V3C10 2.46957 10.2107 1.96086 10.5858 1.58579C10.9609 1.21071 11.4696 1 12 1C12.5304 1 13.0391 1.21071 13.4142 1.58579C13.7893 1.96086 14 2.46957 14 3V3.09C14.0013 3.41179 14.0966 3.72617 14.2743 3.99447C14.452 4.26276 14.7042 4.47324 15 4.6C15.3016 4.73311 15.6362 4.77282 15.9606 4.714C16.285 4.65519 16.5843 4.50054 16.82 4.27L16.88 4.21C17.0657 4.02405 17.2863 3.87653 17.5291 3.77588C17.7719 3.67523 18.0322 3.62343 18.295 3.62343C18.5578 3.62343 18.8181 3.67523 19.0609 3.77588C19.3037 3.87653 19.5243 4.02405 19.71 4.21C19.896 4.39575 20.0435 4.61632 20.1441 4.85912C20.2448 5.10191 20.2966 5.36217 20.2966 5.625C20.2966 5.88783 20.2448 6.14808 20.1441 6.39088C20.0435 6.63368 19.896 6.85425 19.71 7.04L19.65 7.1C19.4195 7.33568 19.2648 7.63501 19.206 7.95941C19.1472 8.28381 19.1869 8.61838 19.32 8.92V9C19.4468 9.29577 19.6572 9.54802 19.9255 9.72569C20.1938 9.90337 20.5082 9.99872 20.83 10H21C21.5304 10 22.0391 10.2107 22.4142 10.5858C22.7893 10.9609 23 11.4696 23 12C23 12.5304 22.7893 13.0391 22.4142 13.4142C22.0391 13.7893 21.5304 14 21 14H20.91C20.5882 14.0013 20.2738 14.0966 20.0055 14.2743C19.7372 14.452 19.5268 14.7042 19.4 15Z"/></svg></div></a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="sb-bottom">
+    <button class="sb-expand" type="button" aria-label="Expand sidebar"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 18 8 13 3 8"/><line x1="11" y1="9" x2="11" y2="17"/><line x1="14" y1="9" x2="14" y2="17"/></svg></button>
+  </div>
+</div>
+
+<!-- Main (inferencing-customizations/index.jsx) -->
+<div class="main">
+  <div class="heading">
+    <div class="h-main">Instances</div>
+    <div class="h-sub">
+      <svg style="height:16px;width:16px" viewBox="0 0 10 18" fill="none"><path d="M1 17L9 9L1 1" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Inferencing Customization</span>
+      <span class="self-center"><span class="tip" data-tt="Settings that change how inspection results are shown and saved on this device."><span class="tip-i" role="button" tabindex="0" aria-label="Settings that change how inspection results are shown and saved on this device."><svg stroke="currentColor" fill="none" stroke-width="2.25" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="15" width="15"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span></span></span>
+      <svg style="height:16px;width:16px" viewBox="0 0 10 18" fill="none"><path d="M1 17L9 9L1 1" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Edit Module Configurations</span>
+      <span class="self-center"><span class="tip" data-tt="Adjust AI settings such as thresholds and expected results on this device."><span class="tip-i" role="button" tabindex="0" aria-label="Adjust AI settings such as thresholds and expected results on this device."><svg stroke="currentColor" fill="none" stroke-width="2.25" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="15" width="15"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span></span></span>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-in"><div id="emc"></div></div>
+    <div class="foot">
+      <div class="foot-in">
+        <span class="ib" id="ttReset"><button type="button" class="btn btn-border w24" id="btnReset" disabled>Reset</button></span>
+        <span class="ib" id="ttSave"><button type="button" class="btn btn-flat w24" id="btnSave" disabled>Save</button></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toaster" id="toaster" aria-live="polite"></div>
+<div id="modals"></div>
+
+<div class="mode-sw" id="modeSw" role="group" aria-label="View">
+  <button type="button" data-mode="today">Today</button>
+  <button type="button" data-mode="after">After change</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Shell, mode, state, shared state ----------
+  var inShell = false;
+  try { inShell = window.self !== window.top; } catch (e) { inShell = true; }
+  if (inShell) document.body.classList.add('in-shell');
+  var params = new URLSearchParams(location.search);
+  var mode = params.get('mode') === 'today' ? 'today' : 'after';
+  var STATES = { odc: ['c1', 'm-odc'], ocr: ['c1', 'm-ocr'], code: ['c1', 'm-code'], bead: ['c2', 'm-bead'], seg: ['c2', 'm-seg'] };
+  var stateKey = STATES[params.get('state')] ? params.get('state') : 'odc';
+  var openParam = params.get('open');
+  // models=none: no module has a model yet (the step 6 stage, whatever the walk stored). models=some: the intermediate stage (Part Presence and Label Text have models, Seal Bead and Surface Check not yet); models=all: every module.
+  var modelsParam = ['none', 'some', 'all'].indexOf(params.get('models')) >= 0 ? params.get('models') : null;
+  var SOME_MODELS = { 'm-odc': true, 'm-ocr': true };
+
+  var KEY = 'cfgonly-state';
+  var SHARED_DEFAULTS = { instanceName: 'Line 3 Assembly', instanceId: 'ab677d65-aa67-4bd2-a967-7a3fa86778ac', edgeVersion: null, configDownloaded: false,
+    configUploaded: false, modelsSelected: false, modelsDownloaded: false, modelsUploaded: false };
+  function readShared() {
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY) || 'null');
+      return Object.assign({}, SHARED_DEFAULTS, s && typeof s === 'object' ? s : {});
+    } catch (e) { return Object.assign({}, SHARED_DEFAULTS); }
+  }
+  var shared = readShared();
+  function nav(to) { if (!inShell) return; try { window.parent.postMessage({ type: 'cfgonly-nav', to: to }, '*'); } catch (e) { /* ignore */ } }
+
+  // ---------- Copy (src/shared/copy/tooltips.js, sections/*, hooks/*) ----------
+  var LOCK_TIP = 'Add models to set thresholds';
+  var TIPS = {
+    Operator: 'How the result is compared with the Value: =, <, > or between.',
+    Value: 'Expected count (or range) for this class.',
+    'Confidence Threshold': 'Minimum score (0-1) for a detection to count. Higher is stricter.',
+    'IOU Threshold': 'Overlap (0-1) above which two boxes are treated as one object.',
+    Priority: 'Order in which rules are checked. The first match decides the result.',
+    'GT Text': 'Expected text. The result is NG if the read text does not match.',
+    'Detection — Confidence Threshold': 'Minimum score (0-1) to find a text area.',
+    'Recognition — Confidence Threshold': 'Minimum score (0-1) to accept the read characters.',
+    'Correct Calliper Percentage': 'Minimum % of calipers, across all beads, that must pass the gap and width checks for an OK result. Default 80.'
+  };
+  var REQ = 'This field is required';
+
+  // ---------- Sample data ----------
+  var IMG = { w: 1600, h: 1000 };
+  var BEAD_CLASS_ID = '6f1c9e2a-4b7d-4e19-9a3c-2d8f5b7e1c04';
+  var BEAD_DOTS = [{ x: 250, y: 330 }, { x: 620, y: 262 }, { x: 1010, y: 250 }, { x: 1290, y: 318 }, { x: 1372, y: 520 }, { x: 1268, y: 716 }, { x: 900, y: 778 }];
+  var CAPTURES = [{ id: 'c1', name: 'Variant A | Front View' }, { id: 'c2', name: 'Variant A | Top View' }];
+  var MODULES = {
+    c1: [{ id: 'm-odc', name: 'Part Presence', store: 'assembly' }, { id: 'm-ocr', name: 'Label Text', store: 'ocr' }, { id: 'm-code', name: 'Barcode', store: 'codeReader' }],
+    c2: [{ id: 'm-bead', name: 'Seal Bead', store: 'beadInspection' }, { id: 'm-seg', name: 'Surface Check', store: 'segmentation' }]
+  };
+  var SEG_CLASSES = [{ id: 'cls-scratch', name: 'Scratch' }, { id: 'cls-dent', name: 'Dent' }];
+  function instances() {
+    return [{ id: 'line2', name: 'Line 2 Assembly - Sample Project - Plant A' },
+      { id: 'line3', name: (shared.instanceName || 'Line 3 Assembly') + ' - Sample Project - Plant A' }];
+  }
+  // Line 2 Assembly is complete. Line 3 Assembly (after the change): no models, some models (models=some), or all
+  // (models=all, or the models package uploaded in the flow).
+  function hasModels(mid) {
+    mid = mid || sel.mod;
+    if (sel.inst === 'line2') return true;
+    if (mode !== 'after') return false;
+    if (modelsParam === 'none') return false;
+    if (shared.modelsUploaded || modelsParam === 'all') return true;
+    return modelsParam === 'some' && !!SOME_MODELS[mid];
+  }
+  function locked() { return mode === 'after' && !hasModels(); }
+
+  function moduleById(id) {
+    var all = MODULES.c1.concat(MODULES.c2);
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+    return null;
+  }
+  function seed(mid) {
+    var m = moduleById(mid), wm = hasModels(mid);
+    if (m.store === 'assembly') {
+      var cl = [
+        { id: 'cls-bolt', name: 'Bolt', groundTruth: { operator: 0, count: [4, 4] } },
+        { id: 'cls-washer', name: 'Washer', groundTruth: { operator: 0, count: [4, 4] } },
+        { id: 'cls-clip', name: 'Clip', groundTruth: { operator: 0, count: [2, 2] } }
+      ];
+      var th = {};
+      if (wm) cl.forEach(function (c) { th[c.id] = { threshold: 0.7, iouThreshold: 0.3 }; });
+      return { classes: cl, th: th };
+    }
+    if (m.store === 'segmentation') {
+      var sth = {};
+      if (wm) SEG_CLASSES.forEach(function (c) { sth[c.id] = { threshold: 0.7, iouThreshold: 0.3 }; });
+      // Today the priority conditions are filtered against the threshold rows (useModuleConfig.js:231-232),
+      // so with no model every condition is dropped.
+      var pcs = [{ id: 'pc-1', classId: 'cls-dent', operator: 'gt', values: [1] }, { id: 'pc-2', classId: 'cls-scratch', operator: 'gt', values: [2] }];
+      return { classes: clone(SEG_CLASSES), th: sth, displaySingleClass: true,
+        priority: (mode === 'today' && !wm) ? [] : pcs, defaultText: 'OK', classification: 'cls-scratch' };
+    }
+    if (m.store === 'ocr') {
+      return { readingMode: 1, combine: false, detectionType: 9, angleGtEnabled: true, angle: [-10, 10],
+        info: [{ id: 'lb-1', labelName: 'Part Number', gtText: 'PN-4471-A' }, { id: 'lb-2', labelName: 'Batch Code', gtText: 'B2710' }],
+        th: wm ? { det: 0.7, rec: 0.7 } : {} };
+    }
+    if (m.store === 'codeReader') return { match: true, matchType: 0, gtString: 'LN3-ASSY-0001' };
+    if (m.store === 'beadInspection') {
+      var dots = clone(BEAD_DOTS);
+      return { th: wm ? { bead: { threshold: 0.5, iouThreshold: 0.3 } } : {},
+        beads: [{ id: 'bd-1', name: 'bead-1', classId: BEAD_CLASS_ID, dots: dots, caliperHeight: 80, caliperWidthWindow: 16,
+          gtOperator: 3, gtWidth: [20, 40], minGap: 3, boxSize: 512, channelWidth: 40, correctCaliperPercentage: 80, boxes: calcBoxes(dots, 512) }] };
+    }
+    return {};
+  }
+
+  // ---------- Page state ----------
+  var initCfg = STATES[stateKey];
+  var sel = { inst: 'line3', cap: initCfg[0], mod: initCfg[1] };
+  var cur = null, init = null;
+  var saveHeldOff = false; // index.jsx: closing the deployment modal sets Save disabled until the next edit
+  var pending = null;
+  var bead = null;
+  function freshBeadUi() {
+    return { editing: false, pts: null, snap: null, undo: [], calc: false, status: 'ok', showWidth: true, showBoxes: true,
+      lastSig: cur && cur.beads ? sig(cur.beads) : null, banner: false, savedAt: null, replaced: false, img: null,
+      view: null };
+  }
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function empty(v) { return v === '' || v === undefined || v === null; }
+  function store() { var m = moduleById(sel.mod); return m ? m.store : null; }
+  function loadModule() {
+    if (!sel.mod) { cur = init = null; return; }
+    cur = seed(sel.mod); init = clone(cur);
+    var keepBanner = bead && bead.banner && store() === 'beadInspection';
+    bead = freshBeadUi();
+    if (keepBanner) bead.banner = true;
+  }
+
+  // ---------- Icons ----------
+  var ARROW_UPDOWN = '<svg width="16" height="24" viewBox="0 0 16 24" fill="none" aria-hidden="true"><path fill-rule="evenodd" d="M8.00048 5.29297L11.8545 9.14597L11.1475 9.85397L8.00048 6.70697L4.85448 9.85397L4.14648 9.14597L8.00048 5.29297Z" fill="#acacac"/><path fill-rule="evenodd" d="M8.00048 18.707L11.8545 14.854L11.1475 14.146L8.00048 17.293L4.85448 14.146L4.14648 14.854L8.00048 18.707Z" fill="#acacac"/></svg>';
+  var TICK = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M16.3333 3.86162C16.0907 3.61904 15.7134 3.61904 15.4708 3.86162L6.30674 12.7562L1.77862 8.30889C1.53604 8.06631 1.15869 8.09326 0.916115 8.30889C0.673537 8.55146 0.70049 8.92881 0.916115 9.17139L5.68682 13.8073C5.84854 13.969 6.06416 14.0499 6.30674 14.0499C6.54932 14.0499 6.73799 13.969 6.92666 13.8073L16.3333 4.67021C16.5759 4.48154 16.5759 4.1042 16.3333 3.86162Z" fill="currentColor"/></svg>';
+  function feather(inner, size, extra) { return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + (extra || '') + '>' + inner + '</svg>'; }
+  var I_INFO = function (s) { return feather('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>', s || 14); };
+  var I_LOCK = function (s) { return feather('<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>', s || 14, ' class="lk" aria-hidden="true"'); };
+  var I_EDIT = feather('<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>', 13);
+  var I_EYE = feather('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>', 16);
+  var I_EYEOFF = feather('<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>', 16);
+  var I_GRID = feather('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>', 16);
+  var I_IMAGE = feather('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>', 16, ' style="color:#6b7280"');
+  var I_ZIN = feather('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>', 16);
+  var I_ZOUT = feather('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>', 16);
+  var I_X = feather('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', 14);
+  var I_FIT = '<svg width="16" height="16" viewBox="0 0 30 30" fill="none" style="transform:scaleX(-1)"><path d="M10.6667 4H6.66667C5.95942 4 5.28115 4.28095 4.78105 4.78105C4.28095 5.28115 4 5.95942 4 6.66667V10.6667M28 10.6667V6.66667C28 5.95942 27.719 5.28115 27.219 4.78105C26.7189 4.28095 26.0406 4 25.3333 4H21.3333M21.3333 28H25.3333C26.0406 28 26.7189 27.719 27.219 27.219C27.719 26.7189 28 26.0406 28 25.3333V21.3333M17 14.5V7.5M17 7.5L13.5 10M17 7.5L20.5 10M20 17H27M27 17L24 13M27 17L24 21M4 21.3333V25.3333C4 26.0406 4.28095 26.7189 4.78105 27.219C5.28115 27.719 5.95942 28 6.66667 28H10.6667H15C16.1046 28 17 27.1046 17 26V19C17 17.8954 16.1046 17 15 17H6C4.89543 17 4 17.8954 4 19V21.3333Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var I_ONE = '<svg width="16" height="16" viewBox="0 0 30 30" fill="none"><path d="M10.6667 4H6.66667C5.95942 4 5.28115 4.28095 4.78105 4.78105C4.28095 5.28115 4 5.95942 4 6.66667V10.6667M28 10.6667V6.66667C28 5.95942 27.719 5.28115 27.219 4.78105C26.7189 4.28095 26.0406 4 25.3333 4H21.3333M21.3333 28H25.3333C26.0406 28 26.7189 27.719 27.219 27.219C27.719 26.7189 28 26.0406 28 25.3333V21.3333M4 21.3333V25.3333C4 26.0406 4.28095 26.7189 4.78105 27.219C5.28115 27.719 5.95942 28 6.66667 28H10.6667" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5043 11.2727V20H10.6591V13.0241H10.608L8.60938 14.277V12.6406L10.7699 11.2727H12.5043ZM15.6566 18.9858C15.3754 18.9858 15.1339 18.8864 14.9322 18.6875C14.7333 18.4886 14.6339 18.2472 14.6339 17.9631C14.6339 17.6847 14.7333 17.446 14.9322 17.2472C15.1339 17.0483 15.3754 16.9489 15.6566 16.9489C15.9293 16.9489 16.168 17.0483 16.3725 17.2472C16.5771 17.446 16.6793 17.6847 16.6793 17.9631C16.6793 18.3224 16.5344 18.4787 16.3637 18.8494C16.0103 18.9403 15.8413 18.9858 15.6566 18.9858ZM15.6566 14.7031C15.3754 14.7031 15.1339 14.6037 14.9322 14.4048C14.7333 14.206 14.6339 13.9645 14.6339 13.6804C14.6339 13.402 14.7333 13.1648 14.9322 12.9688C15.1339 12.7699 15.3754 12.6705 15.6566 12.6705C15.9293 12.6705 16.168 12.7699 16.3725 12.9688C16.5771 13.1648 16.6793 13.402 16.6793 13.6804C16.6793 14.044 16.5344 14.2003 16.1637 14.5668C16.0103 14.6577 15.8413 14.7031 15.6566 14.7031ZM21.9496 11.2727V20H20.1044V13.0241H20.0533L18.0547 14.277V12.6406L20.2152 11.2727H21.9496Z" fill="currentColor"/></svg>';
+  var I_CLOSE = '<svg width="25" height="25" viewBox="0 0 32 32" fill="none"><path d="M24 8L8 24M8 8L24 24" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var I_DRAG = '<svg width="6" height="10" viewBox="0 0 6 10" fill="black"><circle cx="5.25" cy="0.75" r="0.75"/><circle cx="5.25" cy="5" r="0.75"/><circle cx="5.25" cy="9.25" r="0.75"/><circle cx="0.75" cy="0.75" r="0.75"/><circle cx="0.75" cy="5" r="0.75"/><circle cx="0.75" cy="9.25" r="0.75"/></svg>';
+  var I_SPIN = '<svg class="spin" width="14" height="14" fill="none" viewBox="0 0 24 24"><circle style="opacity:.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+  function infoWhite(tip) {
+    return '<span class="tip" data-tt="' + esc(tip) + '"><span class="tip-i white" role="button" tabindex="0" aria-label="' + esc(tip) + '"><svg stroke="currentColor" fill="none" stroke-width="2.25" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="16" width="16"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span></span>';
+  }
+  function infoGrey(tip) { return '<span class="ic-g" data-tt="' + esc(tip) + '">' + I_INFO(14) + '</span>'; }
+  function lockHint() { return '<span class="lock-hint">' + I_LOCK(12).replace(' class="lk"', '') + LOCK_TIP + '</span>'; }
+  function lockedInput(cls, extra) {
+    return '<span class="lockw' + (extra || '') + '" data-tt="' + LOCK_TIP + '" data-tt-pos="bottom" tabindex="0" aria-label="' + LOCK_TIP + '">' +
+      '<input type="number" class="' + cls + '" disabled tabindex="-1">' + I_LOCK(14) + '</span>';
+  }
+
+  // ---------- SelectInput (shared/ui/SelectInput.jsx) ----------
+  var selects = {};
+  function selectHTML(key, cfg) {
+    selects[key] = cfg;
+    var item = null;
+    for (var i = 0; i < cfg.data.length; i++) if (cfg.value != null && String(cfg.data[i].id) === String(cfg.value)) item = cfg.data[i];
+    var txt = item ? esc(item.name) : esc(cfg.placeholder || 'Select Option');
+    return '<div class="sel" data-sel="' + key + '"><button type="button" class="sel-btn"' + (cfg.disabled ? ' disabled' : '') +
+      (cfg.style ? ' style="' + cfg.style + '"' : '') + '><span class="sel-txt' + (item ? '' : ' sel-ph') + '">' + txt + '</span>' +
+      '<span class="sel-arr">' + ARROW_UPDOWN + '</span></button></div>';
+  }
+  var openList = null;
+  function closeList() { if (openList) { openList.remove(); openList = null; } }
+  function openSelect(wrapper) {
+    var key = wrapper.getAttribute('data-sel'), cfg = selects[key], btn = wrapper.querySelector('button');
+    if (!cfg || btn.disabled) return;
+    if (openList && openList.getAttribute('data-for') === key) { closeList(); return; }
+    closeList();
+    var r = btn.getBoundingClientRect(), ul = document.createElement('ul');
+    ul.className = 'sel-list'; ul.setAttribute('data-for', key);
+    var below = window.innerHeight - r.bottom;
+    if (below < 244 && r.top > below) { ul.style.bottom = (window.innerHeight - r.top) + 'px'; ul.style.marginBottom = '4px'; }
+    else { ul.style.top = r.bottom + 'px'; ul.style.marginTop = '4px'; }
+    ul.style.left = r.left + 'px'; ul.style.width = r.width + 'px';
+    ul.innerHTML = cfg.data.length ? cfg.data.map(function (d) {
+      var isSel = cfg.value != null && String(d.id) === String(cfg.value);
+      return '<li data-id="' + esc(d.id) + '" class="' + (isSel ? 'sel-d on' : '') + '"><span class="t">' + esc(d.name) + '</span>' +
+        (isSel ? '<span class="tick">' + TICK + '</span>' : '') + '</li>';
+    }).join('') : '<li style="padding:8px 36px 8px 12px;font-style:italic;color:#6b7280">No options</li>';
+    ul.addEventListener('mouseover', function (e) {
+      var li = e.target.closest('li[data-id]'); if (!li) return;
+      ul.querySelectorAll('li').forEach(function (x) { x.classList.toggle('on', x === li); });
+    });
+    ul.addEventListener('mouseleave', function () { ul.querySelectorAll('li').forEach(function (x) { x.classList.toggle('on', x.classList.contains('sel-d')); }); });
+    ul.addEventListener('click', function (e) {
+      var li = e.target.closest('li[data-id]'); if (!li) return;
+      var id = li.getAttribute('data-id');
+      var item = cfg.data.filter(function (d) { return String(d.id) === id; })[0];
+      closeList();
+      if (item && cfg.onChange) cfg.onChange(item);
+    });
+    document.body.appendChild(ul); openList = ul;
+  }
+  document.addEventListener('mousedown', function (e) { if (openList && !openList.contains(e.target) && !e.target.closest('.sel')) closeList(); });
+  document.addEventListener('click', function (e) { var w = e.target.closest('.sel'); if (w) openSelect(w); });
+  window.addEventListener('scroll', closeList, true);
+  window.addEventListener('resize', function () { closeList(); sizeColumns(); });
+
+  // ---------- Table (shared/ui/Table.jsx) ----------
+  function tableHTML(headers, bodyRows, opts) {
+    opts = opts || {};
+    var head = headers.map(function (h) {
+      var inner = TIPS[h] ? '<span class="th-in">' + esc(h) + infoWhite(TIPS[h]) + '</span>' : esc(h);
+      return '<th scope="col">' + inner + '<div class="rh"></div></th>';
+    }).join('');
+    return '<div class="tbl" data-cols="' + headers.length + '" data-full="' + (opts.full === false ? '0' : '1') + '">' +
+      '<div style="width:max-content;min-width:100%"><table style="table-layout:auto' + (opts.tstyle ? ';' + opts.tstyle : '') + '">' +
+      '<colgroup>' + headers.map(function () { return '<col>'; }).join('') + '</colgroup>' +
+      '<thead><tr>' + head + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div></div>';
+  }
+  function sizeColumns() {
+    document.querySelectorAll('.tbl[data-cols]').forEach(function (ref) {
+      var n = Number(ref.getAttribute('data-cols')), w = ref.offsetWidth;
+      var per = ref.getAttribute('data-full') === '1' ? (w ? (w - 20) / n : 150) : Math.min(w / n, 300);
+      ref.querySelectorAll('col').forEach(function (c) { c.style.width = per + 'px'; });
+    });
+  }
+  function td(inner) { return '<td><div class="td-in">' + inner + '</div></td>'; }
+
+  // ---------- Validation (hooks/useValidation.js) ----------
+  function badTh(t) { return empty(t.threshold) || isNaN(Number(t.threshold)) || empty(t.iouThreshold) || isNaN(Number(t.iouThreshold)); }
+  function hasErrors() {
+    var s = store();
+    if (!cur) return false;
+    if (s === 'assembly') {
+      var cnt = cur.classes.some(function (c) {
+        var g = c.groundTruth, k = g.count || [];
+        if (g.operator === 3 && Number(k[0] || 0) >= Number(k[1] || 0)) return true;
+        return g.operator === 3 ? (empty(k[0]) || empty(k[1])) : empty(k[0]);
+      });
+      return cnt || Object.keys(cur.th).some(function (k) { return badTh(cur.th[k]); });
+    }
+    if (s === 'segmentation') {
+      if (Object.keys(cur.th).some(function (k) { return badTh(cur.th[k]); })) return true;
+      if (cur.displaySingleClass) {
+        if (!String(cur.defaultText || '').trim() || !cur.classification) return true;
+        return cur.priority.some(function (c) {
+          var v0 = c.values[0], v1 = c.values[1];
+          if (!c.classId || empty(v0) || v0 < 0 || v0 > 100) return true;
+          if (c.operator === 'between') { if (empty(v1) || v1 < 0 || v1 > 100 || Number(v0) >= Number(v1)) return true; }
+          return false;
+        });
+      }
+      return false;
+    }
+    if (s === 'ocr') {
+      if (Number(cur.detectionType) === 9 && cur.angleGtEnabled && angleError()) return true;
+      if (cur.readingMode === 1 && cur.info.some(function (i) { return !String(i.gtText || '').trim(); })) return true;
+      return false;
+    }
+    if (s === 'beadInspection') {
+      var bErr = cur.beads.some(function (b) { return !!widthError(b); });
+      var tErr = Object.keys(cur.th).some(function (k) { var t = cur.th[k]; return empty(t.threshold) || isNaN(Number(t.threshold)); });
+      return bErr || tErr;
+    }
+    return false;
+  }
+  function angleError() {
+    var a = cur.angle, mn = Number(a[0]), mx = Number(a[1]);
+    return a.length !== 2 || a[0] === -361 || a[1] === -361 || isNaN(mn) || isNaN(mx) || mn < -180 || mn > 180 || mx < -180 || mx > 180 || mn >= mx;
+  }
+  function widthError(b) {
+    var op = b.gtOperator, w = b.gtWidth;
+    if (op === null || op === undefined) return '';
+    if (op === 3) {
+      if (!w || empty(w[0]) || empty(w[1])) return 'Width values cannot be empty';
+      if (Number(w[0]) > Number(w[1])) return 'Min width cannot be greater than Max width';
+      return '';
+    }
+    return (!w || empty(w[0])) ? 'Width values cannot be empty' : '';
+  }
+  function errFor(key) {
+    var p = key.split(':'), k = p[0], i = Number(p[1]);
+    if (k === 'odc-c0') {
+      var g = cur.classes[i].groundTruth;
+      if (empty(g.count[0])) return REQ;
+      return g.operator === 3 && Number(g.count[0] || 0) >= Number(g.count[1] || 0) ? 'Min value must be less than Max value' : '';
+    }
+    if (k === 'odc-c1') return empty(cur.classes[i].groundTruth.count[1]) ? 'Max value is required' : '';
+    if (k === 'th' || k === 'iou') {
+      var t = cur.th[cur.classes[i].id] || {};
+      return empty(k === 'th' ? t.threshold : t.iouThreshold) ? REQ : '';
+    }
+    if (k === 'gt') return !String(cur.info[i].gtText || '').trim() ? 'GT text is required' : '';
+    if (k === 'ocr-th') { var v = cur.th[i === 0 ? 'det' : 'rec']; return empty(v) ? REQ : ''; }
+    if (k === 'pc') {
+      var c = cur.priority[i], v0 = c.values[0], v1 = c.values[1], msg = '';
+      if (!empty(v0) && (v0 < 0 || v0 > 100)) msg = 'Values must be 0-100';
+      if (c.operator === 'between') {
+        if (!empty(v1) && (v1 < 0 || v1 > 100)) msg = 'Values must be 0-100';
+        else if (!empty(v0) && !empty(v1) && Number(v0) >= Number(v1)) msg = 'Min must be < Max';
+      }
+      return msg;
+    }
+    return '';
+  }
+  function errSpan(key) { return '<span class="err" data-err="' + key + '">' + errFor(key) + '</span>'; }
+  function refreshErrors() {
+    document.querySelectorAll('[data-err]').forEach(function (el) { el.textContent = errFor(el.getAttribute('data-err')); });
+    document.querySelectorAll('input.txt[data-f="gt"]').forEach(function (el) { el.classList.toggle('bad', !String(el.value || '').trim()); });
+  }
+
+  // ---------- Sections ----------
+  var OPS = [{ id: 0, name: '=' }, { id: 1, name: '<' }, { id: 2, name: '>' }, { id: 3, name: 'b/w' }];
+
+  // sections/AssemblySection.jsx
+  function odcHTML() {
+    var lk = locked();
+    var rows = cur.classes.map(function (c, i) {
+      var g = c.groundTruth, t = cur.th[c.id] || {};
+      var second = g.operator === 3 ? '<span style="margin-bottom:16px">-</span><div class="fc"><input type="number" min="0" class="num" data-f="odc-c1" data-i="' + i + '" value="' + esc(g.count[1]) + '">' + errSpan('odc-c1:' + i) + '</div>' : '';
+      var thCell = function (f, val, ek) {
+        return lk ? lockedInput('num') + '<span class="h4"></span>'
+          : '<input type="number" min="0" max="1" step="0.01" class="num" data-f="' + f + '" data-i="' + i + '" value="' + esc(val) + '">' + errSpan(ek + ':' + i);
+      };
+      return '<tr>' +
+        td('<div class="fc"><div class="cls">' + esc(c.name) + '</div><span class="h4"></span></div>') +
+        td('<div class="fc w-full">' + selectHTML('op' + i, { data: OPS, value: g.operator || 0, style: 'padding:6px 10px;width:100%;min-width:80px',
+          onChange: function (item) { setOperator(i, Number(item.id)); } }) + '<span class="h4"></span></div>') +
+        td('<div class="fc-c"><div class="fr-c"><div class="fc"><input type="number" min="0" class="num" data-f="odc-c0" data-i="' + i + '" value="' + esc(g.count[0]) + '">' + errSpan('odc-c0:' + i) + '</div>' + second + '</div></div>') +
+        td('<div class="fc w-full">' + thCell('odc-t', t.threshold, 'th') + '</div>') +
+        td('<div class="fc w-full">' + thCell('odc-iou', t.iouThreshold, 'iou') + '</div>') +
+        '</tr>';
+    }).join('');
+    return '<div class="col4">' + tableHTML(['Class', 'Operator', 'Value', 'Confidence Threshold', 'IOU Threshold'], rows) + '</div>';
+  }
+  function setOperator(i, op) { var g = cur.classes[i].groundTruth; g.operator = op; edited(true); }
+
+  // sections/SegmentationSection.jsx
+  function segHTML() {
+    var lk = locked();
+    var rows = cur.classes.map(function (c, i) {
+      var t = cur.th[c.id] || {};
+      var cell = function (f, val, ek) {
+        return lk ? lockedInput('num') + '<span class="h4"></span>'
+          : '<input type="number" min="0" max="1" step="0.01" class="num" data-f="' + f + '" data-i="' + i + '" value="' + esc(val) + '">' + errSpan(ek + ':' + i);
+      };
+      return '<tr>' + td('<div class="fc"><div class="cls">' + esc(c.name) + '</div><span class="h4"></span></div>') +
+        td('<div class="fc w-full">' + cell('seg-t', t.threshold, 'th') + '</div>') +
+        td('<div class="fc w-full">' + cell('seg-iou', t.iouThreshold, 'iou') + '</div>') + '</tr>';
+    }).join('');
+    var h = '<div class="col4"><div class="b14">Thresholds for classes' + (lk ? lockHint() : '') + '</div>' +
+      tableHTML(['Class Name', 'Confidence Threshold', 'IOU Threshold'], rows);
+    if (cur.displaySingleClass) {
+      var prow = cur.priority.map(function (c, i) {
+        var name = (cur.classes.filter(function (x) { return x.id === c.classId; })[0] || {}).name || 'Unknown Class';
+        var between = c.operator === 'between';
+        return '<tr style="min-height:50px">' +
+          td('<div style="position:relative;display:flex;width:100%;align-items:center;justify-content:center;padding:8px 0"><div class="drag">' + I_DRAG + '</div><span style="font-size:13px;font-weight:500">Priority ' + (i + 1) + '</span></div>') +
+          td('<span style="font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(name) + '</span>') +
+          td('<div style="display:flex;justify-content:center;width:100%"><div style="width:140px">' + selectHTML('pop' + i, {
+            data: [{ id: 'between', name: 'b/w' }, { id: 'gt', name: '>' }, { id: 'lt', name: '<' }, { id: 'eq', name: '=' }], value: c.operator,
+            style: 'padding:6px;font-size:12px;height:100%', onChange: function (item) { cur.priority[i].operator = item.id; edited(true); } }) + '</div></div>') +
+          td('<div class="fc-c w-full" style="justify-content:center"><div style="display:flex;align-items:center;justify-content:center;gap:16px;width:100%">' +
+            '<input type="number" min="0" max="100" class="pv" data-f="pc0" data-i="' + i + '" value="' + esc(c.values[0]) + '" placeholder="Value">' +
+            (between ? '<span style="font-size:12px;font-weight:700">-</span><input type="number" min="0" max="100" class="pv" data-f="pc1" data-i="' + i + '" value="' + esc(c.values[1]) + '" placeholder="Value">' : '') +
+            '</div><div style="font-size:11px;color:#ef4444;margin-top:4px" data-err="pc:' + i + '">' + errFor('pc:' + i) + '</div></div>') +
+          '</tr>';
+      }).join('');
+      h += '<div class="col4" style="margin-top:16px"><div class="b14">Priority for classes to show</div>' +
+        tableHTML(['Priority', 'Class Name', 'Operator', 'Value'], prow) +
+        '<div style="display:flex;align-items:center;gap:16px;margin-top:8px">' +
+          '<div class="fc" style="flex:1;gap:4px"><label class="l13">Default Text (when none met) <span class="req">*</span></label><input type="text" class="f13" data-f="seg-dt" value="' + esc(cur.defaultText) + '" placeholder="e.g. Inconclusive"></div>' +
+          '<div class="fc" style="flex:1;gap:4px"><label class="l13">Correct Class <span class="req">*</span></label>' +
+            selectHTML('segcc', { data: SEG_CLASSES, value: cur.classification, style: 'padding:6px;font-size:13px;width:100%', onChange: function (item) { cur.classification = item.id; edited(true); } }) + '</div>' +
+        '</div></div>';
+    }
+    return h + '</div>';
+  }
+
+  // sections/OCRSection.jsx
+  function ocrHTML() {
+    var lk = locked(), match = cur.readingMode === 1, wm = hasModels();
+    var labelHeaders = match ? ['Label Name', 'GT Text'] : ['Label Name'];
+    var lrows = cur.info.map(function (l, i) {
+      return '<tr>' + td('<div class="fc w-full"><div class="ro">' + esc(l.labelName || '—') + '</div><span class="h4"></span></div>') +
+        (match ? td('<div class="fc w-full"><input type="text" class="txt' + (!String(l.gtText || '').trim() ? ' bad' : '') + '" data-f="gt" data-i="' + i + '" value="' + esc(l.gtText) + '" placeholder="Enter the GT text">' + errSpan('gt:' + i) + '</div>') : '') + '</tr>';
+    }).join('');
+    var thCell = function (i) {
+      if (lk) return '<div class="fc w-full">' + lockedInput('th-num') + '<span class="h4"></span></div>';
+      if (!wm) {
+        // Today, no model: the input has no value and its change handler finds no threshold row, so typing is dropped.
+        return '<div class="fc w-full"><input type="number" min="0" max="1" step="0.01" class="th-num" placeholder="0.00 – 1.00"><span class="err">' + REQ + '</span></div>';
+      }
+      return '<div class="fc w-full"><input type="number" min="0" max="1" step="0.01" class="th-num" data-f="ocr-th" data-i="' + i + '" value="' + esc(cur.th[i === 0 ? 'det' : 'rec']) + '" placeholder="0.00 – 1.00">' + errSpan('ocr-th:' + i) + '</div>';
+    };
+    var h = '<div class="sec"><div class="sec-title">OCR Configuration</div>' +
+      '<div class="rm-row"><div class="rm-lbl">Reading Mode</div><div style="width:100%">' +
+        selectHTML('rm', { data: [{ id: 0, name: 'Read only' }, { id: 1, name: 'Read & Match' }], value: cur.readingMode, style: 'padding:8px;font-size:12px', onChange: function (item) { readingModeChange(Number(item.id)); } }) +
+      '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:12px"><div class="rm-lbl">Try combining detections to recognize words better?</div>' +
+        '<label class="sw"><input type="checkbox" data-f="combine"' + (cur.combine ? ' checked' : '') + '><div class="tr"></div></label></div>';
+    if (cur.info.length) {
+      h += '<div class="col6"><div class="fc g2"><div class="sub-lbl">' + (match ? 'Labels &amp; their ground-truth text:' : 'Configured labels:') + '</div>' + tableHTML(labelHeaders, lrows) + '</div>' +
+        '<div class="fc g2"><div class="sub-lbl">Confidence Thresholds:' + (lk ? lockHint() : '') + '</div>' +
+          tableHTML(['Detection — Confidence Threshold', 'Recognition — Confidence Threshold'], '<tr>' + td(thCell(0)) + td(thCell(1)) + '</tr>', { full: false, tstyle: 'width:100%;max-width:672px' }) + '</div></div>';
+    }
+    if (Number(cur.detectionType) === 9 && cur.angleGtEnabled) {
+      var a = cur.angle;
+      h += '<div class="fc g2"><div class="sub-lbl">Angle Ground Truth:</div><div style="display:flex;align-items:center;gap:16px;margin-top:8px">' +
+        '<div class="fc" style="flex:1;gap:4px"><label class="l13">Min Angle <span class="req">*</span></label><input type="number" min="-180" max="180" class="ang-in" data-f="amin" placeholder="Min" value="' + (a[0] === -361 ? '' : esc(a[0])) + '"></div>' +
+        '<div class="fc" style="flex:1;gap:4px"><label class="l13">Max Angle <span class="req">*</span></label><input type="number" min="-180" max="180" class="ang-in" data-f="amax" placeholder="Max" value="' + (a[1] === -361 ? '' : esc(a[1])) + '"></div>' +
+        '</div><div id="angErr" style="margin-top:4px;font-size:12px;color:#ef4444">' + (angleError() ? 'Angles must be between -180 and 180, and Min must be less than Max.' : '') + '</div></div>';
+    }
+    if (!cur.info.length) h += '<div style="font-size:14px;font-style:italic">No OCR labels configured.</div>';
+    return h + '</div>';
+  }
+  function readingModeChange(next) {
+    if (next === cur.readingMode) return;
+    if (cur.readingMode === 1 && next === 0) { openModal('rm'); return; }
+    cur.readingMode = next; edited(true);
+  }
+
+  // sections/CodeReaderSection.jsx
+  function codeHTML() {
+    var h = '<div class="col6"><div><label class="cr-q">Do you want to only read the code or match it as well?</label><div class="cr-grid">' +
+      '<label class="cr-opt"><input type="radio" name="codeMatch" data-f="cr-match" value="0"' + (!cur.match ? ' checked' : '') + ' style="accent-color:#4b5563"><span>Only read</span></label>' +
+      '<label class="cr-opt"><input type="radio" name="codeMatch" data-f="cr-match" value="1"' + (cur.match ? ' checked' : '') + ' style="accent-color:#4b5563"><span>Read &amp; Match</span></label></div></div>';
+    if (cur.match) {
+      h += '<div><label class="cr-q">How should the matching be done?</label><div class="cr-grid">' +
+        '<label class="cr-opt"><input type="radio" name="matchType" data-f="cr-mt" value="0"' + (cur.matchType === 0 ? ' checked' : '') + '><span>Full matching</span></label>' +
+        '<label class="cr-opt"><input type="radio" name="matchType" data-f="cr-mt" value="1"' + (cur.matchType === 1 ? ' checked' : '') + '><span>Regex matching</span></label></div></div>' +
+        '<div><label class="cr-q" style="margin-bottom:4px">Enter the full string to be matched with</label>' +
+        '<div style="margin-bottom:8px;font-size:12px;line-height:16px">The exact string needs to be entered against which the matching shall be done</div>' +
+        '<input type="text" class="cr-in" data-f="cr-gt" value="' + esc(cur.gtString) + '" placeholder="Type here..."></div>';
+    }
+    return h + '</div>';
+  }
+
+  // BeadInspectionConfigEditor.jsx + bead-emc/BeadCaliperSettings.jsx + BeadVisualizationCanvas.jsx
+  function activeBead() { return cur.beads[0]; }
+  function sig(beads) { return JSON.stringify(beads.map(function (b) { return [b.dots, b.boxSize]; })); }
+  function needRecalc() { return bead.lastSig !== null && bead.lastSig !== sig(cur.beads); }
+  function beadBlocked() { return bead.editing || bead.calc || needRecalc() || bead.status === 'recalc'; }
+  function beadClassName(b) {
+    // Today the class name comes from the threshold rows (useModuleConfig.js:384-386); with no model the raw class id shows.
+    return (mode === 'today' && !hasModels()) ? b.classId : 'bead';
+  }
+  function derivedChannel(b) {
+    var w = b.gtWidth;
+    if (b.gtOperator === 3 && Array.isArray(w)) { var mx = Number(w[1]) || Number(w[0]); if (mx > 0) return mx; }
+    else if (Array.isArray(w) && Number(w[0]) > 0) return Number(w[0]);
+    return Number(b.channelWidth) || 50;
+  }
+  function caliperRow(label, f, val, unit, tip) {
+    return '<div class="bd-row"><div class="bd-l2"><span class="t">' + label + '</span>' + infoGrey(tip) + '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;width:50%"><div class="rel" style="flex:1"><input type="number" class="inp" data-f="' + f + '" placeholder="–" value="' + (val == null ? '' : esc(val)) + '" style="padding-right:2.5rem">' +
+      '<span class="unit">' + unit + '</span></div></div></div>';
+  }
+  function beadHTML() {
+    var b = activeBead(), lk = locked(), h = '<div class="fc w-full" style="gap:24px">';
+    if (bead.banner) { /* banner is drawn above the selects */ }
+    var thKeys = Object.keys(cur.th);
+    if (lk || thKeys.length) {
+      var rows;
+      if (lk) {
+        rows = '<tr style="background:rgb(239 246 255/.5);font-weight:600">' + td(lockedInput('inp xs', ' xs')) + td(lockedInput('inp xs', ' xs')) +
+          // Correct Calliper Percentage is a bead setting saved through /module/update, so it stays open.
+          td('<div style="display:flex;align-items:center;gap:6px"><div class="rel" style="width:96px;text-align:center;font-weight:700"><input type="number" min="0" max="100" class="inp xs" style="text-align:center;font-weight:700" data-f="bd-ccp" placeholder="–" value="' + esc(b.correctCaliperPercentage) + '"></div><span style="font-size:14px;font-weight:700;color:#6b7280">%</span></div>') + '</tr>';
+      } else {
+        rows = thKeys.map(function (k) {
+          var t = cur.th[k];
+          return '<tr style="background:rgb(239 246 255/.5);font-weight:600">' +
+            td('<div class="rel" style="width:96px"><input type="number" min="0" max="1" step="0.01" class="inp xs" data-f="bd-th" data-k="' + k + '" value="' + esc(t.threshold) + '"></div>') +
+            td('<div class="rel" style="width:96px"><input type="number" min="0" max="1" step="0.01" class="inp xs" data-f="bd-area" data-k="' + k + '" value="' + esc(t.iouThreshold) + '"></div>') +
+            td('<div style="display:flex;align-items:center;gap:6px"><div class="rel" style="width:96px;text-align:center;font-weight:700"><input type="number" min="0" max="100" class="inp xs" style="text-align:center;font-weight:700" data-f="bd-ccp" placeholder="–" value="' + esc(b.correctCaliperPercentage) + '"></div><span style="font-size:14px;font-weight:700;color:#6b7280">%</span></div>') + '</tr>';
+        }).join('');
+      }
+      h += '<div class="fc w-full" style="gap:16px"><div class="fc" style="padding-top:20px"><span class="bd-h">Module Level Parameters' + (lk ? lockHint() : '') + '</span></div>' +
+        '<div style="overflow-x:auto;width:100%">' + tableHTML(['Confidence Threshold', 'Area Threshold', 'Correct Calliper Percentage'], rows) + '</div></div>';
+    }
+    h += '<div class="fc w-full" style="gap:16px"><div class="fc"><span class="bd-h">Bead Level Parameters</span></div>' +
+      '<div class="bd-grid"><div class="bd-set">' + beadSettingsHTML(b) + '</div>' +
+      '<div class="bd-can">' + beadStageHTML(b) + '</div></div></div>';
+    return h + '</div>';
+  }
+  function beadSettingsHTML(b) {
+    var pts = bead.editing ? bead.pts.length : b.dots.length;
+    var h = '<div class="bd-row" style="user-select:none"><span class="bd-l">Bead Class</span><div class="bd-v">' + esc(beadClassName(b)) + '</div></div>' +
+      '<div class="bd-row"><label class="bd-l">Bead Name</label><div style="width:50%">' +
+        selectHTML('beadName', { data: cur.beads.map(function (x) { return { id: x.id, name: x.name || ('Bead (' + beadClassName(x) + ')') }; }), value: b.id, disabled: bead.editing, onChange: function () {} }) +
+      '</div></div><div class="bd-div"></div><div class="fc" style="gap:8px">';
+    if (!bead.editing) {
+      var nr = needRecalc();
+      h += '<div class="fc" style="gap:8px"><div style="display:flex;align-items:center;justify-content:space-between">' +
+        '<div style="display:flex;align-items:center;gap:6px;user-select:none"><span class="bd-t">Bead Path</span>' + infoGrey('The line the calipers follow on the master image. Adjust it when the bead no longer lines up with this line.') + '</div>' +
+        '<button type="button" class="btn-edit" data-act="edit"' + (pts < 2 || bead.status === 'recalc' ? ' disabled' : '') + '>' + I_EDIT + 'Edit path</button></div>' +
+        '<div class="bd-stats"><span>' + pts + ' points</span><span>·</span><span>channel ' + derivedChannel(b) + ' px</span><span>·</span><span>crop boxes ' + (b.boxSize == null ? 256 : b.boxSize) + ' px</span></div>' +
+        '<p class="bd-note">Beads are added and removed in Frinks Vision. Crop box size is set in Frinks Vision and cannot be changed here.</p>' +
+        '<div class="bd-recalc"><button type="button" class="btn-rc ' + (nr ? 'on' : 'off') + '" data-act="recalc"' + (bead.calc || !nr ? ' disabled' : '') + '>' +
+          (bead.calc ? I_SPIN + '<span>Calculating crop boxes…</span>' : '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>Recalculate crop boxes</span>') + '</button>' +
+          '<p>' + (nr ? '<span class="rc-warn">⚠️ Bead changes detected — recalculate crop boxes before saving.</span>' : '<span class="rc-ok">✓ Crop boxes are up to date.</span>') + '</p></div></div>';
+    } else {
+      h += '<div class="ed-box"><div style="display:flex;align-items:center;justify-content:space-between"><span class="ed-t">Editing path of ' + esc(b.name) + '</span><span class="ed-pill">' + pts + ' points</span></div>' +
+        '<div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap">' +
+          '<button type="button" class="ed-b" data-act="undo"' + (bead.undo.length ? '' : ' disabled') + '>Undo</button>' +
+          '<button type="button" class="ed-b" data-act="clear"' + (pts ? '' : ' disabled') + ' title="' + (pts ? 'Remove every point so you can draw the bead again from the start' : 'The path is already empty') + '">Clear bead</button>' +
+          '<button type="button" class="ed-b" data-act="cancel">Cancel</button>' +
+          '<button type="button" class="ed-f" data-act="finish"' + (pts ? '' : ' disabled title="Draw at least one point before finishing"') + '>Finish</button></div>' +
+        '<p class="ed-p">' + (pts === 0 ? 'Click on the image to place the first point, then keep clicking to draw the bead. Undo brings back what you cleared.'
+          : 'Drag a point to move it. Click on the line to add a point. Click past either end to extend the bead. Undo steps back one change; Clear bead removes the whole path so you can start again.') + '</p></div>';
+    }
+    h += '</div><div class="bd-div"></div><div class="fc" style="gap:16px"><span class="bd-t" style="user-select:none">Caliper Dimensions</span>' +
+      caliperRow('Perpendicular to Bead', 'bd-ch', b.caliperHeight, 'px', 'Bead should lie within this caliper height window') +
+      caliperRow('Parallel to Bead', 'bd-cw', b.caliperWidthWindow, 'px', 'Distance between consecutive calipers along the bead path') +
+      '<div class="bd-div"></div>';
+    var op = b.gtOperator == null ? null : b.gtOperator, w = b.gtWidth, we = widthError(b);
+    h += '<div class="fc w-full" style="gap:6px"><div style="display:flex;align-items:center;gap:8px"><span class="bd-t" style="user-select:none">Bead Width</span>' +
+      infoGrey('Width of the bead should suffice below condition') +
+      '<button type="button" class="ic-g" data-act="eye" data-tt="' + (bead.showWidth ? 'Hide bead width overlay' : 'Show bead width overlay') + '">' + (bead.showWidth ? I_EYE : I_EYEOFF) + '</button></div>' +
+      '<div style="display:flex;width:100%;gap:8px"><div style="width:' + (op === 3 ? '30%' : '50%') + '">' +
+        selectHTML('gtop', { data: OPS, value: op, placeholder: 'Select', onChange: function (item) { setBead({ gtOperator: Number(item.id) }, true); } }) + '</div>';
+    if (op === null) {
+      h += '<div class="rel" style="width:50%"><input type="number" class="inp" placeholder="–" disabled style="opacity:.4;cursor:not-allowed;padding-right:2.5rem"><span class="unit" style="color:#d1d5db">px</span></div>';
+    } else if (op === 3) {
+      h += '<div class="rel" style="width:35%;padding-left:8px"><input type="number" min="0" max="500" class="inp' + (we ? ' bad' : '') + '" data-f="bd-min" placeholder="Min" value="' + esc(w ? w[0] : '') + '" style="padding-right:1.5rem"><span class="unit s">px</span></div>' +
+        '<div class="rel" style="width:35%"><input type="number" min="0" max="500" class="inp' + (we ? ' bad' : '') + '" data-f="bd-max" placeholder="Max" value="' + esc(w ? w[1] : '') + '" style="padding-right:1.5rem"><span class="unit s">px</span></div>';
+    } else {
+      h += '<div class="rel" style="width:50%"><input type="number" min="0" max="500" class="inp' + (we ? ' bad' : '') + '" data-f="bd-one" placeholder="–" value="' + esc(w ? w[0] : '') + '" style="padding-right:2.5rem"><span class="unit">px</span></div>';
+    }
+    h += '</div><span class="bw-err" id="bwErr"' + (we ? '' : ' hidden') + '>' + we + '</span></div>' +
+      caliperRow('Consecutive Defective Calipers', 'bd-gap', b.minGap, 'count', 'Minimum consecutive defective calipers to flag a defect') + '</div>';
+    return h;
+  }
+  function beadStageHTML() {
+    var tip = bead.showBoxes ? 'Crop boxes shown — click to hide' : 'Crop boxes hidden — click to show';
+    return '<div class="stage" id="beadStage">' +
+      '<div class="c-tools"><button type="button" class="c-b' + (bead.showBoxes ? ' on' : '') + '" data-act="boxes" data-tt="' + tip + '" data-tt-pos="bottom">' + I_GRID + '</button>' +
+        '<div class="c-sep"></div><button type="button" class="c-rep" data-act="replace" data-tt="' + (bead.editing ? 'Finish or cancel the current edit first' : 'Replace bead image') + '" data-tt-pos="bottom"' + (bead.editing ? ' disabled' : '') + '>' + I_IMAGE + '<span>Replace bead image</span></button>' +
+        '<div class="c-sep"></div><button type="button" class="c-b" data-act="fit" data-tt="Fit to frame" data-tt-pos="bottom">' + I_FIT + '</button>' +
+        '<button type="button" class="c-b" data-act="one" data-tt="1:1 Zoom" data-tt-pos="bottom">' + I_ONE + '</button>' +
+        '<button type="button" class="c-b" data-act="zin" data-tt="Zoom In" data-tt-pos="bottom">' + I_ZIN + '</button>' +
+        '<button type="button" class="c-b" data-act="zout" data-tt="Zoom Out" data-tt-pos="bottom">' + I_ZOUT + '</button></div>' +
+      (bead.editing ? '<div class="c-pill">Editing ' + esc(activeBead().name || 'Bead') + ' — click Finish when done</div>' : '') +
+      (bead.replaced ? '<div class="c-note"><span style="flex:1;line-height:1.375">Bead image replaced. Bead paths and crop boxes are kept in place. Check they still line up with the bead, then edit the path if needed.</span><button type="button" data-act="dismiss" title="Dismiss" style="color:#b45309;padding:2px">' + I_X + '</button></div>' : '') +
+      '<div class="c-leg"><div class="c-st">' + (bead.status === 'recalc' ? '<span style="display:inline-flex;align-items:center;gap:6px;color:#4b5563"><span class="spin" style="width:10px;height:10px;border:2px solid #d1d5db;border-top-color:#e8542b;border-radius:9999px;display:inline-block"></span>Recalculating crop boxes…</span>' : '<span class="dotg"></span>Crop boxes up to date') + '</div>' +
+        '<div class="c-lg"><span><span class="sq" style="background:#1d1d1f"></span>Bead path</span>' +
+        '<span style="opacity:' + (bead.showBoxes ? 1 : 0.4) + '"><span class="sq" style="border:1px dashed #e0473a;background:rgb(224 71 58/.2)"></span>Crop boxes</span>' +
+        '<span style="opacity:' + (bead.showWidth ? 1 : 0.4) + '"><span class="sq" style="border:1px solid #22c55e;background:rgb(34 197 94/.2)"></span>Bead width</span>' +
+        '<span><span class="sq" style="background:#2f6fed"></span>Calipers</span></div></div>' +
+      '<svg class="cv" id="beadSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>';
+  }
+
+  // ---- bead geometry (BeadVisualizationCanvas.jsx:44-63 computeCalipers; enclosure + crop boxes approximated) ----
+  function computeCalipers(arr, cw, ch) {
+    var out = [];
+    if (arr.length < 2 || cw <= 0 || ch <= 0) return out;
+    for (var i = 0; i < arr.length - 1; i++) {
+      var a = arr[i], b = arr[i + 1], dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+      if (len < 1) continue;
+      var ang = Math.atan2(dy, dx), count = Math.max(1, Math.ceil(len / cw));
+      if (count > 1000) continue;
+      for (var k = 0; k < count; k++) { var t = ((k + 0.5) * cw) / len; out.push({ cx: a.x + dx * t, cy: a.y + dy * t, ang: ang, w: cw, h: ch }); }
+    }
+    return out;
+  }
+  function enclosure(p, w) {
+    var L = [], R = [], hw = w / 2;
+    for (var i = 0; i < p.length; i++) {
+      var a = p[Math.max(0, i - 1)], b = p[Math.min(p.length - 1, i + 1)];
+      var dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, m = 1;
+      if (i > 0 && i < p.length - 1) {
+        var sx = p[i].x - p[i - 1].x, sy = p[i].y - p[i - 1].y, sl = Math.hypot(sx, sy) || 1;
+        m = 1 / Math.max(0.35, Math.abs(nx * (-sy / sl) + ny * (sx / sl)));
+      }
+      L.push([p[i].x + nx * hw * m, p[i].y + ny * hw * m]); R.push([p[i].x - nx * hw * m, p[i].y - ny * hw * m]);
+    }
+    return L.concat(R.reverse()).map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
+  }
+  // Crop boxes: a grid of box-size squares centred on the bead, keeping every cell the bead passes through (Vision's grid sweep, simplified).
+  function calcBoxes(p, size) {
+    if (p.length < 2) return [];
+    var pts = [];
+    for (var i = 0; i < p.length - 1; i++) {
+      var d = Math.hypot(p[i + 1].x - p[i].x, p[i + 1].y - p[i].y), n = Math.max(1, Math.ceil(d / 8));
+      for (var k = 0; k <= n; k++) pts.push({ x: p[i].x + (p[i + 1].x - p[i].x) * k / n, y: p[i].y + (p[i + 1].y - p[i].y) * k / n });
+    }
+    var xs = pts.map(function (q) { return q.x; }), ys = pts.map(function (q) { return q.y; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var cols = Math.max(1, Math.ceil((x1 - x0) / size)), rows = Math.max(1, Math.ceil((y1 - y0) / size));
+    var ox = x0 - (cols * size - (x1 - x0)) / 2, oy = y0 - (rows * size - (y1 - y0)) / 2, seen = {}, out = [];
+    pts.forEach(function (q) {
+      var c = Math.min(cols - 1, Math.max(0, Math.floor((q.x - ox) / size))), r = Math.min(rows - 1, Math.max(0, Math.floor((q.y - oy) / size)));
+      if (seen[r + '_' + c]) return;
+      seen[r + '_' + c] = 1;
+      out.push({ x: Math.max(0, Math.min(IMG.w - size, ox + c * size)), y: Math.max(0, Math.min(IMG.h - size, oy + r * size)), w: size, h: size });
+    });
+    return out;
+  }
+  function masterImageSVG() {
+    if (bead.img) return '<image href="' + bead.img + '" x="0" y="0" width="' + IMG.w + '" height="' + IMG.h + '"/>';
+    var path = BEAD_DOTS.map(function (d) { return d.x + ',' + d.y; }).join(' ');
+    return '<defs><linearGradient id="gBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4b4f55"/><stop offset=".5" stop-color="#5f646b"/><stop offset="1" stop-color="#43474c"/></linearGradient>' +
+      '<linearGradient id="gPl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a3a8ae"/><stop offset=".55" stop-color="#8e939a"/><stop offset="1" stop-color="#7d8288"/></linearGradient></defs>' +
+      '<rect width="1600" height="1000" fill="url(#gBg)"/>' +
+      '<rect x="130" y="140" width="1340" height="740" rx="44" fill="url(#gPl)" stroke="#3f4348" stroke-width="6"/>' +
+      '<rect x="330" y="380" width="880" height="300" rx="26" fill="#80858c" stroke="#6b7076" stroke-width="4"/>' +
+      [[200, 210], [1400, 210], [200, 810], [1400, 810], [770, 530]].map(function (c) { return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + (c[0] === 770 ? 42 : 24) + '" fill="#2f3236" stroke="#5c6066" stroke-width="5"/>'; }).join('') +
+      '<polyline points="' + path + '" fill="none" stroke="#3b3833" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<polyline points="' + path + '" fill="none" stroke="#6a645a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>';
+  }
+  function renderBeadCanvas() {
+    var host = document.getElementById('beadStage'), svg = document.getElementById('beadSvg');
+    if (!host || !svg) return;
+    var W = host.clientWidth || 851, H = W * IMG.h / IMG.w;
+    if (!bead.view || bead.view.W !== W) bead.view = { W: W, H: H, x: 0, y: 0, s: W / IMG.w };
+    var v = bead.view, s = v.s, b = activeBead();
+    var pts = bead.editing ? bead.pts : b.dots;
+    var sw = Math.max(0.5, 3 / s), r = 2 * sw, g = '';
+    if (bead.showBoxes) (b.boxes || []).forEach(function (bx) {
+      g += '<rect x="' + bx.x + '" y="' + bx.y + '" width="' + bx.w + '" height="' + bx.h + '" fill="none" stroke="rgb(224,71,58)" stroke-width="' + sw + '" stroke-dasharray="' + (6 / s) + ' ' + (4 / s) + '"/>';
+    });
+    if ((bead.showWidth || bead.editing) && pts.length >= 2) {
+      var w = b.gtWidth, op = b.gtOperator;
+      if (op === 3 && w && !empty(w[0]) && !empty(w[1])) {
+        var mn = Math.max(1, Number(w[0])), mx = Math.max(mn, Number(w[1]));
+        g += '<polygon points="' + enclosure(pts, mx) + '" fill="rgba(0,255,0,.15)" stroke="rgba(0,255,0,.6)" stroke-width="' + sw + '"/>';
+        g += '<polygon points="' + enclosure(pts, mn) + '" fill="rgba(0,255,0,.28)" stroke="rgba(0,255,0,.9)" stroke-width="' + sw + '"/>';
+      } else if (op != null && w && !empty(w[0])) {
+        g += '<polygon points="' + enclosure(pts, Math.max(1, Number(w[0]))) + '" fill="rgba(0,255,0,.15)" stroke="rgba(0,255,0,.6)" stroke-width="' + sw + '"/>';
+      }
+    }
+    if (pts.length >= 2 && !empty(b.caliperHeight) && !empty(b.caliperWidthWindow)) {
+      computeCalipers(pts, Number(b.caliperWidthWindow), Number(b.caliperHeight)).forEach(function (c) {
+        g += '<rect x="' + (c.cx - c.w / 2).toFixed(1) + '" y="' + (c.cy - c.h / 2).toFixed(1) + '" width="' + c.w + '" height="' + c.h + '" transform="rotate(' + (c.ang * 180 / Math.PI).toFixed(2) + ' ' + c.cx.toFixed(1) + ' ' + c.cy.toFixed(1) + ')" fill="rgba(47,111,237,.14)" stroke="#2f6fed" stroke-width="' + (sw * 0.7) + '"/>';
+      });
+    }
+    if (pts.length >= 2) g += '<polyline points="' + pts.map(function (p) { return p.x + ',' + p.y; }).join(' ') + '" fill="none" stroke="#1d1d1f" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round"/>';
+    pts.forEach(function (p, i) {
+      var dr = bead.editing ? 5.5 / s : r;
+      g += '<g class="dot" data-i="' + i + '" style="cursor:' + (bead.editing ? 'move' : 'inherit') + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="' + dr + '" fill="' + (i === 0 ? '#56b733' : '#e8542b') + '" stroke="#fff" stroke-width="' + (bead.editing ? 1.5 / s : sw * 0.6) + '"/>' +
+        (s >= 0.4 ? '<text x="' + (p.x + dr + 3 / s) + '" y="' + (p.y - dr - 2 / s) + '" font-size="' + Math.max(8, 10 / s) + '" font-weight="700" fill="#fff" stroke="#1f2328" stroke-width="' + (2 / s) + '" paint-order="stroke" font-family="Arial">' + (i + 1) + '</text>' : '') + '</g>';
+    });
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('height', H);
+    svg.style.cursor = bead.editing ? 'crosshair' : 'grab';
+    svg.innerHTML = '<g transform="translate(' + v.x + ' ' + v.y + ') scale(' + s + ')">' + masterImageSVG() + g + '</g>';
+  }
+  function toImg(e) {
+    var svg = document.getElementById('beadSvg'), r = svg.getBoundingClientRect(), v = bead.view;
+    return { x: Math.round((e.clientX - r.left - v.x) / v.s), y: Math.round((e.clientY - r.top - v.y) / v.s) };
+  }
+  function pushUndo() { bead.undo = bead.undo.slice(-99).concat([clone(bead.pts)]); }
+  function segDist(p, a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2)) : 0;
+    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+  }
+  var drag = null;
+  document.addEventListener('mousedown', function (e) {
+    var svg = e.target.closest && e.target.closest('#beadSvg');
+    if (!svg || !bead) return;
+    e.preventDefault();
+    var dot = e.target.closest('.dot');
+    if (bead.editing) {
+      if (dot) { pushUndo(); drag = { type: 'dot', i: Number(dot.getAttribute('data-i')) }; return; }
+      var p = toImg(e), P = bead.pts;
+      pushUndo();
+      if (P.length < 2) { P.push(p); }
+      else {
+        var best = -1, bd = 12 / bead.view.s;
+        for (var i = 0; i < P.length - 1; i++) { var d = segDist(p, P[i], P[i + 1]); if (d < bd) { bd = d; best = i; } }
+        if (best >= 0) P.splice(best + 1, 0, p);
+        else if (Math.hypot(p.x - P[0].x, p.y - P[0].y) < Math.hypot(p.x - P[P.length - 1].x, p.y - P[P.length - 1].y)) P.unshift(p);
+        else P.push(p);
+      }
+      refreshBead();
+    } else {
+      drag = { type: 'pan', x: e.clientX, y: e.clientY, ox: bead.view.x, oy: bead.view.y };
+    }
+  });
+  document.addEventListener('mousemove', function (e) {
+    if (!drag || !bead) return;
+    if (drag.type === 'dot') { var p = toImg(e); bead.pts[drag.i] = p; renderBeadCanvas(); }
+    else { bead.view.x = drag.ox + (e.clientX - drag.x); bead.view.y = drag.oy + (e.clientY - drag.y); renderBeadCanvas(); }
+  });
+  document.addEventListener('mouseup', function () { if (drag && drag.type === 'dot') refreshBead(); drag = null; });
+  function refreshBead() {
+    var set = document.querySelector('.bd-set');
+    if (set) { selects = Object.assign(selects, {}); set.innerHTML = beadSettingsHTML(activeBead()); }
+    var can = document.querySelector('.bd-can');
+    if (can) { can.innerHTML = beadStageHTML(); }
+    renderBeadCanvas(); syncFooter();
+  }
+  function setBead(patch, rerender) {
+    var b = activeBead();
+    Object.keys(patch).forEach(function (k) { b[k] = patch[k]; });
+    if ('gtWidth' in patch || 'gtOperator' in patch) b.channelWidth = derivedChannel(b);
+    edited(rerender);
+  }
+  function zoom(f) {
+    var v = bead.view, ns = Math.min(20, Math.max(0.05, v.s * f)), cx = v.W / 2, cy = v.H / 2;
+    var mx = (cx - v.x) / v.s, my = (cy - v.y) / v.s;
+    v.x = cx - mx * ns; v.y = cy - my * ns; v.s = ns; renderBeadCanvas();
+  }
+  function fit(one) {
+    var v = bead.view, s = one ? v.W / IMG.h : v.W / IMG.w;
+    v.s = s; v.x = (v.W - IMG.w * s) / 2; v.y = (v.H - IMG.h * s) / 2; renderBeadCanvas();
+  }
+
+  // ---------- Page render ----------
+  var emc = document.getElementById('emc');
+  function render() {
+    selects = {}; closeList(); tipHide();
+    var h = '<div class="mb-3"><label class="lbl-inst" for="instance-select">Instances (Instance Name - Project Name - Plant Name)</label>' +
+      selectHTML('inst', { data: instances(), value: sel.inst, placeholder: 'Select Instance', onChange: function (item) { guard({ inst: item.id }); } }) + '</div>';
+    if (sel.inst) {
+      if (bead && bead.banner && store() === 'beadInspection') {
+        h += '<div class="banner"><div style="display:flex;align-items:center;gap:10px"><svg width="16" height="16" fill="none" stroke="#059669" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' +
+          '<span>Saved. Create a new deployment for this instance so the changes reach the line.</span><a href="#" data-act="godeploy">Go to Deployments</a></div>' +
+          '<button type="button" class="x" data-act="banner-x" title="Dismiss">' + feather('<path d="M6 18L18 6M6 6l12 12"/>', 16) + '</button></div>';
+      }
+      var mods = sel.cap ? MODULES[sel.cap] : [];
+      h += '<div class="mb-4 col4"><div class="w-full"><label class="lbl">Variant | Capture</label>' +
+        selectHTML('cap', { data: CAPTURES, value: sel.cap, onChange: function (item) { guard({ cap: item.id }); } }) + '</div>' +
+        '<div class="w-full"><div class="lbl-row"><label class="lbl">Module</label></div>' +
+        selectHTML('mod', { data: mods, value: sel.mod, disabled: mods.length === 0, onChange: function (item) { guard({ mod: item.id }); } }) + '</div></div>';
+      if (sel.mod && cur) {
+        var s = store(), body = s === 'assembly' ? odcHTML() : s === 'segmentation' ? segHTML() : s === 'ocr' ? ocrHTML() : s === 'codeReader' ? codeHTML() : beadHTML();
+        h += '<div class="col6">' + body + '</div>';
+      }
+    }
+    emc.innerHTML = h;
+    sizeColumns();
+    if (store() === 'beadInspection' && cur) renderBeadCanvas();
+    syncFooter();
+  }
+
+  // Navigation guard (EditModuleConfigurations.jsx:371-420 + UnsavedChangesModal)
+  function guard(change) {
+    if (change.inst === sel.inst || change.cap === sel.cap || change.mod === sel.mod) return;
+    if (hasChanges()) { pending = change; openModal('unsaved'); return; }
+    apply(change);
+  }
+  function apply(change) {
+    if ('inst' in change) { sel.inst = change.inst; sel.cap = null; sel.mod = null; }
+    if ('cap' in change) { sel.cap = change.cap; sel.mod = null; }
+    if ('mod' in change) sel.mod = change.mod;
+    if (bead) bead.banner = false;
+    saveHeldOff = false;
+    loadModule(); render();
+  }
+
+  // ---------- Footer (index.jsx Reset / Save + useChangeDetection.js) ----------
+  function hasChanges() { return !!cur && JSON.stringify(cur) !== JSON.stringify(init); }
+  function syncFooter() {
+    var changed = hasChanges();
+    var saveDisabled = !changed || hasErrors() || (store() === 'beadInspection' && beadBlocked()) || saveHeldOff;
+    var resetDisabled = !changed;
+    document.getElementById('btnReset').disabled = resetDisabled;
+    document.getElementById('btnSave').disabled = saveDisabled;
+    document.getElementById('ttReset').setAttribute('data-tt', resetDisabled ? 'No changes to reset.' : 'Discard unsaved changes on this page.');
+    document.getElementById('ttSave').setAttribute('data-tt', saveDisabled ? (changed ? 'Fix the errors on this page to save.' : 'No changes to save.') : 'Save changes. A running deployment is reloaded to apply them.');
+  }
+  function edited(rerender) { saveHeldOff = false; if (rerender) render(); else { refreshErrors(); syncFooter(); } }
+
+  // ---------- Field input ----------
+  function num(v) { return v === '' ? '' : Number(v); }
+  emc.addEventListener('input', function (e) {
+    var t = e.target, f = t.getAttribute('data-f');
+    if (!f || !cur) return;
+    var i = Number(t.getAttribute('data-i'));
+    if (f === 'odc-c0' || f === 'odc-c1') {
+      var v = num(t.value);
+      if (v !== '' && v < 0) { t.value = cur.classes[i].groundTruth.count[f === 'odc-c0' ? 0 : 1]; return; }
+      var g = cur.classes[i].groundTruth;
+      if (g.operator === 3) g.count[f === 'odc-c0' ? 0 : 1] = v; else g.count = [v, v];
+      return edited(false);
+    }
+    if (f === 'odc-t' || f === 'odc-iou' || f === 'seg-t' || f === 'seg-iou') {
+      // handleThresholdChange (EditModuleConfigurations.jsx:320-360): '' kept so the inline error shows; outside 0-1 ignored.
+      var c = cur.classes[i], field = /iou/.test(f) ? 'iouThreshold' : 'threshold', entry = cur.th[c.id] || {};
+      if (t.value !== '' && (Number(t.value) < 0 || Number(t.value) > 1)) { t.value = entry[field] == null ? '' : entry[field]; return; }
+      entry[field] = num(t.value); cur.th[c.id] = entry;
+      return edited(false);
+    }
+    if (f === 'ocr-th') {
+      if (t.value !== '' && (Number(t.value) < 0 || Number(t.value) > 1)) { t.value = cur.th[i === 0 ? 'det' : 'rec']; return; }
+      cur.th[i === 0 ? 'det' : 'rec'] = num(t.value); return edited(false);
+    }
+    if (f === 'gt') { cur.info[i].gtText = t.value; return edited(false); }
+    if (f === 'amin' || f === 'amax') {
+      cur.angle[f === 'amin' ? 0 : 1] = t.value === '' ? -361 : Number(t.value);
+      document.getElementById('angErr').textContent = angleError() ? 'Angles must be between -180 and 180, and Min must be less than Max.' : '';
+      return edited(false);
+    }
+    if (f === 'seg-dt') { cur.defaultText = t.value; return edited(false); }
+    if (f === 'pc0' || f === 'pc1') { cur.priority[i].values[f === 'pc0' ? 0 : 1] = num(t.value); return edited(false); }
+    if (f === 'cr-gt') { cur.gtString = t.value; return edited(false); }
+    var b = cur.beads ? activeBead() : null;
+    if (f === 'bd-ch' || f === 'bd-cw' || f === 'bd-gap') {
+      var lim = { 'bd-ch': [0, 400], 'bd-cw': [0, 200], 'bd-gap': [0, 50] }[f], val = null;
+      if (t.value !== '') { val = Math.max(lim[0], Math.min(lim[1], Number(t.value))); if (String(val) !== t.value) t.value = val; }
+      var patch = {};
+      if (f === 'bd-ch') { patch.caliperHeight = val; if (val !== null && empty(b.caliperWidthWindow)) patch.caliperWidthWindow = 16; }
+      if (f === 'bd-cw') { patch.caliperWidthWindow = val; if (val !== null && empty(b.caliperHeight)) patch.caliperHeight = 80; }
+      if (f === 'bd-gap') patch.minGap = val;
+      setBead(patch, false); renderBeadCanvas(); return;
+    }
+    if (f === 'bd-min' || f === 'bd-max' || f === 'bd-one') {
+      var w = b.gtWidth ? b.gtWidth.slice() : ['', ''];
+      if (f === 'bd-one') { w = t.value === '' ? null : [Math.max(0, Number(t.value) || 0), Math.max(0, Number(t.value) || 0)]; }
+      else {
+        w[f === 'bd-min' ? 0 : 1] = t.value === '' ? '' : Math.max(0, Number(t.value) || 0);
+        if (w[0] === '' && w[1] === '') w = null;
+      }
+      setBead({ gtWidth: w }, false);
+      var we = widthError(b), el = document.getElementById('bwErr');
+      el.textContent = we; el.hidden = !we;
+      document.querySelectorAll('input[data-f="bd-min"],input[data-f="bd-max"],input[data-f="bd-one"]').forEach(function (x) { x.classList.toggle('bad', !!we); });
+      var st = document.querySelector('.bd-stats span:nth-child(3)'); if (st) st.textContent = 'channel ' + derivedChannel(b) + ' px';
+      renderBeadCanvas(); return;
+    }
+    if (f === 'bd-th' || f === 'bd-area') {
+      var k = t.getAttribute('data-k'), fld = f === 'bd-th' ? 'threshold' : 'iouThreshold';
+      if (t.value !== '' && (Number(t.value) < 0 || Number(t.value) > 1)) { t.value = cur.th[k][fld]; return; }
+      cur.th[k][fld] = num(t.value); return edited(false);
+    }
+    if (f === 'bd-ccp') {
+      var cv = t.value === '' ? null : Math.max(0, Math.min(100, Number(t.value)));
+      cur.beads.forEach(function (x) { x.correctCaliperPercentage = cv; }); return edited(false);
+    }
+  });
+  emc.addEventListener('keydown', function (e) {
+    var f = e.target.getAttribute && e.target.getAttribute('data-f');
+    if ((f === 'odc-c0' || f === 'odc-c1') && ['e', 'E', '+', '-', '.'].indexOf(e.key) >= 0) e.preventDefault();
+    if ((f === 'amin' || f === 'amax') && ['e', 'E', '+'].indexOf(e.key) >= 0) e.preventDefault();
+  });
+  emc.addEventListener('change', function (e) {
+    var t = e.target, f = t.getAttribute('data-f');
+    if (f === 'combine') { cur.combine = t.checked; edited(false); }
+    if (f === 'cr-match') { cur.match = t.value === '1'; edited(true); }
+    if (f === 'cr-mt') { cur.matchType = Number(t.value); edited(false); }
+  });
+  emc.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-act]');
+    if (!a || a.disabled) return;
+    var act = a.getAttribute('data-act'), b = cur && cur.beads ? activeBead() : null;
+    if (act === 'godeploy') { e.preventDefault(); nav('edge-deploy'); return; }
+    if (act === 'banner-x') { bead.banner = false; render(); return; }
+    if (act === 'eye') { bead.showWidth = !bead.showWidth; refreshBead(); return; }
+    if (act === 'boxes') { bead.showBoxes = !bead.showBoxes; refreshBead(); return; }
+    if (act === 'fit') return fit(false);
+    if (act === 'one') return fit(true);
+    if (act === 'zin') return zoom(1.2);
+    if (act === 'zout') return zoom(1 / 1.2);
+    if (act === 'dismiss') { bead.replaced = false; refreshBead(); return; }
+    if (act === 'replace') { openModal('replace'); return; }
+    if (act === 'edit') {
+      bead.editing = true; bead.pts = clone(b.dots); bead.snap = { pts: clone(b.dots) }; bead.undo = [];
+      if (b.gtOperator == null || !Array.isArray(b.gtWidth) || empty(b.gtWidth[0])) { bead.snap.auto = { gtOperator: b.gtOperator, gtWidth: b.gtWidth, channelWidth: b.channelWidth }; b.gtOperator = 0; b.gtWidth = ['50']; b.channelWidth = 50; }
+      return render();
+    }
+    if (act === 'undo') { if (bead.undo.length) bead.pts = bead.undo.pop(); return refreshBead(); }
+    if (act === 'clear') { if (!bead.pts.length) return; pushUndo(); bead.pts = []; toast('Bead cleared. Click on the image to draw the path from the start.'); return refreshBead(); }
+    if (act === 'cancel') {
+      if (bead.snap && bead.snap.auto) { b.gtOperator = bead.snap.auto.gtOperator; b.gtWidth = bead.snap.auto.gtWidth; b.channelWidth = bead.snap.auto.channelWidth; }
+      bead.editing = false; bead.pts = null; bead.snap = null; bead.undo = []; return edited(true);
+    }
+    if (act === 'finish') {
+      if (!bead.pts.length) { toast('Draw at least one point before finishing, or press Cancel to leave the path unchanged.', true); return; }
+      b.dots = bead.pts; bead.editing = false; bead.pts = null; bead.snap = null; bead.undo = [];
+      toast('Path editing finished. Recalculate crop boxes before saving.');
+      return edited(true);
+    }
+    if (act === 'recalc') {
+      bead.calc = true; bead.status = 'recalc'; refreshBead();
+      setTimeout(function () {
+        cur.beads.forEach(function (x) { x.boxes = calcBoxes(x.dots, x.boxSize || 512); });
+        bead.lastSig = sig(cur.beads); bead.status = 'ok'; bead.calc = false;
+        toast('Crop boxes recalculated successfully.');
+        edited(true);
+      }, 400);
+    }
+  });
+
+  // ---------- Save / Reset ----------
+  document.getElementById('btnReset').addEventListener('click', function () {
+    if (!init) return;
+    cur = clone(init);
+    var keep = bead && bead.banner; bead = freshBeadUi(); bead.banner = !!keep;
+    saveHeldOff = false; render(); toast('Reset done');
+  });
+  // index.jsx:171-191 asks /instance/container-mapping first; Line 2 Assembly is deployed on this Edge, so the confirmation always opens.
+  document.getElementById('btnSave').addEventListener('click', function () { openModal('deploy'); });
+  function doSave() {
+    init = clone(cur);
+    if (store() === 'beadInspection') { bead.lastSig = sig(cur.beads); bead.banner = true; }
+    render();
+    toast('Changes saved');
+    toast('Module Configuration updated and deployment reloaded.');
+    setTimeout(function () { nav(modelsParam === 'some' ? 'edge-test-some' : 'edge-deploy'); }, 1200);
+  }
+
+  // ---------- Modals ----------
+  var modals = document.getElementById('modals');
+  function openModal(kind) {
+    tipHide(); closeList();
+    var h = '';
+    if (kind === 'deploy') {
+      h = '<div class="ov" data-close="1"><div class="mdl third" role="dialog" aria-modal="true">' +
+        '<div class="mh bb"><h3>Confirmation Message</h3><div class="x" data-m="cancel">' + I_CLOSE + '</div></div>' +
+        '<div class="mb bb"><p>There is an inferencing deployment running currently.</p><p class="mt2">Do you want to proceed to save these changes &amp; reload the configurations in the running deployment?</p></div>' +
+        '<div class="mf sp"><button type="button" class="pill-b" data-m="cancel">Cancel</button><button type="button" class="pill-p" data-m="confirm">Confirm</button></div></div></div>';
+    } else if (kind === 'unsaved') {
+      h = '<div class="ov"><div class="mdl md" role="dialog" aria-modal="true"><div class="mh"><h3 style="color:#1f2937">Unsaved Changes</h3><div class="x" data-m="keep">' + I_CLOSE + '</div></div>' +
+        '<div style="padding:24px"><p style="font-size:14px;line-height:20px;color:#374151">You have unsaved changes. Would you like to keep editing, or discard them?</p></div>' +
+        '<div class="mf"><button type="button" class="btn btn-border px6" data-m="discard">Discard</button><button type="button" class="btn btn-pri px6" data-m="keep">Keep Editing</button></div></div></div>';
+    } else if (kind === 'rm') {
+      h = '<div class="ov"><div class="mdl md" role="dialog" aria-modal="true"><div class="mh"><h3 style="color:#1f2937">Change Reading Mode</h3><div class="x" data-m="close">' + I_CLOSE + '</div></div>' +
+        '<div style="padding:24px;font-size:14px;line-height:20px;color:#374151">Upon saving, GT Text data will be lost. Are you sure you want to change the Reading Mode?</div>' +
+        '<div class="mf"><button type="button" class="btn btn-border px6" data-m="close">Cancel</button><button type="button" class="btn btn-pri px6" data-m="toread">Change to Read</button></div></div></div>';
+    } else if (kind === 'replace') {
+      h = '<div class="ov" style="background:rgb(0 0 0/.5);z-index:50"><div class="mdl lg" role="dialog" aria-modal="true"><h3 style="font-size:16px;font-weight:700;color:#111827;margin-bottom:8px">Replace bead image</h3>' +
+        '<p style="font-size:12px;line-height:1.625;color:#4b5563;margin-bottom:16px">This is the reference image the bead paths and crop boxes are drawn on. The new image must be <span style="font-weight:700;color:#111827">' + IMG.w + ' × ' + IMG.h + ' px</span>, the same size as the current one. Bead paths and crop boxes stay exactly where they are.</p>' +
+        '<div style="border:1px dashed #d1d5db;border-radius:8px;padding:16px;background:#f9fafb;display:flex;flex-direction:column;align-items:center;gap:12px"><input type="file" id="repFile" accept="image/png,image/jpeg,image/bmp" style="display:block;width:100%;font-size:12px;color:#6b7280">' +
+        '<div id="repMsg" style="font-size:12px;text-align:center"></div></div>' +
+        '<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:24px"><button type="button" data-m="close" style="padding:6px 16px;font-size:12px;font-weight:500;color:#374151;background:#fff;border:1px solid #d1d5db;border-radius:6px">Cancel</button>' +
+        '<button type="button" id="repUse" data-m="use" disabled style="padding:6px 16px;font-size:12px;font-weight:600;color:#fff;background:#e8542b;border-radius:6px;opacity:.4">Use this image</button></div></div></div>';
+    }
+    modals.innerHTML = h; modals.setAttribute('data-kind', kind);
+  }
+  function closeModal() { modals.innerHTML = ''; modals.removeAttribute('data-kind'); }
+  var repUrl = null;
+  modals.addEventListener('change', function (e) {
+    if (e.target.id !== 'repFile') return;
+    var file = e.target.files && e.target.files[0], msg = document.getElementById('repMsg'), use = document.getElementById('repUse');
+    if (!file) return;
+    repUrl = null; use.disabled = true; use.style.opacity = '.4'; msg.textContent = '';
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      if (img.naturalWidth !== IMG.w || img.naturalHeight !== IMG.h) {
+        msg.style.color = '#dc2626'; msg.style.fontWeight = '500';
+        msg.textContent = 'This image is ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px. It must be ' + IMG.w + ' × ' + IMG.h + ' px to match the current bead image.';
+      } else {
+        repUrl = url; use.disabled = false; use.style.opacity = '1';
+        msg.style.color = '#059669'; msg.style.fontWeight = '600'; msg.textContent = '✓ ' + file.name + ' (' + IMG.w + ' × ' + IMG.h + ' px)';
+      }
+    };
+    img.onerror = function () { msg.style.color = '#dc2626'; msg.textContent = 'Could not read that file. Please select a valid PNG or JPEG image.'; };
+    img.src = url;
+  });
+  modals.addEventListener('mousedown', function (e) {
+    // modules/modal useClickOutSide: a press outside the deployment dialog closes it like Cancel.
+    if (modals.getAttribute('data-kind') === 'deploy' && e.target.classList.contains('ov')) { closeModal(); saveHeldOff = true; syncFooter(); }
+  });
+  modals.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-m]'); if (!b || b.disabled) return;
+    var m = b.getAttribute('data-m');
+    if (m === 'cancel') { closeModal(); saveHeldOff = true; syncFooter(); }
+    else if (m === 'confirm') { closeModal(); doSave(); }
+    else if (m === 'keep') { closeModal(); pending = null; }
+    else if (m === 'discard') { closeModal(); var p = pending; pending = null; if (p) apply(p); }
+    else if (m === 'close') closeModal();
+    else if (m === 'toread') { closeModal(); cur.readingMode = 0; edited(true); }
+    else if (m === 'use') {
+      closeModal(); bead.img = repUrl; bead.replaced = true;
+      init.__img = (init.__img || 0); cur.__img = (cur.__img || 0) + 1; // the editor marks the module changed (BeadInspectionConfigEditor.jsx:390-394)
+      refreshBead(); toast('Bead reference image replaced');
+    }
+  });
+
+  // ---------- Toasts (react-hot-toast, top-center) ----------
+  var toaster = document.getElementById('toaster');
+  function toast(msg, err) {
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<div class="' + (err ? 'er' : 'ok') + '"></div><div class="msg" role="status">' + esc(msg) + '</div>';
+    toaster.insertBefore(el, toaster.firstChild);
+    setTimeout(function () { el.remove(); }, err ? 4000 : 2000);
+  }
+
+  // ---------- Tooltip (shared/components/Tooltip.jsx): grey bubble, 150 ms delay, flips when there is no room ----------
+  var tipEl = null, tipFor = null, tipTimer = null, tipPinned = false;
+  function tipShow(w) {
+    tipHide(true);
+    tipFor = w;
+    tipEl = document.createElement('div'); tipEl.className = 'tt'; tipEl.setAttribute('role', 'tooltip'); tipEl.style.visibility = 'hidden';
+    tipEl.textContent = w.getAttribute('data-tt');
+    document.body.appendChild(tipEl);
+    var t = w.getBoundingClientRect(), b = tipEl.getBoundingClientRect(), wantBottom = w.getAttribute('data-tt-pos') === 'bottom';
+    var bottom = wantBottom ? !(t.bottom + 8 + b.height > window.innerHeight - 8) : (t.top - 8 - b.height < 8);
+    var left = Math.min(Math.max(t.left + t.width / 2 - b.width / 2, 8), Math.max(window.innerWidth - 8 - b.width, 8));
+    tipEl.style.left = left + 'px'; tipEl.style.top = (bottom ? t.bottom + 8 : t.top - 8 - b.height) + 'px'; tipEl.style.visibility = 'visible';
+  }
+  function tipHide(keepPin) {
+    clearTimeout(tipTimer);
+    if (!keepPin) tipPinned = false;
+    if (tipEl) { tipEl.remove(); tipEl = null; }
+    tipFor = null;
+  }
+  document.addEventListener('mouseover', function (e) {
+    var w = e.target.closest && e.target.closest('[data-tt]');
+    if (!w || (e.relatedTarget && w.contains(e.relatedTarget)) || tipFor === w) return;
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(function () { if (document.contains(w)) tipShow(w); }, 150);
+  });
+  document.addEventListener('mouseout', function (e) {
+    var w = e.target.closest && e.target.closest('[data-tt]');
+    if (!w || (e.relatedTarget && w.contains(e.relatedTarget)) || tipPinned) return;
+    tipHide();
+  });
+  document.addEventListener('focusin', function (e) { var w = e.target.closest && e.target.closest('[data-tt]'); if (w && e.target.matches(':focus-visible')) tipShow(w); });
+  document.addEventListener('focusout', function () { if (!tipPinned) tipHide(); });
+  document.addEventListener('mousedown', function () { tipHide(); }, true);
+  document.addEventListener('scroll', function () { if (!tipPinned) tipHide(); }, true);
+
+  // ---------- Today | After change ----------
+  document.querySelectorAll('#modeSw button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === mode)); });
+  document.getElementById('modeSw').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-mode]'); if (!b || b.getAttribute('data-mode') === mode) return;
+    var q = new URLSearchParams(location.search); q.set('mode', b.getAttribute('data-mode')); q.set('state', stateFor());
+    q.delete('open');
+    location.search = q.toString();
+  });
+  function stateFor() { for (var k in STATES) if (STATES[k][1] === sel.mod) return k; return stateKey; }
+
+  // ---------- Shared state sync ----------
+  window.addEventListener('storage', function (e) {
+    if (e.key !== KEY) return;
+    var before = !!shared.modelsUploaded;
+    shared = readShared();
+    if (before !== !!shared.modelsUploaded && !hasChanges()) loadModule();
+    render();
+  });
+
+  loadModule();
+  render();
+  var scrollParam = Number(params.get('scroll') || 0);
+  if (scrollParam) document.querySelector('.main').scrollTop = scrollParam; // the layout's main column is the scroller (overflow-x-auto)
+  if (openParam === 'tip') {
+    var first = document.querySelector('.lockw');
+    if (first) { tipShow(first); tipPinned = true; }
+  }
+})();
+</script>
+</body>
+</html>

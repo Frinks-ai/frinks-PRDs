@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vision Model Selection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=block" rel="stylesheet">
+<style>
+/* ---- Tailwind v3 preflight (subset) + src/index.css ---- */
+*,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
+html,body{font-size:16px;height:100vh;width:100vw;overflow-y:hidden;color:black}
+:root{font-family:'Outfit',sans-serif;font-optical-sizing:auto;line-height:1.5;font-weight:400;font-style:normal;min-height:100vh;height:fit-content;color-scheme:light;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{margin:0;line-height:inherit;overflow:hidden;background:#fff}
+h1,h3,p{margin:0}
+h1,h3{font-size:inherit;font-weight:inherit}
+a{color:inherit;text-decoration:inherit}
+ul{list-style:none;margin:0;padding:0}
+button,input{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0;text-transform:none}
+button{-webkit-appearance:button;background-color:transparent;background-image:none}
+input::placeholder{opacity:1;color:#9ca3af}
+table{text-indent:0;border-color:inherit;border-collapse:collapse}
+svg{display:block;vertical-align:middle}
+sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline;top:-.5em}
+[hidden]{display:none !important}
+
+/* ---- Project sidebar (shared/layouts/project/sidebar.tsx:150, z-index 9999) ---- */
+.psb{position:fixed;left:0;top:0;display:flex;height:100vh;width:80px;flex-direction:column;align-items:center;border-right:1px solid #d1d5db;background:#1e1c1c;padding:24px 8px;box-shadow:0 4px 6px -1px rgb(0 0 0 / .1),0 2px 4px -2px rgb(0 0 0 / .1);z-index:9999}
+.psb-logo{margin-bottom:40px;margin-top:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.psb ul{margin-top:32px;display:flex;width:100%;flex-direction:column;gap:8px}
+.psb li{position:relative}
+.psb-link{display:flex;width:100%;align-items:center;justify-content:center;border-radius:6px;padding:8px 0;overflow:hidden;color:#fff}
+.psb-link.active{background:rgb(255 255 255 / .2)}
+.psb-bottom{display:flex;width:100%;flex-grow:1;flex-direction:column;justify-content:flex-end;gap:8px}
+
+/* ---- Instances page (modules/project/instances/index.tsx) ---- */
+.page{margin-left:80px;height:100%;min-height:100vh;position:relative;z-index:0}
+.heading{display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px;height:60px;padding:16px 20px;background:#fff}
+.heading-l{display:flex;align-items:baseline;gap:8px}
+.heading-sub{display:flex;align-items:baseline;font-size:20px;line-height:28px;font-weight:500;gap:8px}
+.bc{display:flex;align-items:center;font-size:14px;line-height:20px;color:#6b7280;margin-bottom:16px;padding:8px 4px}
+.bc > * + *{margin-left:8px}
+.bc-home{display:flex;align-items:center;padding:4px 8px;border-radius:6px;color:#6b7280}
+.bc-chev{color:#9ca3af;flex-shrink:0}
+.bc-link{padding:4px 8px;font-weight:500;color:#4b5563;border-radius:6px;display:inline-flex;align-items:center;max-width:200px}
+.bc-cur{padding:4px 8px;font-weight:600;color:#111827;border-radius:6px;display:inline-flex;align-items:center;max-width:200px}
+.bc-lbl{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.create-row{display:flex;align-items:center;justify-content:flex-end;padding:24px 20px 14px}
+.list-wrap{padding:0 20px 20px}
+
+/* ---- shared/ui/Table.tsx ---- */
+.tbl{display:flow-root;width:100%;overflow-x:auto}
+.tbl-in{width:max-content;min-width:100%}
+.tbl table{min-width:100%}
+.tbl table > :not([hidden]) ~ :not([hidden]){border-top:1px solid #d1d5db}
+.tbl thead{position:sticky;top:0;z-index:10}
+.tbl thead tr{background:#ff4301;position:relative}
+.tbl th{position:sticky;top:0;z-index:10;padding:16px 8px;text-align:center;font-size:16px;line-height:24px;font-weight:500;color:#fff}
+.th-in{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+.th-rs{position:absolute;top:10px;right:0;bottom:10px;width:2px;cursor:col-resize;border-radius:16px;background:#fff}
+.tbl th:last-child .th-rs{display:none}
+.tbl tbody{background:#fff}
+.tbl tbody > tr:not([hidden]) ~ tr:not([hidden]){border-top:1px solid #e5e7eb}
+.tbl td{padding:8px;color:#000;overflow:visible}
+.tbl td.empty{font-style:italic;color:#6b7280}
+.td-in{display:flex;height:100%;width:100%;align-items:center;justify-content:center;text-align:center}
+.req{color:#ef4444}
+
+/* index.tsx:571-603 — instance name, draft markers */
+.inst-link{font-weight:500;color:#ff4301;text-decoration:underline}
+.inst-draft{font-weight:500;color:#000}
+.inst-draft sup{font-size:14px;line-height:20px;color:#FF1212}
+.red{color:#FF1212}
+.dl-cell{position:relative;display:flex;justify-content:center;align-items:center}
+.dl-trig{cursor:pointer;display:flex}
+.tt-trig{position:relative;display:inline-flex;align-items:center}
+/* index.tsx:633-690 — Download dropdown */
+.dl-menu{position:absolute;z-index:100;margin-top:4px;width:240px;min-width:max-content;right:0;top:100%;border-radius:6px;border:1px solid #e5e7eb;background:#fff;padding:4px 0;box-shadow:0 10px 15px -3px rgb(0 0 0 / .1),0 4px 6px -4px rgb(0 0 0 / .1)}
+.dl-menu button{display:block;width:100%;padding:8px 16px;text-align:left;font-size:14px;line-height:20px;cursor:pointer;white-space:nowrap}
+.dl-menu button:hover{background:#f3f4f6}
+/* Status pill — same classes as annotation/recommender/RunRecommenderModal.tsx:31-37,165 */
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:9999px;padding:2px 8px;font-size:12px;line-height:16px;font-weight:500;white-space:nowrap}
+.pill.draft{background:#fee2e2;color:#991b1b}
+.pill.remaining{background:#fef3c7;color:#92400e}
+.pill.completed{background:#dcfce7;color:#166534}
+/* shared/ui/CircularProgress.tsx */
+.cprog{position:relative;display:inline-block;width:calc(1.4vw * 2);height:calc(1.4vw * 2);cursor:pointer}
+.cprog svg{width:100%;height:100%;transform:rotate(180deg)}
+.cprog span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.63vw;font-weight:600;color:#000}
+
+/* ---- modules/team-user/Action.tsx + shared/ui/PortalDropdown.tsx ---- */
+.actn{display:flex;width:100%;justify-content:center}
+.act-trig{position:relative;display:flex;width:fit-content;justify-content:flex-end;border-radius:6px;padding:4px 2px;cursor:pointer}
+.act-trig:hover{background:#f3f4f6}
+.act-menu{position:absolute;z-index:9999;display:flex;flex-direction:column;border-radius:6px;background:#fff;filter:drop-shadow(0 25px 25px rgb(0 0 0 / .15));overflow:hidden;border:1px solid #e5e7eb;color:#4b5563;width:fit-content;min-width:96px;transform:translateX(-100%);list-style:none;margin:0;padding:0}
+.act-menu li{display:flex;cursor:pointer;align-items:center;gap:8px;white-space:nowrap;padding:8px;font-size:12px;line-height:16px}
+.act-menu li:hover{background:#f3f4f6}
+.act-menu li.del{color:#ef4444}
+
+/* ---- info icon (shared/components/InfoTooltip.tsx, lucide Info) ---- */
+.info-ico{position:relative;display:inline-flex;align-items:center;pointer-events:auto}
+.info-ico > span{display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;color:#6b7280}
+.info-ico.white > span{color:#fff}
+
+/* ---- shared/ui/Button.tsx ---- */
+.btn{font-weight:600;height:fit-content;cursor:pointer;border:1px solid transparent;font-size:14px;line-height:20px;padding:8px 24px;border-radius:6px;background:#ff4301;color:#fff;white-space:nowrap}
+.btn:hover{background:rgb(255 67 1 / .9)}
+.btn.border{background:transparent;border-color:#ff4301;color:#ff4301}
+.btn.border:hover{opacity:.7}
+.btn.sm{font-size:12px;line-height:16px;padding:4px 8px;border-radius:2px;font-weight:400}
+.btn.flat:hover{background:#ff4301;opacity:.7}
+.btn:disabled{cursor:not-allowed;border-color:transparent;background:#d1d5db;color:#6b7280;opacity:1}
+.btn-tt{display:inline-flex;align-items:center}
+
+/* ---- shared/ui/Drawer.tsx ---- */
+.backdrop{position:fixed;left:0;top:0;z-index:9;display:flex;height:100%;width:100%;background:rgb(180 182 184 / .5)}
+.drawer{position:fixed;top:0;right:0;z-index:10;height:100%;width:100%;max-width:1280px;background:#fff}
+.dr-head{display:flex;font-size:18px;line-height:28px;justify-content:space-between;border:1px solid #e5e7eb;padding:12px 16px 8px;font-weight:600;height:50px}
+.dr-title{display:flex;align-items:center;gap:6px}
+.dr-close{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+.dr-body{overflow-y:auto;padding:8px 12px;height:calc(100vh - 130px)}
+.dr-foot{display:flex;justify-content:flex-end;border-top:1px solid #e5e7eb;padding:8px 12px 0;height:80px}
+.foot-grid{display:grid;width:100%}
+.foot-cell{grid-column-start:5;grid-column-end:span 8;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.foot-l{display:flex;align-items:center;gap:8px}
+
+/* ---- CreateInstanceDrawer.tsx:147-168 ---- */
+.cid{display:grid;height:100%;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.cid-left{grid-column:span 3/span 3;border-right:1px solid #d1d5db;padding:24px}
+.cid-right{grid-column:span 9/span 9;height:100%;overflow-y:auto;padding:24px}
+.cid-right.ms{overflow:hidden;padding:0}
+
+/* ---- ai-training-new/components/timeline.tsx ---- */
+.tl{position:relative;display:flex;flex-direction:column;gap:80px}
+.tl-track{position:absolute;left:10px;top:0;height:100%;width:2px;background:#e5e7eb}
+.tl-fill{width:100%;background:#ff4301;transition-duration:75ms}
+.tl-row{z-index:20;display:flex;align-items:center;gap:16px;background:#fff;padding:16px 0}
+.tl-dot{display:flex;height:24px;width:24px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;text-align:center;font-weight:700;color:#fff;background:#fff;border:1px solid #e5e7eb}
+.tl-dot.on{background:#ff4301;border-width:0}
+.tl-lbl{display:inline-flex;align-items:center;gap:4px}
+
+/* ---- step headings (steps/*.tsx) ---- */
+.st-h1{font-size:24px;line-height:32px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.st-p{margin:16px 0}
+.st-p.fm{font-weight:500}
+
+/* ---- steps/BasicInformation.tsx form + shared/ui/Label, Input, SelectInput ---- */
+.form{display:flex;flex-direction:column;gap:16px}
+.lbl{display:inline-block;color:#000;user-select:none;cursor:pointer;margin-bottom:4px;font-size:14px;line-height:20px;font-weight:600}
+.lbl-in{display:inline-flex;align-items:center;gap:4px}
+.inp-wrap{position:relative}
+.inp{border-radius:6px;border:1px solid #e5e7eb;width:100%;outline-width:1px;font-size:14px;line-height:20px;font-weight:400;padding:8px 12px}
+.inp:focus{border-color:#ff4301;outline:2px solid #ff4301;outline-offset:0}
+.si{position:relative;width:100%}
+.si-btn{position:relative;width:100%;min-width:95px;cursor:default;border-radius:6px;background:#fff;padding:8px 40px 8px 12px;text-align:left;border:1px solid #d1d5db;font-size:14px;line-height:20px;color:#111827}
+.si-btn:focus{outline:none;border-color:#ff4301;box-shadow:0 0 0 1px #ff4301}
+.si-val{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si-val.ph{color:#6b7280}
+.si-arrow{pointer-events:none;position:absolute;top:0;bottom:0;right:0;display:flex;align-items:center;padding-right:8px}
+.si-list{position:fixed;z-index:99999;max-height:240px;overflow:auto;border-radius:6px;background:#fff;padding:4px 0;font-size:14px;line-height:20px;box-shadow:0 10px 15px -3px rgb(0 0 0 / .1),0 4px 6px -4px rgb(0 0 0 / .1),0 0 0 1px rgb(0 0 0 / .05);margin-top:4px}
+.si-list li{position:relative;cursor:default;user-select:none;padding:8px 16px 8px 40px;color:#111827}
+.si-list li.act{background:#ff4301;color:#fff}
+.si-list li .nm{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si-list li.sel .nm{font-weight:600}
+.si-list li .tk{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:12px}
+.si-list li.act .tk path{fill:#fff}
+
+/* ---- steps/MapCameraIp.tsx / CameraConfig.tsx tables ---- */
+.shadow-tbl{margin-top:16px;box-shadow:0 4px 6px -1px rgb(0 0 0 / .1),0 2px 4px -2px rgb(0 0 0 / .1);border-radius:8px;position:relative}
+.shadow-tbl.ov{overflow:auto}
+.cb{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid #D9D9D9;border-radius:6px;box-shadow:0 1px 3px 0 #7A7E80,0 1px 2px -1px #7A7E80;background:#fff;cursor:pointer}
+.cb.on{background:#ff4301}
+
+/* ---- steps/ModelSelection.tsx + steps/Finish.tsx ---- */
+.ms-root{display:flex;height:100%;flex-direction:column}
+.ms-head{flex-shrink:0;z-index:10;background:#fff;padding:16px;box-shadow:0 4px 6px -1px rgb(0 0 0 / .1),0 2px 4px -2px rgb(0 0 0 / .1)}
+.ms-body{flex:1 1 0%;overflow-y:auto;padding:32px 16px}
+.ms-group{margin-bottom:40px}
+.vch{display:flex;align-items:center;font-size:18px;line-height:28px;font-weight:700;margin-bottom:8px}
+.vch-in{color:#111827;border-left:4px solid #ef4444;padding-left:8px;display:flex;align-items:center}
+.vch .mr1{margin-right:4px}
+.vch .sep{font-weight:400;color:#000;margin:0 4px}
+.ms-rule{border-top:1px solid #e5e7eb;width:100%;margin-bottom:24px}
+.ms-mod{margin-bottom:32px;padding-left:16px}
+.ms-mod-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.ms-cap{font-size:10px;line-height:15px;color:#9ca3af;font-weight:600;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px}
+.ms-name{display:flex;align-items:center;color:#111827;font-weight:700;font-size:18px;line-height:28px;cursor:pointer;user-select:none}
+.ms-name svg{width:20px;height:20px;transition:transform .15s}
+.ms-name.open svg{transform:rotate(180deg)}
+.ms-cls{display:flex;gap:8px;flex-wrap:wrap;max-width:24rem;justify-content:flex-end}
+.chip{position:relative;display:inline-flex;align-items:center;border-radius:6px;padding:2px 8px;white-space:nowrap;font-size:14px;line-height:20px;font-weight:500}
+.ms-task{padding-left:24px}
+.ms-task.mb{margin-bottom:24px}
+.ms-task-h{display:flex;align-items:center;color:#7e22ce;font-weight:700;font-size:14px;line-height:20px;margin-bottom:4px}
+.ms-task-h .dot{width:8px;height:8px;border-radius:9999px;background:#7e22ce;margin-right:8px}
+.ms-task-p{font-size:12px;line-height:16px;color:#6b7280;font-style:italic;margin-bottom:12px}
+.radio{width:24px;height:24px;border-radius:9999px;display:flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;cursor:pointer;filter:drop-shadow(0 1px 2px rgb(0 0 0 / .1)) drop-shadow(0 1px 1px rgb(0 0 0 / .06));color:#fff}
+.radio:hover{filter:drop-shadow(0 20px 13px rgb(0 0 0 / .03)) drop-shadow(0 8px 5px rgb(0 0 0 / .08))}
+.radio.on{background:#ff4301;border-color:#ff4301}
+.radio i{width:8px;height:8px;border-radius:9999px;background:#fff;transform:scale(0);transition:transform .2s ease-in-out}
+.radio.on i{transform:scale(1)}
+.fin-line{margin:8px 0;font-weight:400}
+.fin-line b{font-weight:700}
+
+/* ---- shared/ui/Modal.tsx ---- */
+.mo-ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgb(0 0 0 / .5)}
+.mo{position:relative;width:100%;max-width:28rem;border-radius:8px;background:#fff;box-shadow:0 10px 15px -3px rgb(0 0 0 / .1),0 4px 6px -4px rgb(0 0 0 / .1);outline:none}
+.mo.wide{width:max-content;min-width:min(100%, 28rem);max-width:90vw}
+.mo-h{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:20px}
+.mo-h h3{font-weight:600;display:flex;align-items:center;gap:6px}
+.mo-x{cursor:pointer}
+.mo-b{overflow:auto;padding:20px}
+.mo-f{border-top:1px solid #e5e7eb;padding:20px}
+.mo-f-row{display:flex;justify-content:flex-end}
+.mo-f-row > * + *{margin-left:12px}
+.sp2 > * + *{margin-top:8px}
+.sp3 > * + *{margin-top:12px}
+.sbv-p{font-size:14px;line-height:20px;color:#6b7280}
+.ck-row{display:flex;align-items:center}
+.ck-row > * + *{margin-left:12px}
+.ck-row input{width:16px;height:16px;cursor:pointer;flex-shrink:0;margin:0}
+.ck-row label{cursor:pointer;font-size:14px;line-height:20px;display:inline-flex;align-items:center;gap:4px}
+.mdl-h{font-size:14px;line-height:20px;font-weight:500;color:#374151}
+.mdl-list{padding-left:16px;padding-right:8px;height:120px;overflow-y:auto}
+.pkg-v{font-size:14px;line-height:20px;color:#111827}
+
+/* ---- shared/components/Tooltip.tsx bubble ---- */
+.tip{position:fixed;pointer-events:none;width:max-content;max-width:300px;overflow-wrap:break-word;white-space:normal;border-radius:4px;border:1px solid #d1d5db;background:#f3f4f6;padding:4px 8px;font-size:12px;line-height:16px;color:#4b5563;box-shadow:0 1px 2px 0 rgb(0 0 0 / .05);z-index:100001}
+
+/* ---- react-hot-toast (main.tsx Toaster: top-center, maxWidth 700px) ---- */
+.toast-wrap{position:fixed;z-index:100002;top:16px;left:16px;right:16px;display:flex;justify-content:center;pointer-events:none}
+.toast{display:flex;align-items:center;background:#fff;color:#363636;line-height:1.3;box-shadow:0 3px 10px rgba(0,0,0,.1),0 3px 3px rgba(0,0,0,.05);max-width:700px;pointer-events:auto;padding:8px 10px;border-radius:8px}
+.toast-msg{display:flex;justify-content:center;margin:4px 10px;color:inherit;flex:1 1 auto;white-space:pre-line}
+.spin{width:12px;height:12px;box-sizing:border-box;border:2px solid #e0e0e0;border-right-color:#616161;border-radius:100%;animation:rot 1s linear infinite;margin:4px}
+@keyframes rot{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* ---- prototype-only switcher ---- */
+.proto{position:fixed;bottom:24px;right:160px;z-index:100000;display:flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif}
+.seg{display:flex;padding:2px;border-radius:7px;background:#f3f4f6;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+.seg button{font-size:12px;line-height:16px;font-weight:500;padding:4px 12px;border-radius:5px;color:#4b5563;cursor:pointer}
+.seg button.on{background:#1f2937;color:#fff}
+</style>
+</head>
+<body>
+
+<!-- Project sidebar -->
+<div class="psb">
+  <a class="psb-logo" href="#">
+    <svg width="58" height="58" viewBox="0 0 230 58" fill="none" preserveAspectRatio="xMinYMid slice" style="width:58px" xmlns="http://www.w3.org/2000/svg">
+      <g clip-path="url(#clip0_84_12245)">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.3373 23.3047C19.4945 23.3047 19.6219 23.4253 19.6219 23.5742L19.6219 30.8503C19.6219 30.9991 19.4945 31.1197 19.3373 31.1197C19.1801 31.1197 19.0527 30.9991 19.0527 30.8503L19.0527 23.5742C19.0527 23.4253 19.1801 23.3047 19.3373 23.3047Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.7337 24.7076C25.7015 24.8533 25.5507 24.9467 25.3968 24.9162L19.2783 23.7035C19.1244 23.673 19.0258 23.5302 19.058 23.3845C19.0902 23.2389 19.241 23.1455 19.3949 23.176L25.5134 24.3886C25.6673 24.4191 25.7659 24.5619 25.7337 24.7076Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M20.9018 23.5742C21.0589 23.5742 21.1864 23.6949 21.1864 23.8437V32.3325C21.1864 32.4813 21.0589 32.602 20.9018 32.602C20.7446 32.602 20.6172 32.4813 20.6172 32.3325V23.8437C20.6172 23.6949 20.7446 23.5742 20.9018 23.5742Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M22.4672 23.8437C22.6244 23.8437 22.7518 23.9644 22.7518 24.1132L22.7518 33.8147C22.7518 33.9635 22.6244 34.0842 22.4672 34.0842C22.31 34.0842 22.1826 33.9635 22.1826 33.8147L22.1826 24.1132C22.1826 23.9644 22.31 23.8437 22.4672 23.8437Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M24.0326 24.1128C24.1898 24.1128 24.3172 24.2334 24.3172 24.3823V35.2964C24.3172 35.4452 24.1898 35.5659 24.0326 35.5659C23.8755 35.5659 23.748 35.4452 23.748 35.2964V24.3823C23.748 24.2334 23.8755 24.1128 24.0326 24.1128Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.4555 24.3828C25.6127 24.3828 25.7401 24.5035 25.7401 24.6523V36.6444C25.7401 36.7932 25.6127 36.9138 25.4555 36.9138C25.2983 36.9138 25.1709 36.7932 25.1709 36.6444V24.6523C25.1709 24.5035 25.2983 24.3828 25.4555 24.3828Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0527 7H39.9697C40.1269 7 40.2543 7.12065 40.2543 7.26948C40.2543 7.41832 40.1269 7.53897 39.9697 7.53897H19.6219V16.0529L25.6487 15.2193H35.7721C35.9293 15.2193 36.0567 15.3399 36.0567 15.4888C36.0567 15.6376 35.9293 15.7583 35.7721 15.7583H25.69L19.0527 16.6763V7Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M20.6885 8.48193H37.7636C37.9207 8.48193 38.0481 8.60259 38.0481 8.75142C38.0481 8.90025 37.9207 9.0209 37.7636 9.0209H21.2576V16.0949C21.2576 16.2437 21.1302 16.3644 20.9731 16.3644C20.8159 16.3644 20.6885 16.2437 20.6885 16.0949V8.48193Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M22.2539 9.96387H36.412C36.5692 9.96387 36.6966 10.0845 36.6966 10.2334C36.6966 10.3822 36.5692 10.5028 36.412 10.5028H22.8231V15.8925C22.8231 16.0414 22.6957 16.162 22.5385 16.162C22.3813 16.162 22.2539 16.0414 22.2539 15.8925V9.96387Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M23.8193 11.4463H34.0644C34.2216 11.4463 34.349 11.5669 34.349 11.7158C34.349 11.8646 34.2216 11.9853 34.0644 11.9853H24.3885V15.6907C24.3885 15.8395 24.2611 15.9602 24.1039 15.9602C23.9467 15.9602 23.8193 15.8395 23.8193 15.6907V11.4463Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25.3135 12.7939H32.9261C33.0833 12.7939 33.2107 12.9146 33.2107 13.0634C33.2107 13.2123 33.0833 13.3329 32.9261 13.3329H25.8826V15.4888C25.8826 15.6376 25.7552 15.7583 25.5981 15.7583C25.4409 15.7583 25.3135 15.6376 25.3135 15.4888V12.7939Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.865 16.8354L33.998 16.944C34.1552 16.9463 34.2805 17.0689 34.278 17.2177C34.2755 17.3665 34.146 17.4852 33.9889 17.4829L26.8798 17.3747L19.3567 17.8614C19.1999 17.8715 19.0641 17.7594 19.0534 17.6109C19.0427 17.4624 19.1611 17.3338 19.3179 17.3237L26.865 16.8354Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.8698 18.1353L32.7569 18.2437C32.9141 18.2466 33.039 18.3696 33.0359 18.5184C33.0329 18.6672 32.903 18.7855 32.7459 18.7826L26.875 18.6744L19.3481 18.9449C19.1911 18.9506 19.0589 18.8346 19.0529 18.6859C19.047 18.5371 19.1695 18.412 19.3265 18.4064L26.8698 18.1353Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0528 19.7007C19.055 19.5518 19.1843 19.4329 19.3414 19.4351L31.265 19.5976C31.4222 19.5997 31.5478 19.7221 31.5455 19.8709C31.5432 20.0197 31.414 20.1386 31.2568 20.1365L19.3332 19.974C19.1761 19.9719 19.0505 19.8495 19.0528 19.7007Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0531 20.7743C19.0611 20.6257 19.1948 20.5113 19.3518 20.5189L27.2108 20.8977H29.8533C30.0105 20.8977 30.1379 21.0183 30.1379 21.1672C30.1379 21.316 30.0105 21.4367 29.8533 21.4367H27.1964L19.3229 21.0572C19.1659 21.0496 19.0451 20.923 19.0531 20.7743Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0539 21.9558C19.068 21.8075 19.2063 21.6982 19.3629 21.7116L26.968 22.3604H28.4457C28.6028 22.3604 28.7302 22.4811 28.7302 22.6299C28.7302 22.7787 28.6028 22.8994 28.4457 22.8994H26.9424L19.3118 22.2483C19.1553 22.235 19.0398 22.104 19.0539 21.9558Z" fill="white" stroke="white" stroke-width="0.2" stroke-linecap="round" />
+<path d="M9.48544 14.0082H7.28711V-0.0317383H21.3271V2.16659H9.48544V14.0082Z" fill="white" />
+<path d="M21.3271 44.1406H7.28711V30.1006H9.48544V41.9422H21.3271V44.1406Z" fill="white" />
+<path d="M50.4033 14.0082H48.2049V2.16659H36.3633V-0.0317383H50.4033V14.0082Z" fill="white" />
+<path d="M50.4033 44.1406H36.3633V41.9422H48.2049V30.1006H50.4033V44.1406Z" fill="white" />
+      </g>
+      <defs><clipPath id="clip0_84_12245"><rect width="230" height="51.427" fill="white"/></clipPath></defs>
+    </svg>
+  </a>
+  <ul>
+    <li><a class="psb-link" href="#"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><g clip-path="url(#clip0_5827_1475)"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.285 19.4995 16.5843 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.8959 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.8959 16.96 19.71L16.9 19.65C16.6643 19.4195 16.365 19.2648 16.0406 19.206C15.7162 19.1472 15.3816 19.1869 15.08 19.32C14.7842 19.4468 14.532 19.6572 14.3543 19.9255C14.1766 20.1938 14.0813 20.5082 14.08 20.83V21C14.08 21.5304 13.8693 22.0391 13.4942 22.4142C13.1191 22.7893 12.6104 23 12.08 23C11.5496 23 11.0409 22.7893 10.6658 22.4142C10.2907 22.0391 10.08 21.5304 10.08 21V20.91C10.0723 20.579 9.96512 20.258 9.77251 19.9887C9.5799 19.7194 9.31074 19.5143 9 19.4C8.69838 19.2669 8.36381 19.2272 8.03941 19.286C7.71502 19.3448 7.41568 19.4995 7.18 19.73L7.12 19.79C6.93425 19.976 6.71368 20.1235 6.47088 20.2241C6.22808 20.3248 5.96783 20.3766 5.705 20.3766C5.44217 20.3766 5.18192 20.3248 4.93912 20.2241C4.69632 20.1235 4.47575 19.976 4.29 19.79C4.10405 19.6043 3.95653 19.3837 3.85588 19.1409C3.75523 18.8981 3.70343 18.6378 3.70343 18.375C3.70343 18.1122 3.75523 17.8519 3.85588 17.6091C3.95653 17.3663 4.10405 17.1457 4.29 16.96L4.35 16.9C4.58054 16.6643 4.73519 16.365 4.794 16.0406C4.85282 15.7162 4.81312 15.3816 4.68 15.08C4.55324 14.7842 4.34276 14.532 4.07447 14.3543C3.80617 14.1766 3.49179 14.0813 3.17 14.08H3C2.46957 14.08 1.96086 13.8693 1.58579 13.4942C1.21071 13.1191 1 12.6104 1 12.08C1 11.5496 1.21071 11.0409 1.58579 10.6658C1.96086 10.2907 2.46957 10.08 3 10.08H3.09C3.42099 10.0723 3.742 9.96512 4.0113 9.77251C4.28059 9.5799 4.48572 9.31073 4.6 9C4.73312 8.69838 4.77282 8.36381 4.714 8.03941C4.65519 7.71502 4.50054 7.41568 4.27 7.18L4.21 7.12C4.02405 6.93425 3.87653 6.71368 3.77588 6.47088C3.67523 6.22808 3.62343 5.96783 3.62343 5.705C3.62343 5.44217 3.67523 5.18191 3.77588 4.93912C3.87653 4.69632 4.02405 4.47575 4.21 4.29C4.39575 4.10405 4.61632 3.95653 4.85912 3.85588C5.10192 3.75523 5.36217 3.70343 5.625 3.70343C5.88783 3.70343 6.14808 3.75523 6.39088 3.85588C6.63368 3.95653 6.85425 4.10405 7.04 4.29L7.1 4.35C7.33568 4.58054 7.63502 4.73519 7.95941 4.794C8.28381 4.85282 8.61838 4.81311 8.92 4.68H9C9.29577 4.55324 9.54802 4.34275 9.72569 4.07446C9.90337 3.80617 9.99872 3.49179 10 3.17V3C10 2.46957 10.2107 1.96086 10.5858 1.58579C10.9609 1.21071 11.4696 1 12 1C12.5304 1 13.0391 1.21071 13.4142 1.58579C13.7893 1.96086 14 2.46957 14 3V3.09C14.0013 3.41179 14.0966 3.72617 14.2743 3.99447C14.452 4.26276 14.7042 4.47324 15 4.6C15.3016 4.73311 15.6362 4.77282 15.9606 4.714C16.285 4.65519 16.5843 4.50054 16.82 4.27L16.88 4.21C17.0657 4.02405 17.2863 3.87653 17.5291 3.77588C17.7719 3.67523 18.0322 3.62343 18.295 3.62343C18.5578 3.62343 18.8181 3.67523 19.0609 3.77588C19.3037 3.87653 19.5243 4.02405 19.71 4.21C19.896 4.39575 20.0435 4.61632 20.1441 4.85912C20.2448 5.10191 20.2966 5.36217 20.2966 5.625C20.2966 5.88783 20.2448 6.14808 20.1441 6.39088C20.0435 6.63368 19.896 6.85425 19.71 7.04L19.65 7.1C19.4195 7.33568 19.2648 7.63501 19.206 7.95941C19.1472 8.28381 19.1869 8.61838 19.32 8.92V9C19.4468 9.29577 19.6572 9.54802 19.9255 9.72569C20.1938 9.90337 20.5082 9.99872 20.83 10H21C21.5304 10 22.0391 10.2107 22.4142 10.5858C22.7893 10.9609 23 11.4696 23 12C23 12.5304 22.7893 13.0391 22.4142 13.4142C22.0391 13.7893 21.5304 14 21 14H20.91C20.5882 14.0013 20.2738 14.0966 20.0055 14.2743C19.7372 14.452 19.5268 14.7042 19.4 15Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></g><defs><clipPath id="clip0_5827_1475"><rect width="24" height="24" fill="white"/></clipPath></defs></svg></a></li>
+    <li><a class="psb-link" href="#"><svg width="21" height="21" viewBox="0 0 21 21" fill="none"><path d="M6 6H6.01M19.59 12.41L12.42 19.58C12.2343 19.766 12.0137 19.9135 11.7709 20.0141C11.5281 20.1148 11.2678 20.1666 11.005 20.1666C10.7422 20.1666 10.4819 20.1148 10.2391 20.0141C9.99632 19.9135 9.77575 19.766 9.59 19.58L1 11V1H11L19.59 9.59C19.9625 9.96473 20.1716 10.4716 20.1716 11C20.1716 11.5284 19.9625 12.0353 19.59 12.41Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></li>
+    <li><a class="psb-link" href="#"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 1V4M15 1V4M9 20V23M15 20V23M20 9H23M20 14H23M1 9H4M1 14H4M6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4ZM9 9H15V15H9V9Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></li>
+    <li><a class="psb-link active" href="#"><svg width="20" height="22" viewBox="0 0 20 22" fill="none"><path d="M11 1L1 13H10L9 21L19 9H10L11 1Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></li>
+  </ul>
+  <div class="psb-bottom">
+    <a class="psb-link" href="#"><svg width="18" height="20" viewBox="0 0 18 20" fill="none"><path d="M1.5 7.49984L9 1.6665L16.5 7.49984V16.6665C16.5 17.1085 16.3244 17.5325 16.0118 17.845C15.6993 18.1576 15.2754 18.3332 14.8333 18.3332H3.16667C2.72464 18.3332 2.30072 18.1576 1.98816 17.845C1.67559 17.5325 1.5 17.1085 1.5 16.6665V7.49984Z" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+</div>
+
+
+<!-- Instances page (modules/project/instances/index.tsx) -->
+<div class="page">
+  <div class="heading">
+    <div class="heading-l">
+      <div class="heading-sub">
+        <nav class="bc" aria-label="Breadcrumb">
+          <a class="bc-home" href="#" title="Go to Home"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></a>
+          <svg class="bc-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          <a class="bc-link" href="#" title="Sample Project"><span class="bc-lbl"><span class="truncate">Sample Project</span></span></a>
+          <svg class="bc-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="bc-cur" aria-current="page"><span class="bc-lbl"><span class="truncate">Instances</span><span class="info-ico" data-tip="An instance is one deployment package: the captures, models and camera settings a single FrinksEdge machine on the floor will run."><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span></span></span></span>
+        </nav>
+      </div>
+    </div>
+    <div></div>
+  </div>
+  <div style="width:100%">
+    <div class="create-row">
+      <button class="btn" type="button" id="createBtn"><div style="display:flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Create Instance</div></button>
+    </div>
+    <div class="list-wrap">
+      <div style="position:relative;border-radius:8px" class="tbl-host">
+        <div class="tbl" id="listTbl"><div class="tbl-in"><table>
+          <colgroup id="listCols"></colgroup>
+          <thead><tr id="listHead"></tr></thead>
+          <tbody id="listBody"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row action menu (PortalDropdown, portalled to body) -->
+<ul class="act-menu" id="actMenu" hidden>
+  <li id="actEdit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3H5C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V12" stroke="#757A83" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.3751 2.62523C18.7729 2.2274 19.3125 2.00391 19.8751 2.00391C20.4377 2.00391 20.9773 2.2274 21.3751 2.62523C21.7729 3.02305 21.9964 3.56262 21.9964 4.12523C21.9964 4.68784 21.7729 5.2274 21.3751 5.62523L12.3621 14.6392C12.1246 14.8765 11.8313 15.0501 11.5091 15.1442L8.63609 15.9842C8.55005 16.0093 8.45883 16.0108 8.372 15.9886C8.28517 15.9663 8.20592 15.9212 8.14254 15.8578C8.07916 15.7944 8.03398 15.7151 8.01174 15.6283C7.98949 15.5415 7.991 15.4503 8.01609 15.3642L8.85609 12.4912C8.95062 12.1693 9.12463 11.8763 9.36209 11.6392L18.3751 2.62523Z" stroke="#757A83" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Edit</li>
+  <li id="actDelete" class="del"><svg width="16" height="16" viewBox="0 0 28 28" fill="none"><path d="M6.125 6.125L7.21875 23.625C7.2707 24.6362 8.00625 25.375 8.96875 25.375H19.0312C19.9976 25.375 20.7195 24.6362 20.7812 23.625L21.875 6.125" stroke="#C51313" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.375 6.125H23.625H4.375Z" fill="#C51313"/><path d="M4.375 6.125H23.625" stroke="#C51313" stroke-width="1.25" stroke-miterlimit="10" stroke-linecap="round"/><path d="M10.5 6.12501V3.93751C10.4995 3.765 10.5331 3.5941 10.5989 3.43464C10.6647 3.27517 10.7613 3.13028 10.8833 3.0083C11.0053 2.88632 11.1502 2.78966 11.3096 2.72388C11.4691 2.6581 11.64 2.6245 11.8125 2.62501H16.1875C16.36 2.6245 16.5309 2.6581 16.6904 2.72388C16.8498 2.78966 16.9947 2.88632 17.1167 3.0083C17.2387 3.13028 17.3353 3.27517 17.4011 3.43464C17.4669 3.5941 17.5005 3.765 17.5 3.93751V6.12501M14 9.62501V21.875M10.0625 9.62501L10.5 21.875M17.9375 9.62501L17.5 21.875" stroke="#C51313" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg> Delete</li>
+</ul>
+
+<!-- Instance wizard (index.tsx:748-806 Drawer + CreateInstanceDrawer.tsx) -->
+<div id="wizard" hidden>
+  <div class="backdrop" id="wzBackdrop"></div>
+  <div class="drawer">
+    <div class="dr-head">
+      <span class="dr-title" id="wzTitle">Create a new instance</span>
+      <div class="dr-close" id="wzClose" data-tip="Close this panel." data-pos="left">
+        <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" width="20" height="20" style="cursor:pointer"><path d="M289.94 256l95-95A24 24 0 00351 127l-95 95-95-95a24 24 0 00-34 34l95 95-95 95a24 24 0 1034 34l95-95 95 95a24 24 0 0034-34z"/></svg>
+      </div>
+    </div>
+    <div class="dr-body">
+      <div class="cid">
+        <div class="cid-left"><div class="tl" id="timeline"></div></div>
+        <div class="cid-right" id="stepHost"></div>
+      </div>
+    </div>
+    <div class="dr-foot">
+      <div class="foot-grid">
+        <div class="foot-cell">
+          <div class="foot-l">
+            <div class="btn-tt" data-tip="Go back to the previous step."><button class="btn border" type="button" id="wzBack">Back</button></div>
+            <div class="btn-tt" id="wzNextTip" data-tip="Continue to the next step."><button class="btn" type="button" id="wzNext">Next</button></div>
+            <div class="btn-tt" id="wzLaterTip" data-tip="" hidden><button class="btn border" type="button" id="wzLater">Finish without models</button></div>
+          </div>
+          <div class="btn-tt" data-tip="Close this drawer without creating the instance."><button class="btn border" type="button" id="wzCancel">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modalHost"></div>
+<ul class="si-list" id="siList" hidden></ul>
+
+<div class="toast-wrap" id="toast" hidden><div class="toast" role="status" aria-live="polite">
+  <span id="toastIco"></span>
+  <div class="toast-msg" id="toastMsg"></div>
+</div></div>
+
+<div class="tip" id="hoverTip" role="tooltip" hidden></div>
+
+<div class="proto" id="proto">
+  <div class="seg" role="tablist">
+    <button type="button" data-mode="today">Today</button>
+    <button type="button" data-mode="after">After change</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var PAGE = 'models';                 // 'instances' (vision-instances.html) | 'models' (vision-model-selection.html)
+
+  /* ---------- url ---------- */
+  var params = new URLSearchParams(location.search);
+  var mode = params.get('mode') === 'today' ? 'today' : 'after';
+  var after = mode === 'after';
+  var state = params.get('state') || (PAGE === 'models' ? 'create' : 'models-remaining');
+  var openParam = params.get('open');
+  var pickedAll = params.get('picked') === 'all';
+  var framed = false;
+  try { framed = window.self !== window.top; } catch (_) { framed = true; }
+
+  /* ---------- shared state (localStorage 'cfgonly-state') ---------- */
+  var KEY = 'cfgonly-state';
+  var DEFAULTS = { instanceName: 'Line 3 Assembly', instanceId: 'ab677d65-aa67-4bd2-a967-7a3fa86778ac', edgeVersion: null,
+    configDownloaded: false, configUploaded: false, modelsSelected: false,
+    modelsDownloaded: false, modelsUploaded: false, someSelected: false, someDownloaded: false, someUploaded: false };
+  function readState(){
+    var s = {}; for (var k in DEFAULTS) s[k] = DEFAULTS[k];
+    try { var raw = localStorage.getItem(KEY); if (raw) { var o = JSON.parse(raw); if (o && typeof o === 'object') for (var j in o) s[j] = o[j]; } } catch (_) {}
+    return s;
+  }
+  function writeState(patch){
+    var s = readState(); for (var k in patch) s[k] = patch[k];
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (_) {}
+    S = s;
+  }
+  var S = readState();
+  function nav(to){ if (framed) { try { window.parent.postMessage({ type: 'cfgonly-nav', to: to }, '*'); } catch (_) {} } }
+
+  /* Vision instance ids are UUIDs (backend StringUtils.generateUUID -> crypto.randomUUID); seed -> stable UUID */
+  function uuidFrom(seed){
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seed)) return seed.toLowerCase();
+    var hex = '';
+    for (var i = 0; hex.length < 32; i++) {
+      var h = 0x811c9dc5, s = seed + ':' + i;
+      for (var j = 0; j < s.length; j++) { h ^= s.charCodeAt(j); h = Math.imul(h, 0x01000193) >>> 0; }
+      hex += ('00000000' + h.toString(16)).slice(-8);
+    }
+    var a = hex.slice(0, 32).split('');
+    a[12] = '4'; a[16] = '89ab'[parseInt(a[16], 16) & 3];
+    hex = a.join('');
+    return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+  }
+
+  /* ---------- icons ---------- */
+  function infoIco(size, cls, tip){
+    return '<span class="info-ico' + (cls ? ' ' + cls : '') + '"' + (tip ? ' data-tip="' + esc(tip) + '"' : '') + '><span role="button" tabindex="0"><svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span></span>';
+  }
+  var ARROWS = '<svg width="20" height="20" viewBox="0 0 16 24" fill="none" aria-hidden="true" style="width:20px;height:20px"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 5.29297L11.8545 9.14597L11.1475 9.85397L8.00048 6.70697L4.85448 9.85397L4.14648 9.14597L8.00048 5.29297Z" fill="#757A83"/><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 18.707L11.8545 14.854L11.1475 14.146L8.00048 17.293L4.85448 14.146L4.14648 14.854L8.00048 18.707Z" fill="#757A83"/></svg>';
+  var TICK = '<svg width="20" height="20" viewBox="0 0 18 18" fill="none" style="width:20px;height:20px"><path d="M16.3333 3.86162C16.0907 3.61904 15.7134 3.61904 15.4708 3.86162L6.30674 12.7562L1.77862 8.30889C1.53604 8.06631 1.15869 8.09326 0.916115 8.30889C0.673537 8.55146 0.70049 8.92881 0.916115 9.17139L5.68682 13.8073C5.84854 13.969 6.06416 14.0499 6.30674 14.0499C6.54932 14.0499 6.73799 13.969 6.92666 13.8073L16.3333 4.67021C16.5759 4.48154 16.5759 4.1042 16.3333 3.86162Z" fill="#374151"/></svg>';
+  function DOWNLOAD(dis){ return '<svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="opacity:' + (dis ? 0.8 : 1) + ';cursor:' + (dis ? 'not-allowed' : 'pointer') + '"><path d="M28 20V25.3333C28 26.0406 27.719 26.7189 27.219 27.219C26.7189 27.719 26.0406 28 25.3333 28H6.66667C5.95942 28 5.28115 27.719 4.78105 27.219C4.28095 26.7189 4 26.0406 4 25.3333V20M9.33333 13.3333L16 20M16 20L22.6667 13.3333M16 20V4" stroke="' + (dis ? '#AAA' : '#0E0F0F') + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+  var DOTS = '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 20 20" width="18" height="18" style="cursor:pointer"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/></svg>';
+  var IOCLOSE16 = '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" width="16" height="16"><path d="M289.94 256l95-95A24 24 0 00351 127l-95 95-95-95a24 24 0 00-34 34l95 95-95 95a24 24 0 1034 34l95-95 95 95a24 24 0 0034-34z"/></svg>';
+  var FA_CHECK = '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" width="12" height="12" style="color:#fff"><path d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"/></svg>';
+  var CHEV = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>';
+  var OK_ICO = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="#61d345"/><path d="M6 10.4l2.6 2.6L14.2 7.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="square"/></svg>';
+  function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+  /* ---------- copy (shared/copy/tooltips.ts + index.tsx) ---------- */
+  var T = {
+    validity: "The licence window. Once it expires the machine stops inspecting and the instance can't be edited or downloaded.",
+    scripts: "The Edge Version this instance was last downloaded for. The machine must match, or the package won't load.",
+    chipDraft: "Never activated, or invalidated by a config change. Can't be downloaded.",
+    unplaced: 'This instance has no plant and team yet. An Org Admin must assign them.',
+    stRemaining: 'Finished, but at least one AI module has no model yet. Add the models from Edit instance.',
+    stCompleted: 'Every AI module has a model. Downloads the full instance.',
+    stepBasic: 'Names the deployment and decides who can manage it. Plant and Team control which users see and download this instance.',
+    instanceName: 'Must be unique within the project. This is what appears on the edge machine.',
+    stepCaptures: 'Choose which captures this machine will run. Only fully configured captures can be selected.',
+    stepCamera: 'Bind each capture to the physical camera that feeds it, and set how that camera acquires frames.',
+    cameraType: "Type decides the rest: Area Scan uses GiGe; CCTV uses RTSP and can't take a hardware trigger; Custom pulls over FTP.",
+    ocrDetRec: 'Locates the text regions in the image · Reads the characters within each detected region. Both are needed for full text reading.',
+    selFiles: 'Downloads only what changed — database, masks or specific models — instead of the full package.',
+    dbFile: "The instance's database file. Select it when the instance's configuration has changed since the last download.",
+    sbv: 'Chooses which version of the edge scripts bundle gets packaged into this instance download.',
+    finNone: 'Save this instance without models. It stays Models Remaining until every AI module has a model.',
+    finSome: 'Save this instance with the models picked so far. It stays Models Remaining until every AI module has a model.',
+    dlNone: "Download the instance's configuration, without models.",
+    dlSome: 'Download the instance with the models picked so far.'
+  };
+
+  /* ---------- sample data ---------- */
+  var EDGE_VERSIONS = ['3.9.14', '3.9.13', '3.9.12'];        // GET /edge-schema/versions — enabled, newest first
+  var FALLBACK_EDGE = '3.9.14';
+  var D = function(y, mo, d, h, mi, s){ return new Date(y, mo, d, h, mi, s).getTime(); };
+  var OURS = { key: 'ours', createdAt: D(2026, 9, 28, 11, 42, 10), validTill: D(2027, 9, 28, 11, 42, 10), plant: 'Plant A', team: 'Team 1', status: 'remaining' };
+  var LINE2 = { key: 'line2', name: 'Line 2 Assembly', id: '5c1e7a92-3f4b-4d8e-9a26-0b7f3c51e8d4', createdAt: D(2026, 9, 27, 9, 15, 33), validTill: D(2027, 9, 27, 9, 15, 33), plant: 'Plant A', team: 'Team 1', status: 'completed', scripts: '3.9.13', models: ['ODC_Line2_20-10', 'SEG_Line2_20-10'] };
+  var LINE1 = { key: 'line1', name: 'Line 1 Packing', id: 'a83f0d6b-91c2-4e57-b4a8-6d2e9c07f135', createdAt: null, validTill: null, plant: 'Plant A', team: 'Team 1', status: 'draft', scripts: '-', models: [] };
+  var MODEL_DATE = D(2026, 9, 27, 18, 5, 0);
+  /* GET /module/model-selection, filtered to assembly/classification/segmentation/ocr/beadInspection (Barcode = Code Reader is not listed) */
+  var GROUPS = [
+    { variant: 'Variant A', capture: 'Front View', modules: [
+      { id: 'm1', name: 'Part Presence', classes: ['Bolt', 'Washer', 'Clip'], ocr: false,
+        slots: [{ key: 'm1', empty: 'No models available.', model: { name: 'ODC_Front_27-10', classes: ['Bolt', 'Washer', 'Clip'] } }] },
+      { id: 'm2', name: 'Label Text', classes: ['Text'], ocr: true,
+        slots: [
+          { key: 'm2-det', label: 'Detection', helper: 'Locates the text regions in the image.', empty: 'No detection models available.', model: { name: 'OCR-D_Front_27-10', classes: ['Text'] } },
+          { key: 'm2-rec', label: 'Recognition', helper: 'Reads the characters within each detected region.', empty: 'No recognition models available.', model: { name: 'OCR-R_Front_27-10', classes: ['Text'] } }
+        ] }
+    ] },
+    { variant: 'Variant A', capture: 'Top View', modules: [
+      { id: 'm4', name: 'Seal Bead', classes: ['Bead'], ocr: false,
+        slots: [{ key: 'm4', empty: 'No models available.', model: { name: 'Bead_Top_27-10', classes: ['Bead'] } }] },
+      { id: 'm5', name: 'Surface Check', classes: ['Scratch', 'Dent'], ocr: false,
+        slots: [{ key: 'm5', empty: 'No models available.', model: { name: 'SEG_Top_27-10', classes: ['Scratch', 'Dent'] } }] }
+    ] }
+  ];
+  var ALL_SLOTS = []; GROUPS.forEach(function(g){ g.modules.forEach(function(m){ m.slots.forEach(function(s){ ALL_SLOTS.push(s); }); }); });
+  var CAPTURES = [
+    { id: 'cc1', variant: 'Variant A', capture: 'Front View', info: 'ODC (1), QR/Code (1), OCR (1)' },
+    { id: 'cc2', variant: 'Variant A', capture: 'Top View', info: 'Bead (1), Segmentation (1)' }
+  ];
+  var CAMERAS = [
+    { name: 'Camera 1', type: 'Area Scan', protocol: 'GiGe', make: 'Hik Robot', trigger: 'Hardware', ip: '192.168.1.10' },
+    { name: 'Camera 2', type: 'Area Scan', protocol: 'GiGe', make: 'Hik Robot', trigger: 'Hardware', ip: '192.168.1.11' }
+  ];
+
+  /* ---------- page model ---------- */
+  var FIRST = ['m1', 'm2-det', 'm2-rec'];               // Part Presence + Label Text (stage "some models")
+  var ALL_KEYS = ALL_SLOTS.map(function(s){ return s.key; });
+  function slotByKey(k){ for (var i = 0; i < ALL_SLOTS.length; i++) if (ALL_SLOTS[i].key === k) return ALL_SLOTS[i]; return null; }
+  /* models saved on Line 3 (module_model_instance_mapper rows with a model) */
+  OURS.saved = PAGE === 'instances'
+    ? (state === 'completed' ? ALL_KEYS.slice() : state === 'some-models' ? FIRST.slice() : [])
+    : (state === 'edit' ? FIRST.slice() : []);
+  function statusFor(saved){ return saved.length === ALL_KEYS.length ? 'completed' : 'remaining'; }
+  OURS.status = statusFor(OURS.saved);
+  var rows;
+  if (PAGE === 'instances' || state === 'edit' || state === 'edit-some') { rows = [OURS, LINE2, LINE1]; }
+  else { rows = [LINE2, LINE1]; }                     // list fetched before the drawer opened
+
+  function ours(){ OURS.name = S.instanceName; OURS.id = uuidFrom(S.instanceId); return OURS; }
+  function oursScripts(){
+    if (S.edgeVersion) return S.edgeVersion;
+    if (state !== 'models-remaining' && state !== 'create') return FALLBACK_EDGE;   // configuration downloaded earlier in the story
+    return '-';
+  }
+  function oursModels(){
+    return ALL_KEYS.filter(function(k){ return OURS.saved.indexOf(k) >= 0; }).map(function(k){ return slotByKey(k).model.name; });
+  }
+  function rowName(r){ return r.key === 'ours' ? ours().name : r.name; }
+  function rowId(r){ return r.key === 'ours' ? ours().id : r.id; }
+  function rowScripts(r){ return r.key === 'ours' ? oursScripts() : r.scripts; }
+  function rowModels(r){ return r.key === 'ours' ? oursModels() : r.models; }
+  function isDraft(r){ return r.status === 'draft'; }
+  function isUnplaced(r){ return !r.plant || !r.team; }
+
+  var downloading = null;   // { key, progress }
+  var dlMenuFor = null, menuFor = null;
+
+  /* ---------- Instances table (index.tsx:450-743) ---------- */
+  function cols(){
+    return after
+      ? ['Instance Name', 'Status', 'Date Created', 'Validity', 'Plant', 'Team', 'Instance ID', 'Scripts Version', 'Download', 'Actions']
+      : ['Instance Name', 'Date Created', 'Validity', 'Plant', 'Team', 'Instance ID', 'Scripts Version', 'Download', 'Actions'];
+  }
+  var INFO = { 'Validity': T.validity, 'Scripts Version': T.scripts };
+  function sizeList(){
+    var C = cols(), n = C.length;
+    var fixed = C.map(function(c){ return c === 'Scripts Version' ? 160 : (c === 'Download' || c === 'Actions') ? 90 : null; });
+    var lw = document.getElementById('listTbl').offsetWidth;
+    document.getElementById('listCols').innerHTML = fixed.map(function(f){ return '<col style="width:' + (f || Math.min(lw / n, 300)) + 'px">'; }).join('');
+    document.getElementById('listHead').innerHTML = C.map(function(t){
+      return '<th scope="col">' + (INFO[t] ? '<span class="th-in">' + t + infoIco(16, 'white', INFO[t]) + '</span>' : t) + '<div class="th-rs"></div></th>';
+    }).join('');
+  }
+  function fmt(ts){ return ts ? new Date(ts).toLocaleString('en-US') : '-'; }
+  function statusPill(r){
+    if (r.status === 'draft') return '<span class="tt-trig" tabindex="0" data-tip="' + esc(isUnplaced(r) ? T.unplaced : T.chipDraft) + '"><span class="pill draft">Draft</span></span>';
+    if (r.status === 'remaining') return '<span class="tt-trig" tabindex="0" data-tip="' + esc(T.stRemaining) + '"><span class="pill remaining">Models Remaining</span></span>';
+    return '<span class="tt-trig" tabindex="0" data-tip="' + esc(T.stCompleted) + '"><span class="pill completed">Completed</span></span>';
+  }
+  function progressRing(p){
+    var r = 50 - 9 / 2, c = 2 * Math.PI * r, off = c - (p / 100) * c;
+    return '<span class="cprog" title="Cancel (' + p + '%)"><svg viewBox="0 0 100 100"><circle stroke="#e6e6e6" fill="transparent" stroke-width="9" r="' + r + '" cx="50" cy="50"/><circle stroke="#ca6ded" fill="transparent" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + c + ' ' + c + '" stroke-dashoffset="' + off + '" r="' + r + '" cx="50" cy="50" style="transform:rotate(90deg);transform-origin:center"/></svg><span>' + p + '%</span></span>';
+  }
+  function renderRows(){
+    document.getElementById('listBody').innerHTML = rows.map(function(r, idx){
+      var draft = isDraft(r), unplaced = isUnplaced(r), name = rowName(r);
+      var canDownload = !draft && !downloading && !unplaced;
+      var dlTip = unplaced ? 'Assign a plant and team to this instance before downloading it.'
+        : draft ? 'Disabled for draft or expired instances'
+        : downloading ? 'Another instance is already downloading.' : '';
+      var nameCell = draft
+        ? '<span class="inst-draft">' + esc(name) + (after ? '' : ' <sup tabindex="0" data-tip="' + esc(T.chipDraft) + '">draft</sup>') + '</span>'
+        : '<a class="inst-link" href="#">' + esc(name) + '</a>';
+      var plantCell = unplaced ? (after ? r.plant || '—' : '<span class="red" tabindex="0" data-tip="' + esc(T.unplaced) + '">Draft</span>') : r.plant;
+      var dl;
+      if (downloading && downloading.key === r.key) dl = progressRing(downloading.progress);
+      else {
+        dl = '<div class="dl-cell" data-download-dropdown="1">' +
+          '<div class="tt-trig"' + (!canDownload ? ' data-tip="' + esc(dlTip) + '"' : '') + '><span class="dl-trig" data-dl="' + idx + '">' + DOWNLOAD(!canDownload) + '</span></div>' +
+          (dlMenuFor === idx ? '<div class="dl-menu"><button type="button" data-dlc="' + idx + '">' + 'Download Complete Instance' + '</button><button type="button" data-dls="' + idx + '">Download Selected Files</button></div>' : '') +
+          '</div>';
+      }
+      var cells = [
+        nameCell,
+        after ? statusPill(r) : null,
+        fmt(r.createdAt),
+        fmt(r.validTill),
+        plantCell,
+        unplaced ? '—' : r.team,
+        rowId(r),
+        rowScripts(r),
+        dl,
+        '<span><div class="actn"><div class="act-trig" data-act="' + idx + '">' + DOTS + '</div></div></span>'
+      ].filter(function(c){ return c !== null; });
+      return '<tr>' + cells.map(function(c){ return '<td><div class="td-in">' + c + '</div></td>'; }).join('') + '</tr>';
+    }).join('');
+  }
+  function openMenu(trig, idx){
+    var m = document.getElementById('actMenu'), r = trig.getBoundingClientRect();
+    menuFor = idx; m.hidden = false;
+    var h = m.offsetHeight, below = innerHeight - r.bottom, up = below < h + 4 && r.top > below;
+    m.style.top = (up ? r.top + scrollY - h - 4 : r.bottom + scrollY) + 'px';
+    m.style.left = (r.right + scrollX) + 'px';
+  }
+  function closeMenu(){ menuFor = null; document.getElementById('actMenu').hidden = true; }
+
+  /* ---------- toasts (react-hot-toast) ---------- */
+  var toastTm = null;
+  function toast(kind, msg, ms){
+    var t = document.getElementById('toast');
+    document.getElementById('toastIco').innerHTML = kind === 'loading' ? '<div class="spin"></div>' : kind === 'success' ? OK_ICO : '';
+    document.getElementById('toastMsg').textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTm);
+    if (ms !== Infinity) toastTm = setTimeout(function(){ t.hidden = true; }, ms || 2000);
+  }
+
+  /* ---------- SelectInput (shared/ui/SelectInput.tsx) ---------- */
+  var siOpen = null;   // { el, options, value, onPick }
+  function selectHtml(id, value, placeholder){
+    return '<div class="si"><button type="button" class="si-btn" data-si="' + id + '"><span class="si-val' + (value ? '' : ' ph') + '">' + esc(value || placeholder) + '</span><span class="si-arrow">' + ARROWS + '</span></button></div>';
+  }
+  function openSelect(btn, options, value, onPick){
+    var list = document.getElementById('siList'), r = btn.getBoundingClientRect();
+    siOpen = { btn: btn, options: options, value: value, onPick: onPick, hover: null };
+    function draw(){
+      list.innerHTML = options.map(function(o){
+        var sel = o === siOpen.value, act = siOpen.hover ? siOpen.hover === o : sel;
+        return '<li data-opt="' + esc(o) + '" class="' + (sel ? 'sel ' : '') + (act ? 'act' : '') + '"><span class="nm">' + esc(o) + '</span>' + (sel ? '<span class="tk">' + TICK + '</span>' : '') + '</li>';
+      }).join('');
+    }
+    siOpen.draw = draw; draw();
+    list.hidden = false;
+    var up = innerHeight - r.bottom < 244 && r.top > innerHeight - r.bottom;
+    list.style.left = r.left + 'px'; list.style.width = r.width + 'px';
+    if (up) { list.style.top = 'auto'; list.style.bottom = (innerHeight - r.top) + 'px'; list.style.marginTop = '0'; list.style.marginBottom = '4px'; }
+    else { list.style.bottom = 'auto'; list.style.top = r.bottom + 'px'; list.style.marginTop = '4px'; list.style.marginBottom = '0'; }
+  }
+  function closeSelect(){ siOpen = null; document.getElementById('siList').hidden = true; }
+
+  /* ---------- Download modal (DownloadModal.tsx) ---------- */
+  var modal = null;   // { kind: 'complete'|'config'|'selective'|'delete', row, version, db, models:{} , onDone }
+  function sbvSection(){
+    // ScriptsBundleVersionSelect.tsx:15-22
+    return '<div class="sp2">' +
+      '<label class="lbl"><span class="lbl-in">Select Scripts Bundle Version <span class="req"></span>' + infoIco(16, '', T.sbv) + '</span></label>' +
+      '<p class="sbv-p">The downloaded instance will be compatible with the selected script bundle version.</p>' +
+      selectHtml('edge', modal.version, 'Select Option') +
+    '</div>';
+  }
+  function btnSm(id, label, tip, disabled, flat){
+    return '<div class="btn-tt" data-tip="' + esc(tip) + '"><button class="btn sm' + (flat ? ' flat' : '') + '" type="button" id="' + id + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button></div>';
+  }
+  function renderModal(){
+    var host = document.getElementById('modalHost');
+    if (!modal) { host.innerHTML = ''; return; }
+    var h = '', k = modal.kind;
+    if (k === 'delete') {
+      var r = modal.row, para = isDraft(r)
+        ? '"' + esc(rowName(r)) + '" is already deactivated. Deleting it removes it and its camera details for good. This can\'t be undone.'
+        : '"' + esc(rowName(r)) + '" will be deactivated. It stays in this list as a Draft and can be activated again later.';
+      h = '<div class="mo">' +
+        '<div class="mo-h"><h3>Confirmation Message' + infoIco(16, '', "Confirm this action before it's carried out.") + '</h3><span class="mo-x" id="moX">' + IOCLOSE16 + '</span></div>' +
+        '<div class="mo-b"><div>' + para + '</div></div>' +
+        '<div class="mo-f"><div style="margin-left:auto;display:flex;width:66.666%;align-items:center;justify-content:flex-end;gap:16px">' +
+          '<div class="btn-tt" data-tip="Cancel and close this dialog without any changes."><button class="btn border" type="button" id="moCancel">Cancel</button></div>' +
+          '<div class="btn-tt" data-tip="Permanently delete this item."><button class="btn" type="button" id="moDelete">Delete</button></div>' +
+        '</div></div></div>';
+    } else if (k === 'selective') {
+      var list = rowModels(modal.row), any = modal.db || list.some(function(m){ return modal.models[m]; });
+      h = '<div class="mo wide">' +
+        '<div class="mo-h"><h3>Select files to be download' + infoIco(16, '', T.selFiles) + '</h3><span class="mo-x" id="moX">' + IOCLOSE16 + '</span></div>' +
+        '<div class="mo-b"><div style="margin-bottom:24px">' + sbvSection() + '</div>' +
+          '<p style="margin-bottom:16px;font-size:14px;line-height:20px;color:#6b7280">Choose the files you want to download.</p>' +
+          '<div class="sp3">' +
+            '<div class="ck-row"><input type="checkbox" id="download-database"' + (modal.db ? ' checked' : '') + '><label for="download-database">Database File (SQL)</label>' + infoIco(16, '', T.dbFile) + '</div>' +
+            (list.length ? '<div class="sp2"><div class="mdl-h">Models</div><div class="mdl-list sp3">' + list.map(function(m, i){
+              return '<div class="ck-row"><input type="checkbox" id="model-' + i + '" data-model="' + esc(m) + '"' + (modal.models[m] ? ' checked' : '') + '><label for="model-' + i + '" style="min-width:0"><span class="truncate">' + esc(m) + '</span></label></div>';
+            }).join('') + '</div></div>' : '') +
+          '</div></div>' +
+        '<div class="mo-f"><div class="mo-f-row">' + btnSm('moCancel', 'Cancel', 'Close this dialog without downloading.', false, true) + btnSm('moDownload', 'Download', 'Download only the selected files.', !any) + '</div></div>' +
+      '</div>';
+    } else {
+      var cfg = k === 'config';
+      h = '<div class="mo">' +
+        '<div class="mo-h"><h3>' + (cfg ? 'Download Instance' : 'Download Complete Instance') + '</h3><span class="mo-x" id="moX">' + IOCLOSE16 + '</span></div>' +
+        '<div class="mo-b">' + sbvSection() +
+          
+        '</div>' +
+        '<div class="mo-f"><div class="mo-f-row">' + btnSm('moCancel', 'Cancel', 'Close this dialog without downloading.', false, true) +
+          btnSm('moDownload', 'Download', cfg ? (OURS.saved.length ? T.dlSome : T.dlNone) : 'Download the full instance package, including database and all models.') + '</div></div>' +
+      '</div>';
+    }
+    host.innerHTML = '<div class="mo-ov" role="dialog" aria-modal="true">' + h + '</div>';
+  }
+  function savedVersion(r){ var v = rowScripts(r); return v && v !== '-' ? v : null; }
+  function openDownload(r, which, prefill){
+    // which: 'complete' | 'selective'. After change: a Models Remaining row opens the "Download Instance" popup directly.
+    var kind = which === 'selective' ? 'selective' : (after && r.status === 'remaining' ? 'config' : 'complete');
+    modal = { kind: kind, row: r, version: savedVersion(r), db: false, models: {} };
+    if (prefill) {
+      if (!modal.version) modal.version = EDGE_VERSIONS[0];
+      if (kind === 'selective') ['Bead_Top_27-10', 'SEG_Top_27-10'].forEach(function(m){ if (rowModels(r).indexOf(m) >= 0) modal.models[m] = true; });
+    }
+    renderModal();
+    if (prefill) { var ml = document.querySelector('.mdl-list'); if (ml) ml.scrollTop = ml.scrollHeight; }
+  }
+  function closeModal(){ modal = null; closeSelect(); renderModal(); }
+
+  function startDownload(){
+    var m = modal, r = m.row, version = m.version, kind = m.kind;
+    closeModal();
+    toast('loading', 'File Verification ongoing', Infinity);
+    setTimeout(function(){
+      toast('success', 'Download Started', 3000);
+      downloading = { key: r.key, progress: 0 }; dlMenuFor = null; renderRows();
+      var t0 = Date.now();
+      (function tick(){
+        var p = Math.min(100, Math.round((Date.now() - t0) / 12));
+        downloading.progress = p; renderRows();
+        if (p < 100) return setTimeout(tick, 60);
+        downloading = null;
+        if (version && r.key !== 'ours') r.scripts = version;
+        if (r.key === 'ours') {
+          if (r.status === 'remaining' && kind !== 'selective') {
+            if (OURS.saved.length) { writeState({ someDownloaded: true, edgeVersion: version || S.edgeVersion }); afterDownload('some'); }
+            else { writeState({ configDownloaded: true, edgeVersion: version || S.edgeVersion }); afterDownload('config'); }
+          }
+          else if (r.status === 'completed') { writeState({ modelsDownloaded: true, edgeVersion: version || S.edgeVersion }); afterDownload('models'); }
+        }
+        renderRows();
+        toast('success', 'Download completed successfully', 2500);
+      })();
+    }, 700);
+  }
+  function afterDownload(what){
+    if (PAGE !== 'instances') return;
+    var to = what === 'config' ? 'edge-upload' : what === 'some' ? 'edge-upload-some' : 'edge-add-models';
+    setTimeout(function(){ nav(to); }, 900);
+  }
+
+  /* ---------- Wizard (vision-model-selection.html) ---------- */
+  var STEPS = ['Basic', 'Add Camera Details', 'Recipe', 'Model Selection', 'Finish'];   // instanceWizard.getInstanceTimeline(false)
+  var wizardOpen = false, wzEdit = false, step = 1, picks = {}, collapsed = {}, selectedCaps = { cc1: true, cc2: true };
+  /* GET /model: which slots have a trained model at this stage */
+  var TRAINED = state === 'edit' ? ALL_KEYS.slice() : state === 'edit-some' ? FIRST.slice() : [];
+  function isTrained(k){ return TRAINED.indexOf(k) >= 0; }
+  function pickedCount(){ return ALL_SLOTS.filter(function(s){ return picks[s.key]; }).length; }
+  function allPicked(){ return ALL_SLOTS.every(function(s){ return picks[s.key]; }); }
+  function stepValid(){
+    if (step === 3) return Object.keys(selectedCaps).length > 0;
+    // Today (ModelSelection.tsx:425-536): only slots that have a trained model must be picked.
+    // After change: Next needs a model for every AI module.
+    if (step === 4) return after ? allPicked() : ALL_SLOTS.every(function(s){ return !isTrained(s.key) || picks[s.key]; });
+    return true;
+  }
+  function renderTimeline(){
+    var conf = wzEdit;   // CreateInstanceDrawer.tsx:153-160 isConfigured = activated and not expired
+    var h = '<div class="tl-track"><div class="tl-fill" style="height:' + (conf ? 100 : (100 * (step - 1) / (STEPS.length - 1))) + '%"></div></div>';
+    STEPS.forEach(function(t, i){
+      var on = conf || step >= i + 1;
+      h += '<div class="tl-row"><div class="tl-dot' + (on ? ' on' : '') + '">' + (conf || step > i + 1 ? '✔' : '') + '</div>' +
+           '<span class="tl-lbl" style="font-weight:' + (step === i + 1 ? '600' : '400') + ';color:' + (step === i + 1 ? 'black' : 'gray') + '">' + t + '</span></div>';
+    });
+    document.getElementById('timeline').innerHTML = h;
+  }
+  function th(label, idx, info, req){
+    var inner = label + (req ? ' <span class="req">*</span>' : '');
+    return '<th scope="col">' + (info ? '<span class="th-in">' + inner + infoIco(16, 'white', info) + '</span>' : inner) + (idx !== undefined ? '<div class="th-rs"></div>' : '') + '</th>';
+  }
+  function tbl(fixed, inner){ return '<div class="tbl" data-fixed="' + fixed.join(',') + '"><div class="tbl-in"><table><colgroup>' + fixed.map(function(){ return '<col>'; }).join('') + '</colgroup>' + inner + '</table></div></div>'; }
+  function sizeTables(root){
+    root.querySelectorAll('.tbl[data-fixed]').forEach(function(el){
+      var fixed = el.getAttribute('data-fixed').split(',').map(function(v){ return v === '' ? null : +v; });
+      var avail = el.offsetWidth, n = 0;
+      fixed.forEach(function(v){ if (v === null) n++; else avail -= v; });
+      var flex = n ? Math.max(avail / n, 0) : 0;
+      el.querySelectorAll('col').forEach(function(c, i){ c.style.width = (fixed[i] === null ? flex : fixed[i]) + 'px'; });
+    });
+  }
+  function hashString(str){
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) { hash = (hash << 5) - hash + str.charCodeAt(i); hash |= 0; }
+    hash ^= hash >>> 16; hash = Math.imul(hash, 0x45d9f3b); hash ^= hash >>> 16; hash = Math.imul(hash, 0x45d9f3b); hash ^= hash >>> 16;
+    return hash;
+  }
+  function hslToHex(h, s, l){
+    s /= 100; l /= 100;
+    var k = function(n){ return (n + h / 30) % 12; }, a = s * Math.min(l, 1 - l);
+    var f = function(n){ return l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); };
+    var hx = function(x){ return Math.round(255 * x).toString(16).padStart(2, '0'); };
+    return '#' + hx(f(0)) + hx(f(8)) + hx(f(4));
+  }
+  function chip(name){   // shared/components/ClassChip.tsx
+    var c = hslToHex(((hashString('cls-' + name) % 360) + 360) % 360, 85, 38);
+    return '<span class="chip" style="background-color:' + c + '35;color:' + c + ';border:1px solid ' + c + '70">' + esc(name) + '</span>';
+  }
+  function chips(list){ return '<div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap">' + list.map(chip).join('') + '</div>'; }
+  function selectBox(val){ return '<div class="si"><button type="button" class="si-btn"><span class="si-val">' + esc(val) + '</span><span class="si-arrow">' + ARROWS + '</span></button></div>'; }
+  function fmtDate(t){ return new Date(t).toLocaleDateString('en-GB'); }
+  function vch(g){
+    return '<div class="vch"><div class="vch-in"><span class="mr1">Variant -</span><span>' + esc(g.variant) + '</span><span class="sep">|</span><span class="mr1">Capture -</span> <span>' + esc(g.capture) + '</span></div></div><div class="ms-rule"></div>';
+  }
+
+  /* steps/BasicInformation.tsx:269-375 */
+  function stepBasic(){
+    return '<div>' +
+      '<h1 class="st-h1">Basic Information' + infoIco(18, '', T.stepBasic) + '</h1>' +
+      '<p class="st-p">Provide the basic information of the instance you wish to create. An instance allows you to deploy your inspection project (along with the trained AI models) on the plant floor, using our FrinksEdge application.</p>' +
+      '<p class="st-p">Reach out to Frinks AI technical support team to assist you in this process if required. </p>' +
+      '<form class="form" onsubmit="return false">' +
+        '<div><label class="lbl"><span class="lbl-in">Instance Name <span class="req">*</span> <span class="req"></span>' + infoIco(16, '', T.instanceName) + '</span></label>' +
+          '<div class="inp-wrap"><input class="inp" type="text" name="instanceName" placeholder="Enter instance name" value="' + esc(S.instanceName) + '"><p style="font-size:12px;line-height:16px;color:#fff"></p></div></div>' +
+        '<div><label class="lbl">Plant <span class="req">*</span> <span class="req"></span></label>' + selectBox('Plant A') + '</div>' +
+        '<div><label class="lbl">Team <span class="req">*</span> <span class="req"></span></label>' + selectBox('Team 1') + '</div>' +
+      '</form></div>';
+  }
+  /* steps/MapCameraIp.tsx:503-628 */
+  function stepCamera(){
+    var rowsH = CAMERAS.map(function(c){
+      return '<tr>' +
+        '<td><div class="td-in">' + c.name + '</div></td>' +
+        '<td><div class="td-in">' + selectBox(c.type) + '</div></td>' +
+        '<td><div class="td-in">' + selectBox(c.protocol) + '</div></td>' +
+        '<td><div class="td-in">' + selectBox(c.make) + '</div></td>' +
+        '<td><div class="td-in">' + selectBox(c.trigger) + '</div></td>' +
+        '<td><div class="td-in"><div class="inp-wrap" style="width:100%"><input class="inp" type="text" placeholder="Enter camera IP" value="' + c.ip + '"><p style="font-size:12px;line-height:16px;color:#fff"></p></div></div></td>' +
+      '</tr>';
+    }).join('');
+    return '<div>' +
+      '<h1 class="st-h1">Add Camera Details' + infoIco(18, '', T.stepCamera) + '</h1>' +
+      '<p class="st-p">Add details for each camera added earlier.</p>' +
+      '<div class="shadow-tbl ov">' + tbl(['', '', '', '', '', 200],
+        '<thead><tr>' + th('Camera Name', 1) + th('Type', 2, T.cameraType, true) + th('Protocol', 3, T.cameraType, true) + th('Make', 4, '', true) + th('Trigger', 5, '', true) + th('Camera IP', 6, '', true) + '</tr></thead>' +
+        '<tbody>' + rowsH + '</tbody>') + '</div>' +
+    '</div>';
+  }
+  /* steps/CameraConfig.tsx:364-445 */
+  function stepRecipe(){
+    var rowsH = CAPTURES.map(function(c){
+      var on = !!selectedCaps[c.id];
+      return '<tr>' +
+        '<td><div class="td-in"><label class="cb' + (on ? ' on' : '') + '" data-cap="' + c.id + '">' + (on ? FA_CHECK : '') + '</label></div></td>' +
+        '<td><div class="td-in">' + c.variant + '</div></td>' +
+        '<td><div class="td-in"><div style="display:flex;align-items:center;gap:8px">' + c.capture + '</div></div></td>' +
+        '<td><div class="td-in">' + c.info + '</div></td>' +
+      '</tr>';
+    }).join('');
+    return '<div>' +
+      '<h1 class="st-h1">Select Recipe' + infoIco(18, '', T.stepCaptures) + '</h1>' +
+      '<p class="st-p">Select the captures to be included in the instance</p>' +
+      '<div class="shadow-tbl">' + tbl([60, '', '', ''],
+        '<thead><tr>' + th('', 0) + th('Variant', 1) + th('Capture', 2) + th('Module Info', 3) + '</tr></thead>' +
+        '<tbody>' + rowsH + '</tbody>') + '</div>' +
+    '</div>';
+  }
+  /* steps/ModelSelection.tsx:860-1205 */
+  function modHead(m, finish){
+    var open = !collapsed[m.id];
+    return '<div class="ms-mod-h">' +
+      '<div style="display:flex;flex-direction:column"><span class="ms-cap">MODULE NAME' + (finish ? infoIco(16, '', 'The inspection module configured for this camera capture.') : '') + '</span>' +
+        '<div class="ms-name' + (open ? ' open' : '') + '" data-col="' + m.id + '">' + CHEV + '<span style="margin-left:8px">' + esc(m.name) + '</span></div></div>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end"><span class="ms-cap" style="margin-bottom:4px">CLASSES COVERED' + (finish ? infoIco(16, '', 'The classes this module is configured to detect or classify.') : '') + '</span><div class="ms-cls">' + m.classes.map(chip).join('') + '</div></div>' +
+    '</div>';
+  }
+  function selTable(s){
+    var body;
+    if (!isTrained(s.key)) body = '<tr><td colspan="4" class="empty"><div class="td-in">' + s.empty + '</div></td></tr>';
+    else body = '<tr>' +
+      '<td><div class="td-in"><label class="radio' + (picks[s.key] ? ' on' : '') + '" data-pick="' + s.key + '"><i></i></label></div></td>' +
+      '<td><div class="td-in">' + esc(s.model.name) + '</div></td>' +
+      '<td><div class="td-in">' + fmtDate(MODEL_DATE) + '</div></td>' +
+      '<td><div class="td-in">' + chips(s.model.classes) + '</div></td></tr>';
+    return tbl([60, '', '', ''],
+      '<thead><tr>' + th('Select', 0, 'Choose the model to use for this task.') + th('Model Name', 1, 'The trained model available for this task.') + th('Date', 2, 'When this model was trained.') + th('Classes Covered', 3, 'The classes this model can detect or classify.') + '</tr></thead>' +
+      '<tbody>' + body + '</tbody>');
+  }
+  function finTable(s){
+    var body = picks[s.key]
+      ? '<tr><td><div class="td-in">' + esc(s.model.name) + '</div></td><td><div class="td-in">' + fmtDate(MODEL_DATE) + '</div></td><td><div class="td-in">' + chips(s.model.classes) + '</div></td></tr>'
+      : '<tr><td colspan="3" class="empty"><div class="td-in">' + s.empty + '</div></td></tr>';
+    return tbl(['', '', ''], '<thead><tr>' + th('Model Name', 0) + th('Date', 1) + th('Classes Covered', 2) + '</tr></thead><tbody>' + body + '</tbody>');
+  }
+  function modBody(m, finish){
+    var tableFn = finish ? finTable : selTable;
+    if (!m.ocr) return tableFn(m.slots[0]);
+    return m.slots.map(function(s, i){
+      return '<div class="ms-task' + (i === 0 ? ' mb' : '') + '">' +
+        '<div class="ms-task-h"><div class="dot"></div>' + s.label + (finish ? '<span style="margin-left:4px">' + infoIco(16, '', T.ocrDetRec) + '</span>' : '') + '</div>' +
+        '<div class="ms-task-p">' + s.helper + '</div>' + tableFn(s) + '</div>';
+    }).join('');
+  }
+  function groupsHtml(finish){
+    return GROUPS.map(function(g){
+      return '<div class="ms-group">' + vch(g) + g.modules.map(function(m){
+        return '<div class="ms-mod">' + modHead(m, finish) + '<div' + (collapsed[m.id] ? ' class="hidden" hidden' : '') + '>' + modBody(m, finish) + '</div></div>';
+      }).join('') + '</div>';
+    }).join('');
+  }
+  function stepModels(){
+    return '<div class="ms-root">' +
+      '<div class="ms-head"><h1 class="st-h1">Model Selection</h1><p class="st-p fm">For each of the following configuration modules, select the trained AI Models to be used during deployment.</p></div>' +
+      '<div class="ms-body">' + groupsHtml(false) + '</div>' +
+    '</div>';
+  }
+  /* steps/Finish.tsx:154-468 */
+  function stepFinish(){
+    var cams = CAMERAS.map(function(c){ return c.name + ' (' + c.ip + ')'; }).join(', ');
+    return '<div class="ms-root">' +
+      '<div class="ms-head"><h1 class="st-h1">Finish</h1><p class="st-p fm">Review the details below to finish the instance creation.</p>' +
+        '<div class="fin-line"><b>Instance Name:</b> ' + esc(S.instanceName) + '</div>' +
+        '<div class="fin-line"><b>Plant:</b> Plant A</div>' +
+        '<div class="fin-line"><b>Team:</b> Team 1</div>' +
+        '<div class="fin-line"><b>Cameras:</b> ' + cams + '</div>' +
+      '</div>' +
+      '<div class="ms-body">' + groupsHtml(true) + '</div>' +
+    '</div>';
+  }
+  function renderStep(){
+    var host = document.getElementById('stepHost'), keep = host.querySelector('.ms-body'), sc = keep ? keep.scrollTop : 0, same = renderStep.last === step;
+    host.classList.toggle('ms', step === 4);
+    host.innerHTML = step === 1 ? stepBasic() : step === 2 ? stepCamera() : step === 3 ? stepRecipe() : step === 4 ? stepModels() : stepFinish();
+    sizeTables(host);
+    var nb = host.querySelector('.ms-body'); if (nb && same) nb.scrollTop = sc;
+    if (!same) host.scrollTop = 0;
+    renderStep.last = step;
+    renderTimeline();
+    document.getElementById('wzTitle').textContent = wzEdit ? 'Edit instance' : 'Create a new instance';
+    document.getElementById('wzBack').disabled = step === 1;
+    document.getElementById('wzNext').textContent = step < 5 ? 'Next' : 'Finish';
+    document.getElementById('wzNextTip').setAttribute('data-tip', step < 5 ? 'Continue to the next step.' : 'Finish and create this instance.');
+    document.getElementById('wzNext').disabled = !stepValid();
+    // After change: "Add models later & download" on Model Selection while at least one AI module has no model
+    // After change: "Finish without models" / "Finish without all models" on Model Selection until every AI module has a model
+    var later = after && step === 4 && !allPicked(), none = pickedCount() === 0;
+    document.getElementById('wzLaterTip').hidden = !later;
+    document.getElementById('wzLater').textContent = none ? 'Finish without models' : 'Finish without all models';
+    document.getElementById('wzLaterTip').setAttribute('data-tip', none ? T.finNone : T.finSome);
+  }
+  function openWizard(edit, atStep){
+    closeMenu();
+    wzEdit = edit; step = atStep || 1; wizardOpen = true; renderStep.last = null;
+    document.getElementById('wizard').hidden = false;
+    renderStep();
+  }
+  function closeWizard(){
+    wizardOpen = false;
+    document.getElementById('wizard').hidden = true;
+    if (!wzEdit && rows.indexOf(OURS) < 0) {           // created at step 1 (POST /instance) -> listed as a draft until Finish
+      OURS.status = 'draft'; OURS.createdAt = null; OURS.validTill = null; rows.unshift(OURS);
+    }
+    renderRows();
+  }
+  function finishInstance(){
+    // Finish.tsx:123-146 POST /instance/activate -> toast, drawer closes, list refetched
+    if (rows.indexOf(OURS) < 0) rows.unshift(OURS);
+    OURS.createdAt = D(2026, 9, 28, 11, 42, 10); OURS.validTill = D(2027, 9, 28, 11, 42, 10);
+    OURS.saved = ALL_KEYS.filter(function(k){ return picks[k]; });
+    OURS.status = statusFor(OURS.saved);
+    wizardOpen = false; document.getElementById('wizard').hidden = true;
+    toast('success', 'Instance activated successfully!', 3000);
+    renderRows();
+  }
+
+  function afterFinish(wasEdit, some){
+    var to = null;
+    if (!wasEdit) to = 'vision-instances';
+    else if (OURS.status === 'completed') { writeState({ modelsSelected: true }); to = 'vision-download-models'; }
+    else if (state === 'edit-some' && some) { writeState({ someSelected: true }); to = 'vision-download-some'; }
+    if (to) setTimeout(function(){ nav(to); }, 1500);
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('mousedown', function(e){
+    if (menuFor !== null && !e.target.closest('#actMenu') && !e.target.closest('[data-act]')) closeMenu();
+    if (dlMenuFor !== null && !e.target.closest('[data-download-dropdown]')) { dlMenuFor = null; renderRows(); }
+    if (siOpen && !e.target.closest('#siList') && !e.target.closest('[data-si]')) closeSelect();
+  });
+  document.addEventListener('mousemove', function(e){
+    if (!siOpen) return;
+    var li = e.target.closest && e.target.closest('#siList li');
+    var v = li ? li.getAttribute('data-opt') : null;
+    if (v !== siOpen.hover) { siOpen.hover = v; siOpen.draw(); }
+  });
+  document.addEventListener('change', function(e){
+    if (!modal) return;
+    var t = e.target;
+    if (t.id === 'download-database') { modal.db = t.checked; renderModal(); }
+    else if (t.hasAttribute('data-model')) { modal.models[t.getAttribute('data-model')] = t.checked; renderModal(); }
+  });
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (t.closest('a[href="#"]')) e.preventDefault();
+    // select list
+    var opt = t.closest('#siList li');
+    if (opt && siOpen) { var v = opt.getAttribute('data-opt'), cb = siOpen.onPick; closeSelect(); cb(v); return; }
+    var si = t.closest('[data-si]');
+    if (si) { if (siOpen) { closeSelect(); return; } if (modal) openSelect(si, EDGE_VERSIONS, modal.version, function(v){ modal.version = v; renderModal(); }); return; }
+    // modal
+    if (modal) {
+      if (t.closest('#moX') || t.closest('#moCancel')) { closeModal(); return; }
+      if (t.closest('#moDelete')) { closeModal(); return; }
+      if (t.closest('#moDownload')) { if (!document.getElementById('moDownload').disabled) startDownload(); return; }
+      return;
+    }
+    // row action menu
+    var act = t.closest('[data-act]');
+    if (act) { e.preventDefault(); var i = +act.getAttribute('data-act'); if (menuFor === i) closeMenu(); else openMenu(act, i); return; }
+    if (t.closest('#actEdit')) {
+      var er = rows[menuFor]; closeMenu();
+      if (er && er.key === 'ours') {
+        if (PAGE === 'models') { picks = {}; OURS.saved.forEach(function(k){ picks[k] = true; }); openWizard(true, 1); }
+        else if (framed) nav('vision-add-models');
+        else location.href = 'vision-model-selection.html?state=edit&mode=' + mode;
+      }
+      return;
+    }
+    if (t.closest('#actDelete')) { var dr = rows[menuFor]; closeMenu(); if (dr) { modal = { kind: 'delete', row: dr }; renderModal(); } return; }
+    // download icon + dropdown (index.tsx:396-414, 618-690)
+    var dlc = t.closest('[data-dlc]'); if (dlc) { var r1 = rows[+dlc.getAttribute('data-dlc')]; dlMenuFor = null; renderRows(); openDownload(r1, 'complete'); return; }
+    var dls = t.closest('[data-dls]'); if (dls) { var r2 = rows[+dls.getAttribute('data-dls')]; dlMenuFor = null; renderRows(); openDownload(r2, 'selective'); return; }
+    var dl = t.closest('[data-dl]');
+    if (dl) {
+      var di = +dl.getAttribute('data-dl'), dr2 = rows[di];
+      if (isDraft(dr2) || isUnplaced(dr2) || downloading) return;
+      if (after && dr2.status === 'remaining') { dlMenuFor = null; renderRows(); openDownload(dr2, 'complete'); return; }
+      dlMenuFor = dlMenuFor === di ? null : di; renderRows(); return;
+    }
+    if (t.closest('#createBtn')) { if (PAGE === 'models' && rows.indexOf(OURS) < 0) { picks = {}; openWizard(false, 1); } return; }
+    if (!wizardOpen) return;
+    // wizard
+    if (t.closest('#wzClose') || t.closest('#wzCancel') || t.closest('#wzBackdrop')) { closeWizard(); return; }
+    if (t.closest('#wzBack')) { if (step > 1) { step--; renderStep(); } return; }
+    if (t.closest('#wzLater')) {
+      // After change: saves the picks (POST /instance/link-model) and activates; Status = Models Remaining; back to the table
+      var hadEdit = wzEdit, some = pickedCount() > 0;
+      finishInstance();
+      afterFinish(hadEdit, some);
+      return;
+    }
+    if (t.closest('#wzNext')) {
+      if (document.getElementById('wzNext').disabled) return;
+      if (step < 5) { step++; renderStep(); return; }
+      var wasEdit = wzEdit, any = pickedCount() > 0;
+      finishInstance();
+      afterFinish(wasEdit, any);
+      return;
+    }
+    var col = t.closest('[data-col]'); if (col) { var id = col.getAttribute('data-col'); collapsed[id] = !collapsed[id]; renderStep(); return; }
+    var pk = t.closest('[data-pick]'); if (pk) { picks[pk.getAttribute('data-pick')] = true; renderStep(); return; }
+    var cbx = t.closest('[data-cap]'); if (cbx) { var cid = cbx.getAttribute('data-cap'); if (selectedCaps[cid]) delete selectedCaps[cid]; else selectedCaps[cid] = true; renderStep(); return; }
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeMenu(); closeSelect(); if (modal) closeModal(); } });
+
+  /* Tooltip.tsx hover bubble */
+  var hoverTip = document.getElementById('hoverTip'), timer = null, cur = null;
+  function place(tip, trig, pos){
+    var r = trig.getBoundingClientRect(), tr = tip.getBoundingClientRect(), P = 8, G = 8, top, left;
+    if (pos === 'left' || pos === 'right') {
+      var right = pos === 'right';
+      if (right && r.right + G + tr.width > innerWidth - P) right = false;
+      else if (!right && r.left - G - tr.width < P) right = true;
+      top = Math.min(Math.max(r.top + r.height / 2 - tr.height / 2, P), Math.max(innerHeight - P - tr.height, P));
+      left = right ? r.right + G : r.left - G - tr.width;
+    } else {
+      var bottom = false; if (r.top - G - tr.height < P) bottom = true;
+      left = Math.min(Math.max(r.left + r.width / 2 - tr.width / 2, P), Math.max(innerWidth - P - tr.width, P));
+      top = bottom ? r.bottom + G : r.top - G - tr.height;
+    }
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  document.addEventListener('mouseover', function(e){
+    var el = e.target.closest && e.target.closest('[data-tip]');
+    if (el === cur) return;
+    cur = el; clearTimeout(timer); hoverTip.hidden = true;
+    if (!el || !el.getAttribute('data-tip')) return;
+    timer = setTimeout(function(){ hoverTip.textContent = el.getAttribute('data-tip'); hoverTip.hidden = false; place(hoverTip, el, el.getAttribute('data-pos')); }, 150);
+  });
+
+  /* ---------- mode switch (standalone only) ---------- */
+  document.querySelectorAll('.seg button').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-mode') === mode);
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      var u = new URL(location.href); u.searchParams.set('mode', b.getAttribute('data-mode')); location.href = u.toString();
+    });
+  });
+  if (framed) document.getElementById('proto').hidden = true;
+
+  /* ---------- shared-state sync ---------- */
+  window.addEventListener('storage', function(e){
+    if (e.key !== KEY && e.key !== null) return;
+    S = readState(); renderRows(); if (wizardOpen) renderStep(); if (modal) renderModal();
+  });
+
+  /* ---------- boot ---------- */
+  function boot(){
+    sizeList(); renderRows();
+    if (PAGE === 'models') {
+      if (state === 'edit' || state === 'edit-some') {
+        OURS.saved.forEach(function(k){ picks[k] = true; });                 // GET /instance/deployed-models
+        if (pickedAll) TRAINED.forEach(function(k){ picks[k] = true; });
+        openWizard(true, 4);
+        if (state === 'edit' || pickedAll) { var mb = document.querySelector('#stepHost .ms-body'); if (mb) mb.scrollTop = mb.scrollHeight; }   // Top View in view
+      } else {
+        openWizard(false, 4);
+      }
+    } else if (openParam === 'download') {
+      openDownload(OURS, state === 'completed' ? 'selective' : 'complete', true);
+    }
+  }
+  boot();
+  addEventListener('resize', function(){ sizeList(); renderRows(); if (wizardOpen) renderStep(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ sizeList(); renderRows(); if (wizardOpen) renderStep(); });
+})();
+</script>
+</body>
+</html>
