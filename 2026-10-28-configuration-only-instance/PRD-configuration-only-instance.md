@@ -2,10 +2,10 @@
 
 **Prototype:** [Interactive workflow, Today vs After change (20 steps)](https://vbv-fr.github.io/configuration-only-instance-prototype/)
 **Product:** Vision + Edge
-**Status:** Draft
+**Status:** Approved
 **Date:** 29 October 2026
 **Owner:** Tanay Deo
-**Timeline:** Not planned yet
+**Timeline:** 10 Nov – 23 Nov 2026
 **Related:** None
 **Code checked:** 28–29 Oct 2026 — 10 repos at their latest default-branch commit (list in Appendix B)
 
@@ -13,10 +13,7 @@
 
 ## Discussion points
 
-| # | Point to settle | Options on the table | Owner | Needed by |
-|---|---|---|---|---|
-| Q1 | An integrator downloads a Configuration only package and uploads it to an Edge box that is still on an older release. The older Edge doesn't know what a Configuration only package is. | (a) Vision offers only scripts bundle versions that support it, and older Edge refuses the package with a clear message **(recommended)**; (b) older Edge accepts it as a normal instance with empty model slots, as it does today, with no locks | Tanay Deo | Before sprint planning |
-| Q2 | A model picked for an instance is later deleted in Vision. Model Selection shows it as "Unknown Model". | (a) Counts as no model, so the instance goes back to Models Remaining **(recommended)**; (b) Stays Completed until someone edits it | Tanay Deo | Before sprint planning |
+None.
 
 ## 1. Summary
 - In Vision, an instance can be finished at Model Selection without picking every model, with **Finish without models** / **Finish without all models**. It is saved as **Models Remaining**.
@@ -119,6 +116,7 @@
 - **AC2.3** **Models Remaining** (yellow pill): finished, with at least one empty AI module slot. Tooltip: "Finished, but at least one AI module has no model yet. Add the models from Edit instance."
 - **AC2.4** **Completed** (green pill): finished, and every AI module slot has a model (or the project has no AI modules). Tooltip: "Every AI module has a model."
 - **AC2.5** Status is worked out by the backend from the saved model picks, with the same slot list as AC1.2, so it is right after an edit even when the user cancels the drawer after Model Selection.
+- **AC2.6** A picked model that was later deleted in Vision (shown as "Unknown Model" in Model Selection) counts as an empty slot, so the instance shows Models Remaining.
 
 ### US3 — Download a Models Remaining instance
 *As an ML engineer, I want to download what is ready, so that the integrator can start on Edge.*
@@ -305,7 +303,7 @@
 - **AC14.1** Existing data: existing Vision instances get their Status from their saved model picks; instances finished with empty slots today show Models Remaining.
 - **AC14.2** Existing blank model IDs in Vision are read as "no model".
 - **AC14.3** Upgrades in the field: existing Edge instances with empty model slots show the Models Remaining chip and their Deploy is blocked after the upgrade.
-- **AC14.4** Older Edge with a new instance: an older Edge receiving a Configuration only package: see Q1.
+- **AC14.4** Older Edge with a new instance: handled in a separate PRD, "Older Edge with newer instance packages" (listed in the PRD repo index, not started).
 - **AC14.5** Older instance on the new Edge: complete instances behave exactly as today on the new Edge.
 
 ## 7. Out of scope
@@ -332,7 +330,7 @@
 > 
 > **Result:** PASS
 > 
-> - 14 user stories (10 feature, 1 rules, 1 keeps working, 1 platform, 1 migration), 73 ACs, 22 touched parts, 2 discussion points.
+> - 14 user stories (10 feature, 1 rules, 1 keeps working, 1 platform, 1 migration), 74 ACs, 22 touched parts, 0 discussion points.
 > - Checklist: 13 items covered by stories, 5 N/A, 0 open.
 
 ## Appendix B — Code references
@@ -347,6 +345,7 @@
 Repos checked: frinksvision-frontend, frinksvision-backend, frinksedge-deployment-frontend, frinksedge-deployment-backend, frinksedge-inferencing-backend, frinksedge-plc-backend, frinksedge-report, frinksedge-report-frontend, frinksedge-health, auto-training-backend (synced 28 Oct 2026).
 
 ## Changelog
+- 29 Oct 2026 — Approved; Timeline 10 Nov – 23 Nov 2026. Q2 decided: a deleted model counts as missing (AC2.6 added). Q1 moved out to its own PRD (AC14.4 points to it). (Tanay Deo)
 - 29 Oct 2026 — Draft written from the signed-off prototype (US1–US14). Duplicate pass: AC10.4 (removed): covered by AC4.5, AC7.7, AC8.1, AC9.1; AC1.9 (removed): covered by AC1.2, AC1.4; AC12.5, AC13.2, AC1.10, AC1.11 trimmed; AC2.4 tooltip shortened. (Tanay Deo)
 
 ## Checked, not affected
