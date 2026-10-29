@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FRINKS.AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.1"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'f-primary': '#ff4301',
+          'f-secondary': '#d1d5dc',
+          'f-flat': '#e7e7ff',
+          'f-gray': '#312f2f',
+          'f-light-gray': '#d9d9d9',
+          'f-dark-gray': '#7a7e80',
+          'f-light-purple': '#c6c4ff',
+          'f-light': '#f7bda9',
+        },
+        width: { 84: '21rem', 88: '22rem', 92: '23rem' },
+        fontFamily: { sans: ['Outfit', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { font-size: 16px; height: 100vh; width: 100vw; overflow-y: hidden; color: black; }
+  :root {
+    font-family: 'Outfit', sans-serif; font-optical-sizing: auto; line-height: 1.5; font-weight: 400;
+    font-style: normal; font-size: 16px; min-height: 100vh; height: fit-content; scroll-behavior: smooth;
+    color-scheme: light; font-synthesis: weight style; text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  @media (max-width: 1281px) { * { font-size: 96%; } }
+  body { background: #fff; }
+  /* shared/styles/loader.css */
+  .loader-container { width: 350px; height: 180px; border-radius: 10px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 30px; box-shadow: 2px 2px 10px -5px lightgrey; }
+  .loader { border: 6px solid #f3f3f3; border-radius: 50%; border-top: 6px solid #ff4301; width: 60px; height: 60px; animation: spin 2s linear infinite; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .loader-container label { color: #002; font-size: 18px; animation: bit 0.6s alternate infinite; }
+  @keyframes bit { from { opacity: 0.3; } to { opacity: 1; } }
+  /* react-hot-toast */
+  .rht-wrap { position: fixed; z-index: 9999; inset: 16px; pointer-events: none; display: flex; justify-content: center; align-items: flex-start; }
+  .rht-toast { display: flex; align-items: center; background: #fff; color: #363636; line-height: 1.3; will-change: transform; box-shadow: 0 3px 10px rgba(0,0,0,0.1), 0 3px 3px rgba(0,0,0,0.05); max-width: 350px; pointer-events: auto; padding: 8px 10px; border-radius: 8px; animation: rhtIn .35s cubic-bezier(.21,1.02,.73,1) forwards; }
+  .rht-msg { display: flex; justify-content: center; margin: 4px 10px; color: inherit; flex: 1 1 auto; white-space: pre-line; }
+  .rht-icon { position: relative; width: 20px; height: 20px; border-radius: 10px; background: #61d345; flex-shrink: 0; }
+  .rht-icon::after { content: ''; box-sizing: border-box; position: absolute; border-right: 2px solid #fff; border-bottom: 2px solid #fff; bottom: 6px; left: 6px; height: 10px; width: 6px; transform: rotate(45deg); }
+  @keyframes rhtIn { 0% { transform: translate3d(0,-200%,0) scale(.6); opacity: .5; } 100% { transform: translate3d(0,0,0) scale(1); opacity: 1; } }
+  /* prototype-only mode switch */
+  .proto-switch { position: fixed; top: 10px; right: 12px; z-index: 2147483647; display: flex; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; background: #fff; font-size: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .proto-switch button { padding: 4px 10px; color: #374151; }
+  .proto-switch button.on { background: #ff4301; color: #fff; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+</head>
+<body class="overflow-auto">
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect, useLayoutEffect, createContext, useContext } = React;
+
+// ---------------------------------------------------------------- sample data
+const VARIANT_ID = '3f8a2c91-6b4e-4d17-9a05-e2c7b81d4f60';
+const OLD_FOLDER = `CDCP-D547_${VARIANT_ID}`;
+const NEW_FOLDER = `CDCP-D547-R2_${VARIANT_ID}`;
+
+function readInstanceLabel() {
+  try {
+    const raw = localStorage.getItem('image-storage-prd');
+    const v = raw ? JSON.parse(raw) : null;
+    if (v && typeof v.instanceLabel === 'string' && v.instanceLabel.trim()) return v.instanceLabel;
+  } catch (e) {}
+  return 'Line3-Edge - Magnify-Panel - Pune';
+}
+
+const INSTANCES = [
+  {
+    id: 'b7e2c4a1-5d3f-4e8a-9c21-7f0d3a6b8e14',
+    name: readInstanceLabel(),
+    createdAt: String(new Date(2026, 8, 14, 11, 42, 7).getTime()),
+    updatedAt: String(new Date(2026, 9, 21, 16, 5, 38).getTime()),
+    teamName: 'Assembly QA',
+    modelStatus: 0,
+  },
+];
+
+// FULL_REUPLOAD warnings (uploadValidation.addReuploadWarnings)
+const WARNINGS = [
+  'Custom thresholds set on this Edge will be kept. New thresholds for new classes/models will be added from Vision.',
+  'Detection ROI configs (box colors, widths, label sizes) will be reset to defaults.',
+  'Dashboards preserved, but some widget keys may be affected if class or model references changed.',
+  'Inferencing customization (file paths, naming configs) preserved, but may need reconfiguration.',
+];
+
+// Names come from the Edge DB (old variant name)
+const PRESERVATION = {
+  gtDiffs: [
+    { variantName: 'CDCP-D547', captureName: 'Top View', moduleName: 'Panel Defects', className: 'Scratch', parameter: 'count', existingValue: { operator: 0, count: [0] }, incomingValue: { operator: 1, count: [2] } },
+  ],
+  // No threshold differences in this sample, so (as in the real modal) that section is not drawn.
+  thresholdDiffs: [],
+};
+
+const FOLDER_RENAMES = [{ level: 'Variant', from: OLD_FOLDER, to: NEW_FOLDER }];
+
+const FAILED_MESSAGE = `The instance was not updated: saved image folders could not be renamed (${OLD_FOLDER}). Nothing was changed. Try again, or contact Frinks support.`;
+
+const formatValue = (val) => {
+  if (val === null || val === undefined) return 'NULL';
+  if (typeof val === 'object') {
+    if ('operator' in val && 'count' in val) {
+      const opMap = { 0: '=', 1: '<', 2: '>', 3: 'b/w' };
+      const op = opMap[val.operator] || '=';
+      const count = val.count || [];
+      if (val.operator === 3) return `${count[0] ?? ''} - ${count[1] ?? ''}`;
+      return `${op} ${count[0] ?? ''}`;
+    }
+    if ('classificationGT' in val) return String(val.classificationGT);
+    return JSON.stringify(val);
+  }
+  if (typeof val === 'boolean') return val ? 'true' : 'false';
+  return String(val);
+};
+
+// ---------------------------------------------------------------- icons
+function LuInfo({ size = 16, strokeWidth = 2.25 }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path>
+    </svg>
+  );
+}
+function ChevronDown({ size = 24, className = '' }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  );
+}
+function Clock({ className = '', color = 'currentColor' }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+  );
+}
+function Activity({ stroke = 'currentColor' }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+    </svg>
+  );
+}
+function ArrowRight() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 10 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1 17L9 9L1 1" stroke="#0E0F0F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function ThreeDots() {
+  const d1 = 'M2.5 10.9167C2.5 10.5025 2.16421 10.1667 1.75 10.1667C1.33579 10.1667 1 10.5025 1 10.9167C1 11.3309 1.33579 11.6667 1.75 11.6667C2.16421 11.6667 2.5 11.3309 2.5 10.9167Z';
+  const d2 = 'M2.5 1.58333C2.5 1.16912 2.16421 0.833332 1.75 0.833332C1.33579 0.833332 1 1.16912 1 1.58333C1 1.99755 1.33579 2.33333 1.75 2.33333C2.16421 2.33333 2.5 1.99755 2.5 1.58333Z';
+  const d3 = 'M2.5 20.25C2.5 19.8358 2.16421 19.5 1.75 19.5C1.33579 19.5 1 19.8358 1 20.25C1 20.6642 1.33579 21 1.75 21C2.16421 21 2.5 20.6642 2.5 20.25Z';
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 4 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {[d1, d2, d3].map((d) => <path key={d} d={d} fill="#0E0F0F" />)}
+      {[d1, d2, d3].map((d) => <path key={'s' + d} d={d} stroke="#0E0F0F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />)}
+    </svg>
+  );
+}
+function Copy({ width = '32', height = '32', stroke = '#0E0F0F' }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6.66667 20H5.33334C4.62609 20 3.94782 19.719 3.44772 19.2189C2.94762 18.7188 2.66667 18.0406 2.66667 17.3333V5.33332C2.66667 4.62608 2.94762 3.9478 3.44772 3.4477C3.94782 2.94761 4.62609 2.66666 5.33334 2.66666H17.3333C18.0406 2.66666 18.7189 2.94761 19.219 3.4477C19.7191 3.9478 20 4.62608 20 5.33332V6.66666M14.6667 12H26.6667C28.1394 12 29.3333 13.1939 29.3333 14.6667V26.6667C29.3333 28.1394 28.1394 29.3333 26.6667 29.3333H14.6667C13.1939 29.3333 12 28.1394 12 26.6667V14.6667C12 13.1939 13.1939 12 14.6667 12Z" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function Trash({ className }) {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6.125 6.125L7.21875 23.625C7.2707 24.6362 8.00625 25.375 8.96875 25.375H19.0312C19.9976 25.375 20.7195 24.6362 20.7812 23.625L21.875 6.125" stroke="#C51313" strokeWidth="1.25" strokeLinejoin="round" />
+      <path d="M4.375 6.125H23.625H4.375Z" fill="#C51313" />
+      <path d="M4.375 6.125H23.625" stroke="#C51313" strokeWidth="1.25" strokeMiterlimit="10" />
+      <path d="M10.5 6.12501V3.93751C10.4995 3.765 10.5331 3.5941 10.5989 3.43464C10.6647 3.27517 10.7613 3.13028 10.8833 3.0083C11.0053 2.88632 11.1502 2.78966 11.3096 2.72388C11.4691 2.6581 11.64 2.6245 11.8125 2.62501H16.1875C16.36 2.6245 16.5309 2.6581 16.6904 2.72388C16.8498 2.78966 16.9947 2.88632 17.1167 3.0083C17.2387 3.13028 17.3353 3.27517 17.4011 3.43464C17.4669 3.5941 17.5005 3.765 17.5 3.93751V6.12501M14 9.62501V21.875M10.0625 9.62501L10.5 21.875M17.9375 9.62501L17.5 21.875" stroke="#C51313" strokeWidth="1.25" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function Rocket({ stroke = 'white' }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.9166 10.5834C20.1666 8.3334 20.3072 5.65683 20.2369 4.4634C20.2252 4.2815 20.1476 4.11009 20.0188 3.98121C19.8899 3.85232 19.7185 3.77478 19.5366 3.76308C18.3431 3.69277 15.6684 3.83152 13.4166 6.0834L7.5 12L12 16.5L17.9166 10.5834Z" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.7502 6.75H6.97055C6.77191 6.75009 6.58141 6.82899 6.44087 6.96937L3.22055 10.1897C3.12223 10.2882 3.05327 10.4122 3.0214 10.5477C2.98952 10.6832 2.99598 10.8249 3.04006 10.9569C3.08413 11.089 3.16409 11.2061 3.27097 11.2953C3.37785 11.3845 3.50744 11.4422 3.64524 11.4619L7.50024 12" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M17.25 11.25V17.0297C17.2499 17.2283 17.171 17.4188 17.0306 17.5594L13.8103 20.7797C13.7118 20.878 13.5878 20.947 13.4523 20.9788C13.3168 21.0107 13.1751 21.0043 13.0431 20.9602C12.911 20.9161 12.7939 20.8362 12.7047 20.7293C12.6155 20.6224 12.5578 20.4928 12.5381 20.355L12 16.5" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.865 17.6098C8.50219 18.4058 7.27969 20.2517 3.75 20.2517C3.75 16.722 5.59594 15.4995 6.39188 15.1367" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function LogoText(props) {
+  return (
+    <svg width="230" height="52" viewBox="0 0 230 52" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <g clipPath="url(#clip0_84_12245)">
+                <path fillRule="evenodd" clipRule="evenodd" d="M19.3373 23.3047C19.4945 23.3047 19.6219 23.4253 19.6219 23.5742L19.6219 30.8503C19.6219 30.9991 19.4945 31.1197 19.3373 31.1197C19.1801 31.1197 19.0527 30.9991 19.0527 30.8503L19.0527 23.5742C19.0527 23.4253 19.1801 23.3047 19.3373 23.3047Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M25.7337 24.7076C25.7015 24.8533 25.5507 24.9467 25.3968 24.9162L19.2783 23.7035C19.1244 23.673 19.0258 23.5302 19.058 23.3845C19.0902 23.2389 19.241 23.1455 19.3949 23.176L25.5134 24.3886C25.6673 24.4191 25.7659 24.5619 25.7337 24.7076Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M20.9018 23.5742C21.0589 23.5742 21.1864 23.6949 21.1864 23.8437V32.3325C21.1864 32.4813 21.0589 32.602 20.9018 32.602C20.7446 32.602 20.6172 32.4813 20.6172 32.3325V23.8437C20.6172 23.6949 20.7446 23.5742 20.9018 23.5742Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M22.4672 23.8437C22.6244 23.8437 22.7518 23.9644 22.7518 24.1132L22.7518 33.8147C22.7518 33.9635 22.6244 34.0842 22.4672 34.0842C22.31 34.0842 22.1826 33.9635 22.1826 33.8147L22.1826 24.1132C22.1826 23.9644 22.31 23.8437 22.4672 23.8437Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M24.0326 24.1128C24.1898 24.1128 24.3172 24.2334 24.3172 24.3823V35.2964C24.3172 35.4452 24.1898 35.5659 24.0326 35.5659C23.8755 35.5659 23.748 35.4452 23.748 35.2964V24.3823C23.748 24.2334 23.8755 24.1128 24.0326 24.1128Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M25.4555 24.3828C25.6127 24.3828 25.7401 24.5035 25.7401 24.6523V36.6444C25.7401 36.7932 25.6127 36.9138 25.4555 36.9138C25.2983 36.9138 25.1709 36.7932 25.1709 36.6444V24.6523C25.1709 24.5035 25.2983 24.3828 25.4555 24.3828Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M19.0527 7H39.9697C40.1269 7 40.2543 7.12065 40.2543 7.26948C40.2543 7.41832 40.1269 7.53897 39.9697 7.53897H19.6219V16.0529L25.6487 15.2193H35.7721C35.9293 15.2193 36.0567 15.3399 36.0567 15.4888C36.0567 15.6376 35.9293 15.7583 35.7721 15.7583H25.69L19.0527 16.6763V7Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M20.6885 8.48193H37.7636C37.9207 8.48193 38.0481 8.60259 38.0481 8.75142C38.0481 8.90025 37.9207 9.0209 37.7636 9.0209H21.2576V16.0949C21.2576 16.2437 21.1302 16.3644 20.9731 16.3644C20.8159 16.3644 20.6885 16.2437 20.6885 16.0949V8.48193Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M22.2539 9.96387H36.412C36.5692 9.96387 36.6966 10.0845 36.6966 10.2334C36.6966 10.3822 36.5692 10.5028 36.412 10.5028H22.8231V15.8925C22.8231 16.0414 22.6957 16.162 22.5385 16.162C22.3813 16.162 22.2539 16.0414 22.2539 15.8925V9.96387Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M23.8193 11.4463H34.0644C34.2216 11.4463 34.349 11.5669 34.349 11.7158C34.349 11.8646 34.2216 11.9853 34.0644 11.9853H24.3885V15.6907C24.3885 15.8395 24.2611 15.9602 24.1039 15.9602C23.9467 15.9602 23.8193 15.8395 23.8193 15.6907V11.4463Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M25.3135 12.7939H32.9261C33.0833 12.7939 33.2107 12.9146 33.2107 13.0634C33.2107 13.2123 33.0833 13.3329 32.9261 13.3329H25.8826V15.4888C25.8826 15.6376 25.7552 15.7583 25.5981 15.7583C25.4409 15.7583 25.3135 15.6376 25.3135 15.4888V12.7939Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M26.865 16.8354L33.998 16.944C34.1552 16.9463 34.2805 17.0689 34.278 17.2177C34.2755 17.3665 34.146 17.4852 33.9889 17.4829L26.8798 17.3747L19.3567 17.8614C19.1999 17.8715 19.0641 17.7594 19.0534 17.6109C19.0427 17.4624 19.1611 17.3338 19.3179 17.3237L26.865 16.8354Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M26.8698 18.1353L32.7569 18.2437C32.9141 18.2466 33.039 18.3696 33.0359 18.5184C33.0329 18.6672 32.903 18.7855 32.7459 18.7826L26.875 18.6744L19.3481 18.9449C19.1911 18.9506 19.0589 18.8346 19.0529 18.6859C19.047 18.5371 19.1695 18.412 19.3265 18.4064L26.8698 18.1353Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M19.0528 19.7007C19.055 19.5518 19.1843 19.4329 19.3414 19.4351L31.265 19.5976C31.4222 19.5997 31.5478 19.7221 31.5455 19.8709C31.5432 20.0197 31.414 20.1386 31.2568 20.1365L19.3332 19.974C19.1761 19.9719 19.0505 19.8495 19.0528 19.7007Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M19.0531 20.7743C19.0611 20.6257 19.1948 20.5113 19.3518 20.5189L27.2108 20.8977H29.8533C30.0105 20.8977 30.1379 21.0183 30.1379 21.1672C30.1379 21.316 30.0105 21.4367 29.8533 21.4367H27.1964L19.3229 21.0572C19.1659 21.0496 19.0451 20.923 19.0531 20.7743Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M19.0539 21.9558C19.068 21.8075 19.2063 21.6982 19.3629 21.7116L26.968 22.3604H28.4457C28.6028 22.3604 28.7302 22.4811 28.7302 22.6299C28.7302 22.7787 28.6028 22.8994 28.4457 22.8994H26.9424L19.3118 22.2483C19.1553 22.235 19.0398 22.104 19.0539 21.9558Z" fill="white" stroke="white" strokeWidth="0.2" strokeLinecap="round" />
+                <path d="M9.48544 14.0082H7.28711V-0.0317383H21.3271V2.16659H9.48544V14.0082Z" fill="white" />
+                <path d="M21.3271 44.1406H7.28711V30.1006H9.48544V41.9422H21.3271V44.1406Z" fill="white" />
+                <path d="M50.4033 14.0082H48.2049V2.16659H36.3633V-0.0317383H50.4033V14.0082Z" fill="white" />
+                <path d="M50.4033 44.1406H36.3633V41.9422H48.2049V30.1006H50.4033V44.1406Z" fill="white" />
+                <path d="M76.2874 11.1099H87.2815V14.5835H76.2874C75.7478 14.5835 75.242 14.6509 74.7024 14.7521C73.1173 15.0893 71.8021 15.865 70.6892 17.0791C70.5543 17.214 70.4531 17.3826 70.3182 17.5175C70.3182 17.5175 70.3182 17.5175 70.3182 17.5512H70.2845C70.1833 17.7198 70.0822 17.8885 69.981 18.0234V17.4163C69.981 16.236 70.2508 15.1905 70.8241 14.2125C71.3974 13.2345 72.1731 12.4926 73.1173 11.9193C74.0616 11.346 75.1408 11.0762 76.3211 11.0762L76.2874 11.1099ZM73.3871 16.4383C73.3871 16.4383 73.4546 16.4383 73.4883 16.3709C73.4883 16.3709 73.522 16.3709 73.5558 16.3709C73.5558 16.3709 73.6232 16.3371 73.6569 16.3034C73.4883 16.6744 73.4209 17.0453 73.4209 17.45V33.0306H69.9473V22.0702C69.9473 21.362 70.0822 20.6538 70.3182 19.9456C70.4194 19.6421 70.5543 19.3723 70.6892 19.0688C70.9253 18.6304 71.2288 18.192 71.566 17.821C71.6335 17.7536 71.7009 17.6524 71.8021 17.5849C71.8021 17.5849 71.8021 17.5512 71.8695 17.5175C71.8695 17.5175 71.8695 17.5175 71.8695 17.4838C71.8695 17.45 71.8695 17.4838 71.9033 17.4838C71.937 17.45 71.9707 17.3826 72.0382 17.3489C72.0382 17.3489 72.0719 17.3151 72.1056 17.2814L72.1731 17.214C72.1731 17.214 72.2405 17.1465 72.2742 17.1128C72.2742 17.1128 72.308 17.0791 72.3417 17.0453L72.5103 16.9104C72.5103 16.9104 72.5778 16.8767 72.6115 16.843H72.6452C72.6452 16.843 72.6452 16.7756 72.6789 16.7756C72.7126 16.7756 72.7464 16.7081 72.7801 16.6744C72.8138 16.6744 72.8475 16.6744 72.8813 16.6069C72.8813 16.6069 72.8813 16.6069 72.9487 16.6069C72.9487 16.6069 72.9487 16.6069 72.9824 16.6069L73.0836 16.5395C73.0836 16.5395 73.1511 16.5058 73.1848 16.472H73.2185C73.2185 16.472 73.2185 16.4383 73.2522 16.4383C73.286 16.4383 73.3534 16.4046 73.3871 16.3709V16.4383ZM78.0411 21.733C78.0411 21.733 78.0411 21.8005 78.0411 21.8342C78.0411 21.9016 78.0411 22.0028 78.0411 22.104C78.0411 22.1714 78.0411 22.2726 78.0411 22.3738C78.0411 22.3738 78.0411 22.3738 78.0411 22.4412C78.0411 22.4412 78.0411 22.5761 78.0411 22.6436C78.0411 22.6773 78.0411 22.711 78.0411 22.7447C78.0411 22.8122 78.0411 22.8796 78.1085 22.9133C78.1085 22.9133 78.1085 22.9471 78.1085 22.9808C78.1085 23.0482 78.1422 23.1157 78.176 23.1831V23.2506C78.2097 23.318 78.2434 23.4192 78.2771 23.4867C78.2771 23.4867 78.2771 23.4867 78.2771 23.5204C78.2771 23.5878 78.3446 23.6216 78.3783 23.689C78.3783 23.689 78.3783 23.7227 78.4458 23.7565C78.4458 23.7565 78.4458 23.7902 78.4458 23.8239C78.4458 23.8239 78.4458 23.8576 78.4795 23.8913H74.5675V20.4178H78.5807V20.4852C78.5807 20.4852 78.5807 20.4852 78.5469 20.5527L78.4458 20.7213C78.4458 20.7213 78.4458 20.755 78.4458 20.7887C78.412 20.8562 78.3446 20.9574 78.3109 21.0248V21.0923L78.2434 21.2946C78.2434 21.2946 78.2434 21.3283 78.2434 21.362C78.2434 21.362 78.2434 21.4969 78.176 21.5644C78.176 21.5981 78.176 21.6318 78.176 21.6656C78.176 21.733 78.176 21.8005 78.176 21.8342L78.0411 21.733ZM82.1217 20.8562C82.4589 21.2271 82.6276 21.6318 82.6276 22.0702C82.6276 22.5424 82.4589 22.9471 82.1217 23.2843C81.7844 23.6216 81.3798 23.7902 80.9076 23.7902C80.4355 23.7902 80.0308 23.6216 79.6935 23.2843C79.3563 22.9133 79.1877 22.5087 79.1877 22.0702C79.1877 21.5981 79.3563 21.1934 79.6935 20.8562C80.0308 20.5189 80.4355 20.3503 80.9076 20.3503C81.3798 20.3503 81.7844 20.5189 82.1217 20.8562Z" fill="white" stroke="white" strokeWidth="0.64215" />
+                <path d="M108.528 17.9896C108.528 17.9896 108.528 17.9896 108.494 17.9896C108.528 17.821 108.561 17.6187 108.561 17.4163C108.561 16.6069 108.292 15.9324 107.718 15.3929C107.145 14.8533 106.471 14.5498 105.695 14.5498H90.0469V11.0762H105.627C106.74 11.0762 107.685 11.4809 108.494 12.2565C109.303 13.0322 109.674 14.0102 109.674 15.1231C109.674 15.258 109.674 15.3929 109.674 15.5278V15.6289C109.674 15.6289 109.674 15.6289 109.674 15.6964C109.674 15.6964 109.674 15.865 109.641 15.9324C109.641 15.9662 109.641 15.9999 109.641 16.0336C109.641 16.0336 109.641 16.0336 109.641 16.1011C109.641 16.1011 109.641 16.1011 109.641 16.1348C109.641 16.2022 109.641 16.2697 109.573 16.3371V16.4383C109.573 16.4383 109.539 16.4383 109.506 16.472L109.438 16.6744C109.438 16.7081 109.438 16.7418 109.371 16.7756C109.371 16.7756 109.371 16.7756 109.371 16.843C109.371 16.843 109.337 16.9779 109.303 17.0116C109.27 17.0453 109.27 17.1128 109.236 17.1465C109.236 17.1465 109.236 17.1465 109.236 17.1802L109.135 17.3489C109.135 17.3489 109.067 17.4163 109.034 17.45C109.034 17.45 109.034 17.45 109.034 17.4838C109 17.5175 108.966 17.5849 108.899 17.6524C108.865 17.6861 108.831 17.7198 108.798 17.7873C108.764 17.8547 108.696 17.8885 108.663 17.9559L108.528 17.9896ZM93.5205 24.3972V33.0643H90.0469V20.384H105.627C105.627 20.384 105.83 20.384 105.931 20.384C105.931 20.384 106.066 20.384 106.1 20.384H106.167C106.167 20.384 106.234 20.384 106.268 20.384C106.302 20.384 106.369 20.384 106.403 20.384C106.471 20.384 106.538 20.384 106.605 20.3503C106.605 20.3503 106.639 20.3503 106.673 20.3503C106.673 20.3503 106.707 20.3503 106.74 20.3503C106.774 20.3503 106.842 20.3503 106.875 20.3503C106.943 20.3503 107.01 20.3166 107.078 20.2829H107.145C107.145 20.2829 107.179 20.2491 107.212 20.2154C107.246 20.2154 107.314 20.2154 107.347 20.1817C107.415 20.1817 107.482 20.148 107.55 20.1142L107.685 20.0468C107.685 20.0468 107.752 20.0468 107.82 19.9793C107.887 19.9793 107.921 19.9119 107.988 19.8782L108.123 19.8107C108.123 19.8107 108.19 19.8107 108.224 19.7433L108.393 19.6421C108.393 19.6421 108.393 19.6421 108.46 19.6084C108.46 19.6084 108.494 19.5747 108.528 19.5409L108.629 19.4735C108.629 19.4735 108.73 19.406 108.764 19.3386H108.831C108.831 19.3386 108.831 19.2711 108.899 19.2374C108.932 19.2374 108.966 19.17 109 19.1362C109.034 19.1025 109.101 19.0688 109.135 19.0013L109.236 18.9002C109.236 18.9002 109.303 18.8327 109.337 18.799C109.371 18.7653 109.438 18.6978 109.472 18.6641L109.539 18.5967L109.607 18.5292L109.708 18.428C109.708 18.428 109.776 18.3269 109.809 18.2594C109.809 18.2594 109.809 18.2257 109.843 18.192C109.843 18.192 109.877 18.1582 109.91 18.1245L109.978 18.0234C109.978 18.0234 110.045 17.9222 110.079 17.8547L110.146 17.7198L110.214 17.6187C110.214 17.6187 110.281 17.4838 110.315 17.45C110.315 17.45 110.315 17.4163 110.315 17.3826V17.3151C110.315 17.3151 110.383 17.2477 110.416 17.1802C110.416 17.1128 110.45 17.0453 110.484 16.9779V16.9104C110.484 16.9104 110.517 16.8767 110.551 16.843V16.7418L110.652 16.5058V16.4383C110.652 16.4383 110.652 16.4046 110.652 16.3709V16.2697C110.652 16.2697 110.72 15.9999 110.754 15.8987V15.8313C110.754 15.8313 110.754 15.7976 110.754 15.7638C110.754 15.5952 110.754 15.4266 110.754 15.258C110.754 15.1231 110.754 14.9882 110.754 14.8533V14.7858C110.754 14.7858 110.754 14.5498 110.686 14.4149V14.3474C110.686 14.3474 110.619 14.1113 110.585 13.9765L110.484 13.6055C111.462 14.7184 111.934 16.0673 111.934 17.6187C111.934 18.799 111.664 19.8445 111.091 20.8225C110.517 21.8005 109.742 22.5424 108.798 23.1157C107.853 23.689 106.774 23.9588 105.594 23.9588H94.0601C94.0601 23.9588 93.7565 24.0262 93.6554 24.1274C93.5542 24.2286 93.4867 24.3635 93.4867 24.5321L93.5205 24.3972ZM111.394 33.0643H107.078L101.007 25.0043H105.324L111.394 33.0643Z" fill="white" stroke="white" strokeWidth="0.64215" />
+                <path d="M118.071 33.0306H114.598V11.1099H118.071V33.0306Z" fill="white" stroke="white" strokeWidth="0.64215" />
+                <path d="M124.984 33.0306H121.511V12.5937L124.984 18.3606V33.0306ZM135.102 33.0306L121.949 11.1099H125.22L138.373 33.0306H135.102ZM135.338 11.1099H138.811V31.5467L135.338 25.7799V11.1099Z" fill="white" stroke="white" strokeWidth="0.64215" />
+                <path d="M142.96 33.0306V11.1099H146.434V33.0306H142.96ZM158.777 11.1099H164.071L150.447 24.7344L147.816 22.0702L158.777 11.1099ZM151.29 25.5438L153.954 22.8796L164.105 33.0306H158.81L151.324 25.5438H151.29Z" fill="white" stroke="white" strokeWidth="0.64215" />
+
+            </g>
+            <defs>
+                <clipPath id="clip0_84_12245">
+                    <rect width="230" height="51.427" fill="white" />
+                </clipPath>
+            </defs>
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------- sidebar (collapsed, as default)
+function Sidebar() {
+  const menus = [
+    {
+      title: 'Instances', children: true,
+      icon: (active) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 12H2M22 12V18C22 18.5304 21.7893 19.0391 21.4142 19.4142C21.0391 19.7893 20.5304 20 20 20H4C3.46957 20 2.96086 19.7893 2.58579 19.4142C2.21071 19.0391 2 18.5304 2 18V12M22 12L18.55 5.11C18.3844 4.77679 18.1292 4.49637 17.813 4.30028C17.4967 4.10419 17.1321 4.0002 16.76 4H7.24C6.86792 4.0002 6.50326 4.10419 6.18704 4.30028C5.87083 4.49637 5.61558 4.77679 5.45 5.11L2 12M6 16H6.01M10 16H10.01" stroke={active ? 'currentColor' : '#f7fcfc'} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Integrations', children: true,
+      icon: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+      ),
+    },
+    { title: 'Deployments', icon: (a) => <Rocket stroke={a ? 'currentColor' : '#f7fcfc'} /> },
+    { title: 'Health Monitor', icon: (a) => <Activity stroke={a ? 'currentColor' : '#f7fcfc'} /> },
+    {
+      title: 'Analytics & Reports', external: true,
+      icon: () => (
+        <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 17V7M7 17V1M1 17V11" stroke="#f7fcfc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Settings',
+      icon: (a) => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke={a ? 'currentColor' : '#f7fcfc'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.285 19.4995 16.5843 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.8959 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.8959 16.96 19.71L16.9 19.65C16.6643 19.4195 16.365 19.2648 16.0406 19.206C15.7162 19.1472 15.3816 19.1869 15.08 19.32C14.7842 19.4468 14.532 19.6572 14.3543 19.9255C14.1766 20.1938 14.0813 20.5082 14.08 20.83V21C14.08 21.5304 13.8693 22.0391 13.4942 22.4142C13.1191 22.7893 12.6104 23 12.08 23C11.5496 23 11.0409 22.7893 10.6658 22.4142C10.2907 22.0391 10.08 21.5304 10.08 21V20.91C10.0723 20.579 9.96512 20.258 9.77251 19.9887C9.5799 19.7194 9.31074 19.5143 9 19.4C8.69838 19.2669 8.36381 19.2272 8.03941 19.286C7.71502 19.3448 7.41568 19.4995 7.18 19.73L7.12 19.79C6.93425 19.976 6.71368 20.1235 6.47088 20.2241C6.22808 20.3248 5.96783 20.3766 5.705 20.3766C5.44217 20.3766 5.18192 20.3248 4.93912 20.2241C4.69632 20.1235 4.47575 19.976 4.29 19.79C4.10405 19.6043 3.95653 19.3837 3.85588 19.1409C3.75523 18.8981 3.70343 18.6378 3.70343 18.375C3.70343 18.1122 3.75523 17.8519 3.85588 17.6091C3.95653 17.3663 4.10405 17.1457 4.29 16.96L4.35 16.9C4.58054 16.6643 4.73519 16.365 4.794 16.0406C4.85282 15.7162 4.81312 15.3816 4.68 15.08C4.55324 14.7842 4.34276 14.532 4.07447 14.3543C3.80617 14.1766 3.49179 14.0813 3.17 14.08H3C2.46957 14.08 1.96086 13.8693 1.58579 13.4942C1.21071 13.1191 1 12.6104 1 12.08C1 11.5496 1.21071 11.0409 1.58579 10.6658C1.96086 10.2907 2.46957 10.08 3 10.08H3.09C3.42099 10.0723 3.742 9.96512 4.0113 9.77251C4.28059 9.5799 4.48572 9.31073 4.6 9C4.73312 8.69838 4.77282 8.36381 4.714 8.03941C4.65519 7.71502 4.50054 7.41568 4.27 7.18L4.21 7.12C4.02405 6.93425 3.87653 6.71368 3.77588 6.47088C3.67523 6.22808 3.62343 5.96783 3.62343 5.705C3.62343 5.44217 3.67523 5.18191 3.77588 4.93912C3.87653 4.69632 4.02405 4.47575 4.21 4.29C4.39575 4.10405 4.61632 3.95653 4.85912 3.85588C5.10192 3.75523 5.36217 3.70343 5.625 3.70343C5.88783 3.70343 6.14808 3.75523 6.39088 3.85588C6.63368 3.95653 6.85425 4.10405 7.04 4.29L7.1 4.35C7.33568 4.58054 7.63502 4.73519 7.95941 4.794C8.28381 4.85282 8.61838 4.81311 8.92 4.68H9C9.29577 4.55324 9.54802 4.34275 9.72569 4.07446C9.90337 3.80617 9.99872 3.49179 10 3.17V3C10 2.46957 10.2107 1.96086 10.5858 1.58579C10.9609 1.21071 11.4696 1 12 1C12.5304 1 13.0391 1.21071 13.4142 1.58579C13.7893 1.96086 14 2.46957 14 3V3.09C14.0013 3.41179 14.0966 3.72617 14.2743 3.99447C14.452 4.26276 14.7042 4.47324 15 4.6C15.3016 4.73311 15.6362 4.77282 15.9606 4.714C16.285 4.65519 16.5843 4.50054 16.82 4.27L16.88 4.21C17.0657 4.02405 17.2863 3.87653 17.5291 3.77588C17.7719 3.67523 18.0322 3.62343 18.295 3.62343C18.5578 3.62343 18.8181 3.67523 19.0609 3.77588C19.3037 3.87653 19.5243 4.02405 19.71 4.21C19.896 4.39575 20.0435 4.61632 20.1441 4.85912C20.2448 5.10191 20.2966 5.36217 20.2966 5.625C20.2966 5.88783 20.2448 6.14808 20.1441 6.39088C20.0435 6.63368 19.896 6.85425 19.71 7.04L19.65 7.1C19.4195 7.33568 19.2648 7.63501 19.206 7.95941C19.1472 8.28381 19.1869 8.61838 19.32 8.92V9C19.4468 9.29577 19.6572 9.54802 19.9255 9.72569C20.1938 9.90337 20.5082 9.99872 20.83 10H21C21.5304 10 22.0391 10.2107 22.4142 10.5858C22.7893 10.9609 23 11.4696 23 12C23 12.5304 22.7893 13.0391 22.4142 13.4142C22.0391 13.7893 21.5304 14 21 14H20.91C20.5882 14.0013 20.2738 14.0966 20.0055 14.2743C19.7372 14.452 19.5268 14.7042 19.4 15Z" stroke={a ? 'currentColor' : '#f7fcfc'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="fixed left-0 top-0 flex h-screen w-[114px] flex-col items-center border-r border-r-gray-300 bg-[#1e1c1c] px-2 overflow-hidden whitespace-nowrap py-6 shadow-md transition-all duration-300" style={{ zIndex: 100 }}>
+      <div className="flex min-h-0 w-full flex-1 flex-col">
+        <div className="relative block">
+          <a href="#" onClick={(e) => e.preventDefault()} className="mb-10 mt-3 flex items-center justify-center overflow-hidden transition-all duration-300" data-collapsed="true">
+            <LogoText style={{ width: '60px', height: '60px' }} viewBox="0 0 230 52" preserveAspectRatio="xMinYMid slice" />
+          </a>
+        </div>
+        <div className="mt-8 min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden">
+          <ul className="flex w-full flex-col gap-2 pb-4">
+            {menus.map((t) => {
+              const active = t.title === 'Instances';
+              const inner = (
+                <>
+                  <div className="flex w-6 shrink-0 items-center justify-center">{t.icon(active)}</div>
+                  <span className="text-lg transition-all duration-300 w-0 opacity-0">{t.title}</span>
+                </>
+              );
+              if (t.children) {
+                return (
+                  <li key={t.title} className="flex flex-col rounded-lg transition-all duration-300 hover:bg-white/10">
+                    <div className="w-full">
+                      <div className="relative block">
+                        <div className="group flex cursor-pointer items-center rounded-md py-2 duration-300 px-9 text-white overflow-hidden">
+                          <div className="flex items-center gap-0">{inner}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              }
+              return (
+                <li key={t.title}>
+                  <div className="relative block">
+                    <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-0 rounded-md py-2 duration-300 px-9 text-white hover:bg-white/20 hover:text-white overflow-hidden">
+                      {inner}
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+      <div className="mt-2 flex w-full shrink-0 flex-col gap-2 pt-3">
+        <div className="relative block">
+          <button className="flex w-full items-center justify-center rounded-md py-2 text-white transition-colors hover:opacity-75">
+            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 18 8 13 3 8"></polyline><line x1="11" y1="9" x2="11" y2="17"></line><line x1="14" y1="9" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- shared/ui
+function Heading({ children, subcontent }) {
+  return (
+    <div className="mt-1 flex h-[60px] items-baseline gap-2 bg-white px-5 py-4">
+      <div className="text-3xl font-medium">{children}</div>
+      <div className="flex items-baseline gap-2 text-xl font-medium">
+        {subcontent}
+        <span className="self-center">
+          <span className="pointer-events-auto relative inline-flex items-center">
+            <span role="button" tabIndex={0} className="pointer-events-auto inline-flex shrink-0 items-center justify-center rounded-full transition-transform focus:outline-none focus:ring-2 focus:ring-f-primary text-gray-500 hover:scale-110">
+              <LuInfo size={15} />
+            </span>
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Filter({ label }) {
+  return (
+    <div className="relative w-auto">
+      <button type="button" className="flex h-[38px] items-center justify-between gap-1.5 whitespace-nowrap rounded-lg bg-white px-3 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none w-32 border-none">
+        <span className="truncate">{label}</span>
+        <ChevronDown size={14} className="flex-shrink-0 text-gray-500 transition-transform" />
+      </button>
+    </div>
+  );
+}
+
+const BTN_BASE = 'inline-flex items-center justify-center gap-2 font-semibold shadow-xs h-fit cursor-pointer';
+const BTN_DISABLED = 'disabled:bg-gray-300 disabled:text-gray-500 disabled:border-transparent disabled:cursor-not-allowed';
+// tailwind-variants output after tailwind-merge
+const BTN_PRIMARY_XS = `${BTN_BASE} border border-transparent bg-f-primary text-white hover:bg-f-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-f-primary text-xs px-2 py-1 rounded-sm w-full`;
+const BTN_BORDER_XS = `${BTN_BASE} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-f-primary text-xs px-2 py-1 rounded-sm w-full bg-transparent border hover:opacity-70 border-f-primary text-f-primary hover:bg-white/90`;
+const BTN_PRIMARY_LG = `${BTN_BASE} border border-transparent bg-f-primary text-white hover:bg-f-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-f-primary text-sm px-6 py-2 rounded-md`;
+
+function TableInfo() {
+  return (
+    <span className="pointer-events-auto relative inline-flex items-center">
+      <span role="button" tabIndex={0} className="pointer-events-auto inline-flex shrink-0 items-center justify-center rounded-full transition-transform focus:outline-none focus:ring-2 focus:ring-f-primary text-white">
+        <LuInfo size={16} />
+      </span>
+    </span>
+  );
+}
+
+function TableHead({ children }) {
+  return (
+    <thead className="sticky top-0 z-10">
+      <tr className="bg-f-primary relative">{children}</tr>
+    </thead>
+  );
+}
+function TableHeadData({ children, idx, info }) {
+  return (
+    <th scope="col" className="group sticky top-0 px-2 py-2 pb-4 pt-4 text-center text-base font-medium text-white ">
+      {info ? <span className="inline-flex items-center justify-center gap-1">{children}<TableInfo /></span> : children}
+      {idx !== undefined && <div className="absolute bottom-2.5 right-0 top-2.5 w-0.5 cursor-col-resize rounded-2xl bg-white group-last:hidden" />}
+    </th>
+  );
+}
+function TableBody({ children }) {
+  return <tbody className="divide-y divide-gray-200 bg-white">{children}</tbody>;
+}
+function TableBodyRow({ children, className = '', onClick }) {
+  return (
+    <tr className={className + ' ' + 'min-h-[500px] cursor-pointer hover:bg-gray-100'} onClick={onClick}>
+      {children}
+    </tr>
+  );
+}
+// Note: in the real component {...props} is spread after className, so a passed className replaces the defaults.
+function TableBodyData({ children, className, onClick, colSpan }) {
+  return (
+    <td className={className !== undefined ? className : 'overflow-visible px-2 py-2 text-black  '} onClick={onClick} colSpan={colSpan}>
+      <div className="flex h-full w-full items-center justify-center text-center">{children}</div>
+    </td>
+  );
+}
+function Table({ children, columnCount, className, fullWidth = false }) {
+  const ref = useRef(null);
+  const [w, setW] = useState([]);
+  // Same sizing rule as shared/ui/Table. Re-measured on resize only because the
+  // Tailwind CDN emits the modal width class a moment after first paint.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const cw = ref.current ? ref.current.offsetWidth : 0;
+      if (!cw) { setW([...Array(columnCount)].map(() => 150)); return; }
+      const per = fullWidth ? (cw - 20) / columnCount : Math.min(cw / columnCount, 300);
+      setW([...Array(columnCount)].map(() => per));
+    };
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    if (ref.current && ref.current.parentElement) ro.observe(ref.current.parentElement);
+    return () => ro.disconnect();
+  }, [columnCount]);
+  return (
+    <div ref={ref} className="flow-root w-full" style={{ overflowX: 'auto', overflowY: 'visible' }}>
+      <div style={{ width: 'max-content', minWidth: '100%' }}>
+        <table className={`min-w-full divide-y divide-gray-300 ${className ?? ''}`} style={{ tableLayout: 'auto' }}>
+          <colgroup>{[...Array(columnCount)].map((_, i) => <col key={i} style={{ width: w[i] || 'auto' }} />)}</colgroup>
+          {children}
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Modal({ isOpen, onClose, className, children }) {
+  const boxRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const h = (e) => { if (boxRef.current && !boxRef.current.contains(e.target) && !e.target.closest('.proto-switch')) onClose(); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [isOpen, onClose]);
+  if (!isOpen) return null;
+  return ReactDOM.createPortal(
+    <div className="fixed left-0 top-0 z-[99991] h-screen w-screen rounded-lg bg-gray-500 bg-opacity-75 transition-opacity" role="dialog" aria-modal="true">
+      <div className={`relative top-[50%] mx-auto translate-y-[-50%] transform rounded-lg bg-white text-left shadow-xl transition-all ${className} `} onClick={(e) => e.stopPropagation()}>
+        {/* p-[${..}] is built at runtime in the real Modal, so Tailwind never emits it: no padding here */}
+        <div className="rounded-lg bg-white" ref={boxRef}>{children}</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ProjectCreateLoader({ title }) {
+  return (
+    <div className="fixed left-0 top-0 z-[999] flex h-full w-full items-center justify-center bg-gray-200/75">
+      <div className="loader-container">
+        <label className="font-medium">{title}</label>
+        <div className="loader"></div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- InstanceTable.jsx
+function PreservationSection({ title, text, columns, rows }) {
+  return (
+    <div className="mt-4 flex flex-col gap-2">
+      <h3 className="text-sm font-semibold text-gray-800 border-b pb-1">{title}</h3>
+      {text && <p className="text-sm text-gray-800">{text}</p>}
+      <Table columnCount={columns.length} fullWidth={true} className="min-w-full text-sm">
+        <TableHead>
+          {columns.map((c, i) => <TableHeadData key={c} idx={i}>{c}</TableHeadData>)}
+        </TableHead>
+        <TableBody>
+          {rows.map((r, idx) => (
+            <TableBodyRow key={idx} className={idx % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}>
+              {r.map((cell, ci) => <TableBodyData key={ci} className="!py-3 text-gray-700 text-center">{cell}</TableBodyData>)}
+            </TableBodyRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function InstanceWarningModal({ warnings, preservationDetails, folderRenames, onUpload, onDiscard, onClose }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-md bg-white p-6 max-h-[85vh] overflow-y-auto">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Warning</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+      </div>
+      <ul className="list-disc pl-5 flex flex-col gap-1">
+        {warnings.map((w, i) => <li key={i} className="text-sm text-yellow-700">{w}</li>)}
+      </ul>
+
+      {preservationDetails?.gtDiffs?.length > 0 && (
+        <PreservationSection
+          title="Ground Truth Preservation"
+          text="The following Ground Truth parameters configured on this Edge device will be preserved in the updated instance."
+          columns={['Variant', 'Capture', 'Module', 'Class/Label', 'Parameter', 'Edge (Preserved)', 'Vision']}
+          rows={preservationDetails.gtDiffs.map((d) => [d.variantName, d.captureName, d.moduleName, d.className || '-', d.parameter, formatValue(d.existingValue), formatValue(d.incomingValue)])}
+        />
+      )}
+
+      {preservationDetails?.thresholdDiffs?.length > 0 && (
+        <PreservationSection
+          title="Threshold Preservation"
+          text="The following model thresholds configured on this Edge device will be preserved in the updated instance."
+          columns={['Model', 'Class', 'Threshold', 'Edge', 'Vision']}
+          rows={preservationDetails.thresholdDiffs.map((d) => [d.modelName, d.className, d.parameter, formatValue(d.existingValue), formatValue(d.incomingValue)])}
+        />
+      )}
+
+      {folderRenames?.length > 0 && (
+        <PreservationSection
+          title="Saved image folders"
+          text="Folders are renamed and Reports keep opening old images."
+          columns={['Level', 'Edge', 'Vision']}
+          rows={folderRenames.map((f) => [f.level, f.from, f.to])}
+        />
+      )}
+
+      <div className="ml-auto flex items-center gap-3 pt-2">
+        <button type="button" className={`${BTN_BORDER_XS}  ${BTN_DISABLED}`} onClick={onDiscard}>Discard</button>
+        <button type="button" className={`${BTN_PRIMARY_XS}  ${BTN_DISABLED}`} onClick={onUpload}>Upload</button>
+      </div>
+    </div>
+  );
+}
+
+const HISTORY_ITEM = 'flex cursor-pointer items-center gap-2 px-4 py-2 text-[12px] text-gray-700 hover:bg-gray-50';
+
+function RowActions({ onUpdate }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const ref = useRef(null);
+  const dd = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target) && dd.current && !dd.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (!open && ref.current) {
+      const r = ref.current.getBoundingClientRect();
+      setPos({ top: r.bottom + window.scrollY, left: r.right + window.scrollX - 160 });
+    }
+    setOpen(!open);
+  };
+  return (
+    <div className="relative flex justify-center">
+      <div ref={ref} onClick={toggle} className="cursor-pointer rounded-full p-1 hover:bg-gray-100 ">
+        <ThreeDots />
+      </div>
+      {open && ReactDOM.createPortal(
+        <ul ref={dd} className="fixed z-[9999] w-40 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style={{ top: pos.top + 'px', left: pos.left + 'px' }}>
+          <li className="flex cursor-pointer items-center gap-2 px-4 py-2 text-[12px] text-gray-700 hover:bg-gray-50" onClick={(e) => { e.stopPropagation(); onUpdate(); setOpen(false); }}>
+            <Copy width="14" height="14" />
+            Update
+          </li>
+          <li className={HISTORY_ITEM} onClick={() => setOpen(false)}>
+            <Clock className="h-4 w-4" color="#000" />
+            View history
+          </li>
+          <li className="flex cursor-pointer items-center gap-2 px-4 py-2 text-[12px] text-red-600 hover:bg-gray-50" onClick={(e) => { e.stopPropagation(); setOpen(false); }}>
+            <Trash className="w-4 h-4" />
+            Delete
+          </li>
+        </ul>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+function ErrorBanner({ errorMessages, onDismiss }) {
+  if (!errorMessages || errorMessages.length === 0) return null;
+  return (
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 max-w-[550px] w-[90%] flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-white px-6 py-4 shadow-lg">
+      <div className="flex flex-col gap-1">
+        {errorMessages.map((err, i) => (
+          <div key={i} className="flex items-start gap-1">
+            <span className="text-red-500 pr-2">⚠️</span>
+            <span className="text-sm pt-1">{err}</span>
+          </div>
+        ))}
+      </div>
+      <button onClick={onDismiss} className="ml-2 shrink-0 text-red-500 hover:text-red-700 text-lg">✕</button>
+    </div>
+  );
+}
+
+function InstanceTable({ instances, flow }) {
+  const { loading, loaderTitle, showWarningModal, errorMessages, mode } = flow;
+  return (
+    <>
+      {loading && <ProjectCreateLoader title={loaderTitle} />}
+      <ErrorBanner errorMessages={errorMessages} onDismiss={flow.dismissErrors} />
+
+      <Modal isOpen={showWarningModal} onClose={flow.discard} className="!w-[80%] max-w-6xl">
+        <InstanceWarningModal
+          warnings={WARNINGS}
+          preservationDetails={PRESERVATION}
+          folderRenames={mode === 'after' ? FOLDER_RENAMES : null}
+          onUpload={flow.upload}
+          onDiscard={flow.discard}
+          onClose={flow.discard}
+        />
+      </Modal>
+
+      <Table columnCount={6} className="min-w-full">
+        <TableHead>
+          <TableHeadData idx={0} info>Instance ID</TableHeadData>
+          <TableHeadData idx={1}>Instance Name</TableHeadData>
+          <TableHeadData idx={2}>Created At</TableHeadData>
+          <TableHeadData idx={3}>Updated At</TableHeadData>
+          <TableHeadData idx={4} info>Team</TableHeadData>
+          <TableHeadData idx={5}>Actions</TableHeadData>
+        </TableHead>
+        <TableBody>
+          {instances.map((instance) => (
+            <TableBodyRow key={instance.id} className="cursor-pointer hover:bg-gray-50">
+              <TableBodyData>{instance.id}</TableBodyData>
+              <TableBodyData>{instance.name}</TableBodyData>
+              <TableBodyData>{new Date(Number(instance.createdAt)).toLocaleString()}</TableBodyData>
+              <TableBodyData>{new Date(Number(instance.updatedAt)).toLocaleString()}</TableBodyData>
+              <TableBodyData>{instance.teamName || '-'}</TableBodyData>
+              <TableBodyData onClick={(e) => e.stopPropagation()}>
+                <RowActions onUpdate={flow.startUpdate} />
+              </TableBodyData>
+            </TableBodyRow>
+          ))}
+        </TableBody>
+      </Table>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------- page
+const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+
+function readParams() {
+  const p = new URLSearchParams(window.location.search);
+  const mode = p.get('mode') === 'today' ? 'today' : 'after';
+  const state = p.get('state') === 'rename-failed' ? 'rename-failed' : 'update';
+  return { mode, state };
+}
+
+function initialFlow(mode, state) {
+  if (state === 'rename-failed' && mode === 'after') return { showWarningModal: false, errorMessages: [FAILED_MESSAGE] };
+  return { showWarningModal: true, errorMessages: [] };
+}
+
+function App() {
+  const [{ mode, state }, setParams] = useState(readParams);
+  const [ui, setUi] = useState(() => initialFlow(mode, state));
+  const [loading, setLoading] = useState(false);
+  const [loaderTitle, setLoaderTitle] = useState('Processing...');
+  const [toastMsg, setToastMsg] = useState('');
+  const timers = useRef([]);
+
+  const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.current.push(t); };
+  const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
+
+  const setMode = (m) => {
+    const p = new URLSearchParams(window.location.search);
+    p.set('mode', m);
+    p.set('state', state);
+    try { window.history.replaceState(null, '', `${window.location.pathname}?${p.toString()}`); } catch (e) {}
+    clearTimers();
+    setLoading(false);
+    setToastMsg('');
+    setParams({ mode: m, state });
+    setUi(initialFlow(m, state));
+  };
+
+  const flow = {
+    mode, loading, loaderTitle,
+    showWarningModal: ui.showWarningModal,
+    errorMessages: ui.errorMessages,
+    dismissErrors: () => setUi((u) => ({ ...u, errorMessages: [] })),
+    discard: () => setUi({ showWarningModal: false, errorMessages: [] }),
+    startUpdate: () => {
+      setUi({ showWarningModal: false, errorMessages: [] });
+      setLoaderTitle('Verifying...');
+      setLoading(true);
+      later(() => { setLoading(false); setUi({ showWarningModal: true, errorMessages: [] }); }, 1200);
+    },
+    upload: () => {
+      setUi({ showWarningModal: false, errorMessages: [] });
+      if (mode === 'after' && window.self !== window.top) {
+        try { parent.postMessage({ type: 'image-storage-nav', to: 'edge-rename-failed' }, '*'); } catch (e) {}
+      }
+      setLoaderTitle('Processing...');
+      setLoading(true);
+      later(() => {
+        setLoading(false);
+        if (mode === 'after') {
+          setUi({ showWarningModal: false, errorMessages: [FAILED_MESSAGE] });
+        } else {
+          setToastMsg('Instance uploaded successfully!');
+          later(() => setToastMsg(''), 2000);
+        }
+      }, 1200);
+    },
+  };
+
+  return (
+    <>
+      {toastMsg && (
+        <div className="rht-wrap">
+          <div className="rht-toast"><div className="rht-icon"></div><div className="rht-msg" role="status">{toastMsg}</div></div>
+        </div>
+      )}
+      <Sidebar />
+      <div className="relative h-full min-h-screen w-full overflow-x-auto bg-white transition-all duration-300 md:ml-[114px] md:w-[calc(100%-114px)]">
+        <div className="relative">
+          <Heading subcontent={<><ArrowRight /><span className="">Instance Details</span></>}>Instances</Heading>
+          <div className="px-5 pt-2">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <Filter label="All Instances" />
+              <div className="relative group inline-block">
+                <button type="button" className={`${BTN_PRIMARY_LG} flex justify-end gap-2  ${BTN_DISABLED}`}>Add Instance</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="relative px-5 pb-5">
+          <InstanceTable instances={INSTANCES} flow={flow} />
+        </div>
+      </div>
+      {!inFrame && (
+        <div className="proto-switch">
+          <button className={mode === 'today' ? 'on' : ''} onClick={() => setMode('today')}>Today</button>
+          <button className={mode === 'after' ? 'on' : ''} onClick={() => setMode('after')}>After</button>
+        </div>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
