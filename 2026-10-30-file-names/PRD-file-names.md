@@ -2,7 +2,7 @@
 
 **Prototype:** [Interactive workflow, Today vs After change](https://frinks-ai.github.io/frinks-PRDs/2026-10-30-file-names/prototype/)
 **Product:** Frinks Edge
-**Status:** Draft
+**Status:** Approved
 **Date:** 30 October 2026
 **Owner:** Akshat Sharma
 **Related:** Image Storage PRD and epic FP-4008 (Cycle ID as in FP-4014); PRDs Image Enhancement module (FP-3870), Captures with no inspection modules, Configuration only instance
@@ -317,6 +317,7 @@ Repos checked (30 Oct 2026): vip-inference-python @ 613995d (29 Oct), frinksedge
 ## Changelog
 - 30 Oct 2026 — Draft written: US1–US11, Q1 (Akshat Sharma)
 - 30 Oct 2026 — Duplicate pass: AC2.2 reworded (Date & time not draggable; fixed parts' × in US3); AC3.1 trimmed ('not offered in Add' is AC2.3); AC3.3 trimmed ('can be moved' is AC2.2); AC4.1 trimmed (one Custom text is AC2.4); AC6.2 now says 'every chosen module value that the image has' (AC5.12); AC6.3 (removed): covered by AC6.1, AC6.2; AC11.2 trimmed (old images opening in Reports is AC9.4); AC11.5 trimmed (old names kept is AC11.2) (Akshat Sharma)
+- 30 Oct 2026 — Approved; prototype hosted and Prototype links live; Q1 (name length) stays open with the tech team (Akshat Sharma)
 
 ## Checked, not affected
 - vision-access, vision-auto-annotation, vision-captures-cameras, vision-datasets-annotations, vision-instance-creation, vision-model-evaluation, vision-model-training, vision-projects, vision-recipe-tree, vision-training-sets-recommender, vision-variants: Edge-only change; module names and the module tree already arrive in the instance package, which does not change.
