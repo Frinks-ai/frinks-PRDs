@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>File Names — PRD prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet" />
+  <style>
+    :root { --primary: #ff4301; --dark: #1e1c1c; --line: #e5e7eb; --muted: #6b7280; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: 'Outfit', sans-serif; color: #000; background: #fff; -webkit-font-smoothing: antialiased; }
+    body { display: flex; flex-direction: column; overflow: hidden; }
+    button { font-family: inherit; }
+    .top { display: flex; align-items: center; gap: 16px; height: 48px; padding: 0 16px; background: var(--dark); color: #fff; flex-shrink: 0; }
+    .title { font-size: 15px; font-weight: 500; white-space: nowrap; }
+    .title b { color: var(--primary); font-weight: 600; }
+    .spacer { flex: 1; }
+    .seg { display: flex; padding: 2px; border-radius: 999px; background: rgba(255,255,255,.1); }
+    .seg button { border: 0; background: transparent; color: rgba(255,255,255,.75); font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 999px; cursor: pointer; }
+    .seg button.on { background: var(--primary); color: #fff; }
+    .navbtn { height: 30px; padding: 0 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .back { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.35); }
+    .next { background: var(--primary); color: #fff; border: 1px solid transparent; }
+    .navbtn:disabled { opacity: .35; cursor: not-allowed; }
+    .steps { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: #fff; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
+    .group { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); white-space: nowrap; padding-right: 4px; }
+    .step { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 10px 3px 3px; font-size: 12px; color: #374151; white-space: nowrap; cursor: pointer; }
+    .step:hover { border-color: #ffb497; }
+    .step .n { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: #f3f4f6; font-size: 11px; font-weight: 600; color: #4b5563; }
+    .step.on { border-color: var(--primary); background: #fff4ee; color: var(--primary); font-weight: 500; }
+    .step.on .n { background: var(--primary); color: #fff; }
+    .step.done .n { background: #ffe1d3; color: #b83000; }
+    iframe { flex: 1; width: 100%; border: 0; display: block; background: #fff; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <span class="title"><b>File Names</b> — PRD prototype</span>
+    <span class="spacer"></span>
+    <div class="seg" id="mode">
+      <button type="button" data-mode="today">Today</button>
+      <button type="button" data-mode="after">After change</button>
+    </div>
+    <button type="button" class="navbtn back" id="back">Back</button>
+    <button type="button" class="navbtn next" id="next">Next step</button>
+  </div>
+  <div class="steps" id="steps"><span class="group">Frinks Edge</span></div>
+  <iframe id="screen" title="Prototype screen"></iframe>
+<script>
+  var STEPS = [
+    { id: 'edge-file-names', label: 'File Names', file: 'file-names.html', state: 'table' },
+    { id: 'edge-edit-name', label: 'Edit a name', file: 'file-names.html', state: 'edit' },
+    { id: 'edge-add-part', label: 'Add a part', file: 'file-names.html', state: 'add' },
+    { id: 'edge-module-key', label: 'Module key', file: 'file-names.html', state: 'key' },
+    { id: 'edge-nesting', label: 'Search area nesting', file: 'file-names.html', state: 'preview-seal' },
+    { id: 'edge-custom-text', label: 'Custom text check', file: 'file-names.html', state: 'custom-error' },
+    { id: 'edge-save-confirm', label: 'Save confirmation', file: 'file-names.html', state: 'save-confirm' },
+    { id: 'edge-deployed', label: 'Deployed', file: 'file-names.html', state: 'deployed' },
+    { id: 'edge-unsaved', label: 'Unsaved changes', file: 'file-names.html', state: 'unsaved' }
+  ];
+  var MODE_KEY = 'file-names-prd-mode';
+  var frame = document.getElementById('screen');
+  var stepsEl = document.getElementById('steps');
+  var mode = 'after';
+  try { mode = new URLSearchParams(location.search).get('mode') || localStorage.getItem(MODE_KEY) || 'after'; } catch (e) {}
+  if (mode !== 'today') mode = 'after';
+
+  STEPS.forEach(function (s, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'step';
+    b.dataset.id = s.id;
+    b.innerHTML = '<span class="n">' + (i + 1) + '</span>' + s.label;
+    b.onclick = function () { go(s.id); };
+    stepsEl.appendChild(b);
+  });
+
+  function index() {
+    var id = (location.hash || '').replace('#', '');
+    var i = STEPS.findIndex(function (s) { return s.id === id; });
+    return i < 0 ? 0 : i;
+  }
+  function go(id) {
+    if (location.hash === '#' + id) render(); else location.hash = id;
+  }
+  function render() {
+    var i = index();
+    var s = STEPS[i];
+    var src = s.file + '?mode=' + mode + '&state=' + encodeURIComponent(s.state);
+    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
+    Array.prototype.forEach.call(stepsEl.querySelectorAll('.step'), function (b, k) {
+      b.classList.toggle('on', k === i);
+      b.classList.toggle('done', k < i);
+      if (k === i) b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#mode button'), function (b) {
+      b.classList.toggle('on', b.dataset.mode === mode);
+    });
+    document.getElementById('back').disabled = i === 0;
+    document.getElementById('next').disabled = i === STEPS.length - 1;
+  }
+  document.getElementById('back').onclick = function () { var i = index(); if (i > 0) go(STEPS[i - 1].id); };
+  document.getElementById('next').onclick = function () { var i = index(); if (i < STEPS.length - 1) go(STEPS[i + 1].id); };
+  Array.prototype.forEach.call(document.querySelectorAll('#mode button'), function (b) {
+    b.onclick = function () {
+      mode = b.dataset.mode;
+      try { localStorage.setItem(MODE_KEY, mode); } catch (e) {}
+      try {
+        var p = new URLSearchParams(location.search); p.set('mode', mode);
+        history.replaceState(null, '', location.pathname + '?' + p.toString() + location.hash);
+      } catch (e) {}
+      render();
+    };
+  });
+  window.addEventListener('hashchange', render);
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (d && d.type === 'file-names-nav' && STEPS.some(function (s) { return s.id === d.to; })) go(d.to);
+  });
+  if (!location.hash) { try { history.replaceState(null, '', location.pathname + location.search + '#' + STEPS[0].id); } catch (e) {} }
+  render();
+</script>
+</body>
+</html>
