@@ -206,6 +206,9 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC7.4** A saved tree reaches the line at the next deployment of that instance.
 - **AC7.5** Every cycle has its number from the moment it starts, before its first image is saved, so that image already goes into the cycle's Cycle ID folder.
 - **AC7.6** A saved image's full path is stored completely for Reports, whatever the depth of the tree.
+- **AC7.7** With Analysed Image on in Image Saving Configurations, the analysed image of every saved search area of the capture is saved, whatever levels the tree has. Leaving Search area out of the tree never stops search-area images being saved.
+- **AC7.8** When the tree has no Search area level, all of a capture's search-area images are saved together in the lowest folder above them (for example the Capture folder), inside its Pass and Fail folders when that split is on.
+- **AC7.9** Search-area images saved in the same folder never overwrite each other: each file name carries its search area (File Names PRD).
 
 ### US8 — Change the tree after images have been saved
 *As a plant admin, I want to change the tree without losing or moving old images, so that I can improve the layout at any time.*
@@ -342,11 +345,11 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **C15** — N/A: the owner ruled time, time zone and clock topics out of this PRD; date folders use the box's date as today's folders do.
 - **C16** — N/A: no licence, encryption or data leaving the box.
 
-**Coverage check:** pasted from the check script on 29 Oct 2026.
+**Coverage check:** pasted from the check script on 30 Oct 2026.
 
 **Result:** PASS, 4 warnings
 
-- 14 user stories (10 feature, 1 rules, 1 keeps working, 1 platform, 1 migration), 99 ACs, 16 touched parts, 1 discussion point.
+- 14 user stories (10 feature, 1 rules, 1 keeps working, 1 platform, 1 migration), 102 ACs, 16 touched parts, 1 discussion point.
 - Checklist: 15 items covered by stories, 3 N/A, 0 open.
 
 **Warnings**
@@ -376,6 +379,7 @@ Repos checked (28 Oct 2026): vip-inference-python @ 3af02b5 (27 Oct), frinksedge
 - 28 Oct 2026 — Duplicate pass: AC2.2, AC4.1, AC4.4, AC5.6, AC8.3, AC8.4, AC8.9, AC13.2, AC13.5, AC14.3 trimmed; AC8.6 rewritten as a reorder example; AC2.3, AC5.8, AC7.2, AC7.5, AC8.2 reworded to remove contradictions; AC13.6 level list completed (Akshat Sharma)
 - 29 Oct 2026 — Q1 decided: placement rules added as AC3.3–AC3.10 (Instance always first, Variant › Capture › Search area order, Search area needs Capture, Hour needs Day, Day and Hour free around product levels, Cycle ID below Day and Hour, product levels free around Cycle ID, each level once); AC3.1, AC3.2, AC4.3 reworded (Raw images never above Instance); AC2.3, AC12.2 now point at AC3.3–AC3.10; AC6.4 (removed): Hour always has Day above it; US3 renamed (Akshat Sharma)
 - 29 Oct 2026 — Prototype hosted in the PRD repo; Prototype links filled in; PRD published to the PRD repo as Draft (Akshat Sharma)
+- 30 Oct 2026 — AC7.7, AC7.8, AC7.9 added: with Analysed Image on, every search area's image is saved whatever the tree; with no Search area level they share the lowest folder (for example Capture), split into Pass and Fail when on, and their file names keep them apart (Akshat Sharma)
 
 ## Checked, not affected
 - vision-access, vision-auto-annotation, vision-captures-cameras, vision-datasets-annotations, vision-instance-creation, vision-model-evaluation, vision-model-training, vision-projects, vision-recipe-tree, vision-training-sets-recommender, vision-variants: Edge-only change; names and ids already arrive in the instance package, which does not change.
