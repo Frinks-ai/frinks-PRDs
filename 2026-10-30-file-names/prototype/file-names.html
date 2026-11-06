@@ -796,7 +796,7 @@ const Tag = ({ children }) => <span className="shrink-0 rounded bg-gray-100 px-1
 const Chevron = () => <span className="text-gray-400"><Icon d={ICONS.chevron} size={14} /></span>;
 
 /** Keys of one module, as listed by the Edge key store (per image values only). */
-const KeyPicker = ({ mod, value, onPick, onBack, backLabel, cols = 'grid-cols-3', initialSub = null }) => {
+const KeyPicker = ({ mod, value, used = [], onPick, onBack, backLabel, cols = 'grid-cols-3', initialSub = null }) => {
   const keys = KEYS.filter((x) => x.modId === mod.id);
   const [sub, setSub] = useState(KEY_BY_ALIAS[value]?.sub || initialSub);
   const subs = [...new Set(keys.filter((x) => x.sub).map((x) => x.sub))];
@@ -808,16 +808,20 @@ const KeyPicker = ({ mod, value, onPick, onBack, backLabel, cols = 'grid-cols-3'
         <>
           <MenuHead>{sub ? `${mod.name} → ${sub} → choose a key` : `${mod.name} → choose a key`}</MenuHead>
           <div className={`grid gap-1.5 px-1 ${cols}`}>
-            {top.map((x) => (
-              <button key={x.alias} type="button" onClick={() => onPick(x)}
-                className={`flex min-w-0 flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left transition-colors hover:border-f-primary hover:bg-[#fffaf7] ${value === x.alias ? 'border-f-primary bg-[#fff8f5]' : 'border-gray-200'}`}>
-                <span className={`w-full truncate font-mono text-xs ${value === x.alias ? 'text-f-primary' : 'text-black'}`}>{x.keyName}</span>
-                <span className="flex w-full items-center gap-1.5">
-                  <span className="truncate font-mono text-[11px] text-gray-400">{x.sample}</span>
-                  <span className="ml-auto shrink-0 rounded bg-gray-100 px-1 text-[10px] text-gray-500">{DTYPE_LABEL[x.dtype]}</span>
-                </span>
-              </button>
-            ))}
+            {top.map((x) => {
+              // Only a key already in the name is blocked; the chip's own key stays highlighted
+              const added = x.alias !== value && used.includes(x.alias);
+              return (
+                <button key={x.alias} type="button" disabled={added} onClick={() => onPick(x)}
+                  className={`flex min-w-0 flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left transition-colors hover:border-f-primary hover:bg-[#fffaf7] disabled:border-gray-100 disabled:bg-gray-50 ${value === x.alias ? 'border-f-primary bg-[#fff8f5]' : 'border-gray-200'}`}>
+                  <span className={`w-full truncate font-mono text-xs ${added ? 'text-gray-300' : value === x.alias ? 'text-f-primary' : 'text-black'}`}>{x.keyName}</span>
+                  <span className="flex w-full items-center gap-1.5">
+                    <span className={`truncate font-mono text-[11px] ${added ? 'text-gray-300' : 'text-gray-400'}`}>{x.sample}</span>
+                    {added ? <span className="ml-auto"><Tag>Added</Tag></span> : <span className="ml-auto shrink-0 rounded bg-gray-100 px-1 text-[10px] text-gray-500">{DTYPE_LABEL[x.dtype]}</span>}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </>
       )}
@@ -858,7 +862,7 @@ const NameBuilder = ({ cap, parts, onChange, init = {} }) => {
   const setParts = (next) => onChange(next);
   const setPart = (i, patch) => setParts(parts.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const usedType = (t) => parts.some((p) => p.type === t);
-  const usedModule = (m) => parts.some((p) => p.type === 'key' && KEY_BY_ALIAS[p.key]?.modId === m.id);
+  const usedKeys = parts.filter((p) => p.type === 'key').map((p) => p.key);
   const add = (part) => { setParts([...parts, part]); setAdding(false); setAddStep(null); };
   const modules = cap.modules.filter(hasKeys);
   const types = MOD_TYPES.filter(([t]) => modules.some((m) => m.type === t));
@@ -925,7 +929,7 @@ const NameBuilder = ({ cap, parts, onChange, init = {} }) => {
               )}
               {keyMenu === i && mod && (
                 <div className="pop-in absolute left-0 top-full z-30 mt-1 w-[560px] max-w-[85vw] rounded-lg border border-gray-200 bg-white p-3 text-black shadow-xl" onMouseDown={(e) => e.stopPropagation()} draggable={false} onDragStart={(e) => e.preventDefault()}>
-                  <KeyPicker cols="grid-cols-2" mod={mod} value={p.key} onPick={(nk) => { setPart(i, { key: nk.alias }); setKeyMenu(null); }} />
+                  <KeyPicker cols="grid-cols-2" mod={mod} value={p.key} used={usedKeys} onPick={(nk) => { setPart(i, { key: nk.alias }); setKeyMenu(null); }} />
                 </div>
               )}
             </span>
@@ -945,7 +949,7 @@ const NameBuilder = ({ cap, parts, onChange, init = {} }) => {
           {adding && (
             <div className="pop-in absolute left-0 right-0 top-full z-30 mt-1 max-h-[75vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 shadow-xl">
               {addStep?.mod ? (
-                <KeyPicker mod={addStep.mod} onPick={(x) => add({ type: 'key', key: x.alias })}
+                <KeyPicker mod={addStep.mod} used={usedKeys} onPick={(x) => add({ type: 'key', key: x.alias })}
                   onBack={() => setAddStep({ type: addStep.type })} backLabel={TYPE_LABEL[addStep.type]} initialSub={addStep.sub || null} />
               ) : addStep ? (
                 <>
@@ -953,9 +957,9 @@ const NameBuilder = ({ cap, parts, onChange, init = {} }) => {
                   <MenuHead>{TYPE_LABEL[addStep.type]} → choose a module</MenuHead>
                   <div className="grid grid-cols-3 gap-1.5 px-1">
                     {modules.filter((m) => m.type === addStep.type).map((m) => (
-                      <button key={m.id} type="button" disabled={usedModule(m)} onClick={() => setAddStep({ type: m.type, mod: m })}
-                        className="flex items-center justify-between rounded-md border border-gray-200 px-2.5 py-1.5 text-left text-sm transition-colors hover:border-f-primary hover:bg-[#fffaf7] disabled:border-gray-100 disabled:bg-gray-50 disabled:text-gray-300">
-                        <span className="truncate">{m.name}</span>{usedModule(m) ? <Tag>Added</Tag> : <Chevron />}
+                      <button key={m.id} type="button" onClick={() => setAddStep({ type: m.type, mod: m })}
+                        className="flex items-center justify-between rounded-md border border-gray-200 px-2.5 py-1.5 text-left text-sm transition-colors hover:border-f-primary hover:bg-[#fffaf7]">
+                        <span className="truncate">{m.name}</span><Chevron />
                       </button>
                     ))}
                   </div>
@@ -1074,7 +1078,7 @@ const presetOf = (state, store) => {
   switch (state) {
     case 'edit': return { ...base, editing: c1.id };
     case 'add': return { ...base, editing: c1.id, init: { adding: true } };
-    case 'key': return { ...base, editing: c1.id, init: { adding: true, addStep: { type: 'OCR', mod: MODULE_BY_ID.m2 } } };
+    case 'key': return { ...base, editing: c1.id, names: withCap1({ type: 'key', key: key('m2', 'detected_text') }), init: { adding: true, addStep: { type: 'OCR', mod: MODULE_BY_ID.m2 } } };
     case 'preview-seal': return { ...base, editing: c1.id, names: withCap1({ type: 'key', key: key('m7', 'current_count', 'Screw') }), init: { image: 'Label' } };
     case 'custom-error': return { ...base, editing: c1.id, names: { ...names, [c1.id]: [...(names[c1.id] || DEFAULT_PARTS).filter((p) => p.type !== 'text'), { type: 'text', text: '.Line 3' }] } };
     case 'save-confirm': return anyChanged ? { ...base, modal: true } : {

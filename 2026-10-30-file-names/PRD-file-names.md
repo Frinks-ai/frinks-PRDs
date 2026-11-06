@@ -2,7 +2,7 @@
 
 **Prototype:** [Interactive workflow, Today vs After change](https://frinks-ai.github.io/frinks-PRDs/2026-10-30-file-names/prototype/)
 **Product:** Frinks Edge
-**Status:** Approved
+**Status:** In review
 **Date:** 30 October 2026
 **Owner:** Akshat Sharma
 **Related:** Image Storage PRD and epic FP-4008 (Cycle ID as in FP-4014); PRDs Image Enhancement module (FP-3870), Captures with no inspection modules, Configuration only instance
@@ -170,7 +170,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC5.1** Module types in Add lists only the types of this capture's modules that have values. Tracker, Masking, Edge Refinement and Orientator modules are never listed.
 - **AC5.2** Picking a type lists that type's modules in the capture. Picking a module lists its keys; for OCR labels, ODC classes, colours, beads and shapes, a level in between lists those first.
 - **AC5.3** Each key shows its name, a sample value and its type (text, number or true / false).
-- **AC5.4** A name can hold one key per module. A module already in the name is greyed with an "Added" tag.
+- **AC5.4** A name can hold several keys of one module. Only a key already in the name, for that label, class, colour, bead or shape, is greyed with an "Added" tag; the module and its other keys stay selectable.
 - **AC5.5** A module value chip reads "<module> → <key>" with a ▾. Clicking the key reopens that module's key list to pick another key.
 - **AC5.6** Running totals are not offered: pass_count, fail_count, count_till_now and every per-label, class, colour and bead pass or fail count.
 - **AC5.7** Values of the image itself are offered, including counts in the image such as current_count.
@@ -179,7 +179,7 @@ The parts this changes. Parts checked and not affected are listed at the very en
 - **AC5.10** A number value is written exactly as the inspection returns it.
 - **AC5.11** A search area's image carries a chosen module's value only when that module is below that search area. For a search area in another branch, that part and its "_" are left out.
 - **AC5.12** When a module has no value for an image (nothing read, shape not found), that part and its "_" are left out.
-- **AC5.13** When an instance update removes a module from a capture, that module's value is removed from the capture's name without a message, and Save is not blocked.
+- **AC5.13** When an instance update removes a module from a capture, that module's values are removed from the capture's name without a message, and Save is not blocked.
 
 ### US6 — Images are saved with the capture's name
 *As an engineer, I want every saved image named the way its capture is set, so that the files on disk match the File Names page.*
@@ -318,6 +318,7 @@ Repos checked (30 Oct 2026): vip-inference-python @ 613995d (29 Oct), frinksedge
 - 30 Oct 2026 — Draft written: US1–US11, Q1 (Akshat Sharma)
 - 30 Oct 2026 — Duplicate pass: AC2.2 reworded (Date & time not draggable; fixed parts' × in US3); AC3.1 trimmed ('not offered in Add' is AC2.3); AC3.3 trimmed ('can be moved' is AC2.2); AC4.1 trimmed (one Custom text is AC2.4); AC6.2 now says 'every chosen module value that the image has' (AC5.12); AC6.3 (removed): covered by AC6.1, AC6.2; AC11.2 trimmed (old images opening in Reports is AC9.4); AC11.5 trimmed (old names kept is AC11.2) (Akshat Sharma)
 - 30 Oct 2026 — Approved; prototype hosted and Prototype links live; Q1 (name length) stays open with the tech team (Akshat Sharma)
+- 6 Nov 2026 — AC5.4: one key per module changed to several keys of one module, with only a key already in the name greyed "Added"; AC5.13: a removed module's values (plural) are removed; prototype key lists updated; back to In review (Akshat Sharma)
 
 ## Checked, not affected
 - vision-access, vision-auto-annotation, vision-captures-cameras, vision-datasets-annotations, vision-instance-creation, vision-model-evaluation, vision-model-training, vision-projects, vision-recipe-tree, vision-training-sets-recommender, vision-variants: Edge-only change; module names and the module tree already arrive in the instance package, which does not change.
