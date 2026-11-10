@@ -130,11 +130,9 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 
 /* Locked threshold cell (model-tied setting, no model yet) */
 .lockw{position:relative;display:block;width:100%}
-.lockw input{pointer-events:none;background:#f3f4f6;color:#9ca3af;cursor:not-allowed;padding-right:30px}
-.lockw .lk{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none}
+.lockw input{pointer-events:none;background:#f3f4f6;color:#9ca3af;cursor:not-allowed}
 .lockw.xs{width:96px}
 .lock-hint{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:12px;line-height:16px;font-weight:400;color:#6b7280;text-transform:none;letter-spacing:0;vertical-align:middle}
-.lock-hint svg{color:#9ca3af}
 
 /* Sections (sections/*.jsx) */
 .sec{display:flex;flex-direction:column;gap:16px}
@@ -490,7 +488,6 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   var TICK = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M16.3333 3.86162C16.0907 3.61904 15.7134 3.61904 15.4708 3.86162L6.30674 12.7562L1.77862 8.30889C1.53604 8.06631 1.15869 8.09326 0.916115 8.30889C0.673537 8.55146 0.70049 8.92881 0.916115 9.17139L5.68682 13.8073C5.84854 13.969 6.06416 14.0499 6.30674 14.0499C6.54932 14.0499 6.73799 13.969 6.92666 13.8073L16.3333 4.67021C16.5759 4.48154 16.5759 4.1042 16.3333 3.86162Z" fill="currentColor"/></svg>';
   function feather(inner, size, extra) { return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + (extra || '') + '>' + inner + '</svg>'; }
   var I_INFO = function (s) { return feather('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>', s || 14); };
-  var I_LOCK = function (s) { return feather('<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>', s || 14, ' class="lk" aria-hidden="true"'); };
   var I_EDIT = feather('<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>', 13);
   var I_EYE = feather('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>', 16);
   var I_EYEOFF = feather('<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>', 16);
@@ -508,10 +505,10 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     return '<span class="tip" data-tt="' + esc(tip) + '"><span class="tip-i white" role="button" tabindex="0" aria-label="' + esc(tip) + '"><svg stroke="currentColor" fill="none" stroke-width="2.25" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="16" width="16"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span></span>';
   }
   function infoGrey(tip) { return '<span class="ic-g" data-tt="' + esc(tip) + '">' + I_INFO(14) + '</span>'; }
-  function lockHint() { return '<span class="lock-hint">' + I_LOCK(12).replace(' class="lk"', '') + LOCK_TIP + '</span>'; }
+  function lockHint() { return '<span class="lock-hint">' + LOCK_TIP + '</span>'; }
   function lockedInput(cls, extra) {
     return '<span class="lockw' + (extra || '') + '" data-tt="' + LOCK_TIP + '" data-tt-pos="bottom" tabindex="0" aria-label="' + LOCK_TIP + '">' +
-      '<input type="number" class="' + cls + '" disabled tabindex="-1">' + I_LOCK(14) + '</span>';
+      '<input type="number" class="' + cls + '" disabled tabindex="-1"></span>';
   }
 
   // ---------- SelectInput (shared/ui/SelectInput.jsx) ----------
@@ -1201,7 +1198,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     var a = e.target.closest('[data-act]');
     if (!a || a.disabled) return;
     var act = a.getAttribute('data-act'), b = cur && cur.beads ? activeBead() : null;
-    if (act === 'godeploy') { e.preventDefault(); nav('edge-deploy'); return; }
+    if (act === 'godeploy') { e.preventDefault(); nav('edge-inference-instances'); return; }
     if (act === 'banner-x') { bead.banner = false; render(); return; }
     if (act === 'eye') { bead.showWidth = !bead.showWidth; refreshBead(); return; }
     if (act === 'boxes') { bead.showBoxes = !bead.showBoxes; refreshBead(); return; }
@@ -1254,7 +1251,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     render();
     toast('Changes saved');
     toast('Module Configuration updated and deployment reloaded.');
-    setTimeout(function () { nav(modelsParam === 'some' ? 'edge-test-some' : 'edge-deploy'); }, 1200);
+    setTimeout(function () { nav(modelsParam === 'some' ? 'edge-test-some' : 'edge-image-saving'); }, 1200);
   }
 
   // ---------- Modals ----------

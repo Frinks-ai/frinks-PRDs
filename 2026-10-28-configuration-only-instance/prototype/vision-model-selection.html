@@ -735,7 +735,8 @@ sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline;top:-.
   var STEPS = ['Basic', 'Add Camera Details', 'Recipe', 'Model Selection', 'Finish'];   // instanceWizard.getInstanceTimeline(false)
   var wizardOpen = false, wzEdit = false, step = 1, picks = {}, collapsed = {}, selectedCaps = { cc1: true, cc2: true };
   /* GET /model: which slots have a trained model at this stage */
-  var TRAINED = state === 'edit' ? ALL_KEYS.slice() : state === 'edit-some' ? FIRST.slice() : [];
+  // create-some: a new instance where only Part Presence and Label Text have trained models yet
+  var TRAINED = state === 'edit' ? ALL_KEYS.slice() : state === 'edit-some' || state === 'create-some' ? FIRST.slice() : [];
   function isTrained(k){ return TRAINED.indexOf(k) >= 0; }
   function pickedCount(){ return ALL_SLOTS.filter(function(s){ return picks[s.key]; }).length; }
   function allPicked(){ return ALL_SLOTS.every(function(s){ return picks[s.key]; }); }
@@ -956,7 +957,7 @@ sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline;top:-.
 
   function afterFinish(wasEdit, some){
     var to = null;
-    if (!wasEdit) to = 'vision-instances';
+    if (!wasEdit) to = state === 'create-some' ? null : 'vision-instances';   // create-some: the table updates in place
     else if (OURS.status === 'completed') { writeState({ modelsSelected: true }); to = 'vision-download-models'; }
     else if (state === 'edit-some' && some) { writeState({ someSelected: true }); to = 'vision-download-some'; }
     if (to) setTimeout(function(){ nav(to); }, 1500);
@@ -1095,7 +1096,9 @@ sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline;top:-.
         openWizard(true, 4);
         if (state === 'edit' || pickedAll) { var mb = document.querySelector('#stepHost .ms-body'); if (mb) mb.scrollTop = mb.scrollHeight; }   // Top View in view
       } else {
+        if (state === 'create-some') FIRST.forEach(function(k){ picks[k] = true; });   // models picked for the modules that have one
         openWizard(false, 4);
+        if (state === 'create-some') { var cb = document.querySelector('#stepHost .ms-body'); if (cb) cb.scrollTop = cb.scrollHeight; }   // Top View (no models yet) in view
       }
     } else if (openParam === 'download') {
       openDownload(OURS, state === 'completed' ? 'selective' : 'complete', true);

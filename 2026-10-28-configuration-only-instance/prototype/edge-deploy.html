@@ -79,14 +79,27 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .bg-status{position:fixed;top:16px;right:16px;z-index:999;display:flex;align-items:center;gap:8px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;padding:8px 16px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1)}
 .bg-status .s{width:16px;height:16px;border-radius:9999px;border:2px solid #d1d5db;border-top-color:#ff4301;animation:spin 1s linear infinite}
 .bg-status span{font-size:14px;line-height:20px;font-weight:500}
-/* Models Remaining tag (pill style of AnalysedImageConfigurations.jsx:410, amber tone of dimension-configuration/formFields.jsx:113) */
-.tag-mr{display:inline-flex;align-items:center;border-radius:9999px;border:1px solid #fde68a;background:#fef3c7;padding:2px 8px;font-size:12px;line-height:16px;font-weight:500;color:#92400e;white-space:nowrap}
+/* Model Status chip (pill style of AnalysedImageConfigurations.jsx:410; green/yellow/grey/red Tailwind tones) */
+.mchip{display:inline-flex;align-items:center;border-radius:9999px;border:1px solid;padding:2px 8px;font-size:11px;line-height:16px;font-weight:500;white-space:nowrap}
+.mchip.all{border-color:#bbf7d0;background:#f0fdf4;color:#15803d}
+.mchip.some{border-color:#fef08a;background:#fefce8;color:#a16207}
+.mchip.none{border-color:#e5e7eb;background:#f3f4f6;color:#6b7280}
+.mchip.bad{border-color:#fecaca;background:#fef2f2;color:#b91c1c}
+/* "Only Capture" tag next to a running instance's name (grey pill) */
+.tag-oc{display:inline-flex;align-items:center;border-radius:9999px;border:1px solid #e5e7eb;background:#f3f4f6;padding:2px 8px;font-size:12px;line-height:16px;font-weight:500;color:#4b5563;white-space:nowrap}
 .ml2{margin-left:8px}
 .wrap .td-in{flex-wrap:wrap;gap:4px}
 .wrap .td-in .fw5{white-space:nowrap}
 .wrap .td-in .ml2{margin-left:0}
 .run-tag{margin-left:8px;font-size:12px;line-height:16px;color:#16a34a;font-weight:500}
-
+/* Greyed row in the drawer (bg-gray-100 + grey text, as InstanceTable.jsx:399) */
+.tbl tbody tr.off,.tbl tbody tr.off:hover{background:#f3f4f6;cursor:not-allowed}
+.tbl tbody tr.off td{color:#9ca3af}
+/* Radio dot (shared/ui/Radio.jsx) */
+.rd{width:24px;height:24px;border-radius:9999px;display:flex;align-items:center;justify-content:center;border:1px solid #ccc;color:#fff;cursor:pointer;filter:drop-shadow(0 1px 1px rgb(0 0 0/.05))}
+.rd:hover{filter:drop-shadow(0 20px 13px rgb(0 0 0/.03)) drop-shadow(0 8px 5px rgb(0 0 0/.08))}
+.rd i{width:8px;height:8px;border-radius:9999px;background:#fff}
+.rd.on{background:#ff4301}
 /* Button (shared/ui/Button.jsx) */
 .b{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;height:fit-content;cursor:pointer;border:1px solid transparent;box-shadow:0 1px rgb(0 0 0/.05)}
 .b-pri{background:#ff4301;color:#fff}
@@ -125,6 +138,8 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 /* Drawer (shared/ui/Drawer.jsx) + CreateDeployment.jsx */
 .dr-bd{position:fixed;left:0;top:0;z-index:101;display:flex;height:100%;width:100%;background:rgb(180 182 184/.5)}
 .dr{position:fixed;top:0;right:0;z-index:102;height:100%;width:100%;max-width:56rem;background:#fff}
+/* After change: wider drawer so the extra Deployment Type column fits */
+.dr.wide{max-width:68rem}
 .dr-h{display:flex;justify-content:space-between;border:1px solid #e5e7eb;padding:12px 16px 8px;font-size:18px;line-height:28px;font-weight:600}
 .dr-h svg{cursor:pointer}
 .dr-b{overflow-y:auto;padding:16px;height:calc(100vh - 130px)}
@@ -145,6 +160,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .cap-blk+.cap-blk{margin-top:32px}
 .cap-h{display:flex;align-items:center;justify-content:space-between;background:#f9fafb;padding:12px 16px;border-bottom:1px solid #e5e7eb}
 .cap-h span{font-weight:600;color:#1f2937}
+.cap-h .mchip{font-weight:500}
 .set-w{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background:#fff}
 .ct{display:flex;align-items:center;justify-content:center;gap:8px}
 .ct span{font-size:14px;line-height:20px;font-weight:500;color:#1f2937}
@@ -349,55 +365,101 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   'use strict';
 
   // ---------- Prototype params ----------
-  // ?state=no-models|some-models|ready (some-models behaves as no-models here: deploy needs every model)  ?mode=today|after (default after)
-  // ?open=create (header "Deploy Instances" drawer) | deploy (Line 3 row "Deploy" drawer) | failed | deployed (end results)
-  // ?tip=1 shows the "Add models to deploy" bubble (row button, or the checkbox in the open drawer)
+  // ?mode=today|after (default after)
+  // ?stage=none|some|all (default none)  Line 3 Assembly's models: none = No models; some = 2 of 4 (Top View lacks Seal Bead and Surface Check); all = All models present
+  //   Line 5 Assembly is always 3 of 5 (own recipe with a fifth module, Connector Check)
+  // ?open=create                         "Deploy Instances" drawer (After: each instance has a Deployment Type)
+  // ?open=deploy&target=line-N           that row's "Deploy" drawer
+  // ?open=view                           the first running instance's "View" drawer
+  // ?step=instance-details|capture-type|instance-settings  the drawer opens at that step
+  // ?state=deployed                       page after deploying (instances from the shared state are Running; older links deployed-inference|deployed-capture)
+  // ?state=no-models (older links) = ?open=create&kind=inference;  ?state=ready = stage all, create drawer at Instance Details
+  // ?open=failed (Today) Line 3 Assembly failed to deploy without its models
+  // ?tip=1 shows the first locked Deployment Type cell's tooltip (After) or the first greyed row's checkbox tooltip
   var qs = new URLSearchParams(location.search);
   var mode = qs.get('mode') === 'today' ? 'today' : 'after';
-  var rawState = qs.get('state') === 'ready' || qs.get('state') === 'some-models' ? qs.get('state') : 'no-models';
-  var state = rawState === 'ready' ? 'ready' : 'no-models';
-  var open = qs.get('open') || '';
+  var after = mode === 'after';
+  var state = qs.get('state') || '';
+  var legacy = state === 'no-models' || state === 'ready' || state === 'some-models';
+  var stage = /^(none|some|all)$/.test(qs.get('stage') || '') ? qs.get('stage') : state === 'ready' ? 'all' : state === 'some-models' ? 'some' : 'none';
+  var open = qs.get('open') || (legacy ? 'create' : '');
+  var targetParam = qs.get('target') || (legacy ? 'line-3' : '');
+  var stepParam = qs.get('step') || (state === 'ready' ? 'instance-details' : '');
   var forceTip = qs.get('tip') === '1';
-  var inShell = window.self !== window.top;
-
-  var noModels = state === 'no-models';
-  var blocked = noModels && mode === 'after';
-  var BLOCK_REASON = 'Add models to deploy';
+  var inShell = false;
+  try { inShell = window.self !== window.top; } catch (e) { inShell = true; }
 
   // ---------- Shared prototype state (localStorage "cfgonly-state") ----------
   var KEY = 'cfgonly-state';
-  var DEFAULTS = { instanceName: 'Line 3 Assembly', instanceId: 'ab677d65-aa67-4bd2-a967-7a3fa86778ac', edgeVersion: null,
-    configDownloaded: false, configUploaded: false, modelsSelected: false,
-    modelsDownloaded: false, modelsUploaded: false };
-  function readState() {
-    var st = {};
-    try { st = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { st = {}; }
-    var out = {};
-    Object.keys(DEFAULTS).forEach(function (k) { out[k] = st[k] !== undefined && st[k] !== null && st[k] !== '' ? st[k] : DEFAULTS[k]; });
+  var DEFAULTS = {
+    instanceName: 'Line 3 Assembly', instanceId: 'ab677d65-aa67-4bd2-a967-7a3fa86778ac',
+    inference: { selected: ['line-2', 'line-6'], loadingMode: { 'line-2': 0 } },
+    capture: { selected: ['line-3'] }
+  };
+  function readRaw() {
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+    return saved && typeof saved === 'object' ? saved : {};
+  }
+  function readShared() {
+    var saved = readRaw(), out = Object.assign({}, DEFAULTS);
+    Object.keys(saved).forEach(function (k) { if (saved[k] !== undefined && saved[k] !== null && saved[k] !== '') out[k] = saved[k]; });
+    if (typeof out.instanceName !== 'string' || !out.instanceName) out.instanceName = DEFAULTS.instanceName;
+    if (typeof out.instanceId !== 'string' || !out.instanceId) out.instanceId = DEFAULTS.instanceId;
     return out;
   }
-  function nav(to) {
+  function writeShared(change) {
+    var next = Object.assign(readRaw(), change);
+    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) { /* ignore */ }
+  }
+  function goToStep(id) {
     if (!inShell) return false;
-    try { window.parent.postMessage({ type: 'cfgonly-nav', to: to }, '*'); } catch (e) { /* ignore */ }
+    try { window.parent.postMessage({ type: 'cfgonly-nav', to: id }, '*'); } catch (e) { /* ignore */ }
     return true;
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   // ---------- Instances on this Edge (GET /instance/list + /deployment/status) ----------
-  // Line 2 Assembly is already running; ours is the second row. The default dashboard is named after the instance.
-  var L2 = { id: 'line-2', name: 'Line 2 Assembly', activeDashboard: 'Line 2 Assembly', plcName: 'PLC 1',
-    status: 'running', loadingMode: 0, cycleTime: 2, screen: 'Screen 1', variant: 'Variant A' };
-  var L3 = { id: 'ours', name: '', activeDashboard: '', plcName: 'PLC 1', status: 'stopped', loadingMode: null, cycleTime: null, screen: null, variant: 'Variant A' };
-  function syncNames() { var S = readState(); L3.name = S.instanceName; L3.activeDashboard = S.instanceName; L3.instanceId = S.instanceId; }
+  // All four stopped. Default dashboards are named after the instance.
+  // models: all | some | none | bad (Incorrect models). missing: model-needing modules without a model.
+  // needsModel false = captures with only master images / Search Areas.
+  var CAPTURES = [
+    { variant: 'Variant A', capture: 'Front View', type: 'Hardware Trigger', event: 'Line 0', modules: ['Part Presence', 'Label Text'] },
+    { variant: 'Variant A', capture: 'Top View', type: 'Hardware Trigger', event: 'Line 1', modules: ['Seal Bead', 'Surface Check'] }
+  ];
+  var ALL_MODULES = ['Part Presence', 'Label Text', 'Seal Bead', 'Surface Check'];
+  function mk(n, models, missing, needsModel, total) {
+    return { id: 'line-' + n, name: 'Line ' + n + ' Assembly', activeDashboard: 'Line ' + n + ' Assembly', plcName: 'PLC 1',
+      status: 'stopped', kind: null, loadingMode: null, cycleTime: null, screen: null, variant: 'Variant A',
+      models: models, missing: missing, needsModel: needsModel !== false, total: total || ALL_MODULES.length };
+  }
+  var L3_MODELS = { none: ['none', ALL_MODULES], some: ['some', ['Seal Bead', 'Surface Check']], all: ['all', []] }[stage];
+  // Line 5 only exists after the change (today an upload with empty model slots is blocked).
+  var INSTANCES = [mk(2, 'all', []), mk(3, L3_MODELS[0], L3_MODELS[1]), mk(4, 'bad', ALL_MODULES)]
+    .concat(after ? [mk(5, 'some', ['Seal Bead', 'Surface Check'], true, 5)] : [], [mk(6, 'all', [], false)]);
+  var L3 = INSTANCES[1];
+  function syncNames() { var S = readShared(); L3.name = S.instanceName; L3.activeDashboard = S.instanceName; L3.instanceId = S.instanceId; }
   syncNames();
-  function list() { return [L2, L3]; }
-  function isBlocked(inst) { return inst === L3 && blocked; }
+  function list() { return INSTANCES; }
   var LM = { 0: 'Instance level', 1: 'Variant level', 2: 'Capture group level', 3: 'Capture level' };
   var LOADING_MODES = [{ id: 0, name: 'Instance level' }, { id: 1, name: 'Variant level' }, { id: 3, name: 'Capture level' }];
-  var CAPTURES = [
-    { variant: 'Variant A', capture: 'Front View', type: 'Hardware Trigger', event: 'Line 0' },
-    { variant: 'Variant A', capture: 'Top View', type: 'Hardware Trigger', event: 'Line 1' }
-  ];
+  var KIND_LABEL = { inference: 'Inferencing', capture: 'Only Capture' };
+  var TYPES = [{ id: 'inference', name: KIND_LABEL.inference }, { id: 'capture', name: KIND_LABEL.capture }];
+  // Inferencing needs every model: instances without all models present are fixed to Only Capture.
+  var NO_INFERENCE = {
+    some: 'Inferencing needs all models. Not all models are present on this instance.',
+    none: 'Inferencing needs all models. No models on this instance.',
+    bad: 'Inferencing needs all models. Incorrect models on this instance.'
+  };
+  function canInfer(inst) { return inst.models === 'all'; }
+  // Today: the deploy check skips empty model slots, so an instance that still lacks models starts and then fails.
+  function missingToday(inst) { return inst.needsModel && (inst.models === 'none' || inst.models === 'some'); }
+  function chip(inst) {
+    var m = inst.models;
+    if (!inst.needsModel) return '<span class="mchip all">No models required</span>';
+    var label = m === 'all' ? 'All models present' : m === 'some' ? (inst.total - inst.missing.length) + ' of ' + inst.total + ' models present' : m === 'none' ? 'No models' : 'Incorrect models';
+    return '<span class="mchip ' + m + '">' + esc(label) + '</span>';
+  }
 
   // ---------- Icons ----------
   var INFO16 = '<svg stroke="currentColor" fill="none" stroke-width="2.25" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
@@ -410,7 +472,6 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   var CLOSE25 = '<svg width="25" height="25" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 8L8 24M8 8L24 24" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var UPDOWN = '<svg width="16" height="24" viewBox="0 0 16 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:20px;width:20px"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 5.29297L11.8545 9.14597L11.1475 9.85397L8.00048 6.70697L4.85448 9.85397L4.14648 9.14597L8.00048 5.29297Z" fill="#acacac"/><path fill-rule="evenodd" clip-rule="evenodd" d="M8.00048 18.707L11.8545 14.854L11.1475 14.146L8.00048 17.293L4.85448 14.146L4.14648 14.854L8.00048 18.707Z" fill="#acacac"/></svg>';
   var TICK = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:20px;width:20px"><path d="M16.3333 3.86162C16.0907 3.61904 15.7134 3.61904 15.4708 3.86162L6.30674 12.7562L1.77862 8.30889C1.53604 8.06631 1.15869 8.09326 0.916115 8.30889C0.673537 8.55146 0.70049 8.92881 0.916115 9.17139L5.68682 13.8073C5.84854 13.969 6.06416 14.0499 6.30674 14.0499C6.54932 14.0499 6.73799 13.969 6.92666 13.8073L16.3333 4.67021C16.5759 4.48154 16.5759 4.1042 16.3333 3.86162Z" fill="currentColor"/></svg>';
-
   // ---------- Tooltip (shared/components/Tooltip.jsx) ----------
   var tipEl = null, tipTimer = null, tipOwner = null;
   function showTip(owner) {
@@ -472,7 +533,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     opts = opts || {};
     var inner = '<table' + (opts.fixed ? ' style="table-layout:fixed"' : '') + '><colgroup>' + headers.map(function () { return '<col>'; }).join('') + '</colgroup>' +
       '<thead><tr>' + headers.map(th).join('') + '</tr></thead><tbody>' + body + '</tbody></table>';
-    return '<div class="tbl" data-cols="' + headers.length + '" data-last="' + (opts.last || 0) + '">' +
+    return '<div class="tbl" data-cols="' + headers.length + '" data-last="' + (opts.last || 0) + '"' + (opts.widths ? ' data-w="' + opts.widths.join(',') + '"' : '') + '>' +
       (opts.noScrollX ? '<div>' + inner + '</div>' : '<div style="width:max-content;min-width:100%">' + inner + '</div>') + '</div>';
   }
   function td(inner, attrs) { return '<td' + (attrs || '') + '><div class="td-in">' + inner + '</div></td>'; }
@@ -480,6 +541,13 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     document.querySelectorAll('.tbl[data-cols]').forEach(function (ref) {
       var n = Number(ref.getAttribute('data-cols')), w = ref.offsetWidth, last = Number(ref.getAttribute('data-last')) || 0;
       var cols = ref.querySelectorAll('col');
+      if (ref.getAttribute('data-w')) {
+        // Content-sized columns, spread over the spare width.
+        var ws = ref.getAttribute('data-w').split(',').map(Number), sum = ws.reduce(function (a, b) { return a + b; }, 0);
+        var k = w && w - 20 > sum ? (w - 20) / sum : 1;
+        cols.forEach(function (c, i) { c.style.width = Math.floor(ws[i] * k) + 'px'; });
+        return;
+      }
       if (!w) { cols.forEach(function (c) { c.style.width = '150px'; }); return; }
       if (last) {
         var per = Math.max((w - 20 - last) / Math.max(n - 1, 1), 100);
@@ -489,7 +557,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       }
     });
   }
-  function tag(inst) { return isBlocked(inst) ? '<span class="tag-mr ml2">Models Remaining</span>' : ''; }
+  function tag(inst) { return after && inst.status === 'running' && inst.kind === 'capture' ? '<span class="tag-oc ml2">Only Capture</span>' : ''; }
 
   // ---------- Page (index.jsx + DeploymentInstanceRow.jsx) ----------
   var TIPS = {
@@ -521,15 +589,13 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
         act = '<div class="row-acts"><button type="button" class="b b-pri b-lg" data-view="' + r.id + '">' + EYE + '<span>View</span></button>' +
           '<button type="button" class="b b-dark b-lg" data-stop="' + r.id + '">' + STOP + '<span>Stop</span></button></div>';
       } else {
-        var reason = isBlocked(r) ? BLOCK_REASON : '';
-        act = '<div class="tip-blk"' + (reason ? ' data-tip="' + esc(reason) + '" id="rowTip"' : '') + '>' +
-          '<button type="button" class="b b-pri b-lg minw120" data-deploy="' + r.id + '"' + (reason ? ' disabled' : '') + '>' + ROCKET +
+        act = '<div class="tip-blk"><button type="button" class="b b-pri b-lg minw120" data-deploy="' + r.id + '">' + ROCKET +
           '<span>' + (r.status === 'failed' ? 'Retry' : 'Deploy') + '</span></button></div>';
       }
       return '<tr>' +
-        td('<span class="fw5">' + esc(r.name) + '</span>' + tag(r), isBlocked(r) ? ' class="wrap"' : '') +
+        td('<span class="fw5">' + esc(r.name) + '</span>' + tag(r), tag(r) ? ' class="wrap"' : '') +
         td('<span class="' + st[0] + '">' + st[1] + '</span>') +
-        td(run ? esc(LM[r.loadingMode] || '–') : '–') +
+        td(run && r.kind !== 'capture' && !(after && !r.needsModel) ? esc(LM[r.loadingMode] || '–') : '–') +
         td(run && r.cycleTime != null ? esc(r.cycleTime) : '–') +
         td(run ? '<button type="button" class="dlink">' + REDIRECT + 'Dashboard</button>' : '–') +
         td(run ? esc(r.screen || '–') : '–') +
@@ -548,9 +614,18 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     sizeColumns();
   }
 
-  // ---------- Deployment drawer (CreateDeployment.jsx: 3 steps) ----------
-  // dw = { bulk, readOnly, target, step, cfg: {id: {selected, loadingMode, screen, variant}}, settings: {id: {cycleTime, endCycle, fastMode, webrtc}} }
+  // ---------- Deployment drawer (CreateDeployment.jsx) ----------
+  // 3 steps. After change: Instance Details gets a Deployment Type column (Inferencing / Only Capture) per instance.
+  // dw = { bulk, readOnly, target, step, cfg: {id: {selected, type, loadingMode, screen, variant}}, settings: {id: {cycleTime, endCycle, fastMode, webrtc}} }
+  var STEP_IDS = ['instance-details', 'capture-type', 'instance-settings'];
+  var STEP_LABEL = { 'instance-details': 'Instance Details', 'capture-type': 'Capture Type', 'instance-settings': 'Instance Settings' };
+  var LAST = STEP_IDS.length - 1;
+  function stepIndex(id) {
+    var i = STEP_IDS.indexOf(id);
+    return i < 0 ? 0 : i;
+  }
   var dw = null, openSel = null;
+  function curStep() { return STEP_IDS[dw.step]; }
   function screensFor(id) {
     var used = {};
     list().forEach(function (r) { if (r.id !== id && r.status === 'running' && r.screen) used[r.screen] = 1; });
@@ -566,43 +641,72 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   }
   function cb(on, dis, attrs) { return '<label class="cb' + (on ? ' on' : '') + (dis ? ' dis' : '') + '"' + (attrs || '') + '></label>'; }
   function blockedReason(inst) {
-    if (isBlocked(inst)) return BLOCK_REASON;
     if (!inst.activeDashboard) return dw.readOnly ? 'No active dashboard assigned to this instance.' : 'No active dashboard assigned. Set an active dashboard before selecting this instance for deployment.';
     return null;
   }
+  // Default Deployment Type: Inferencing, or Only Capture when the instance doesn't have all models present.
+  function defaultType(inst) { return after && !canInfer(inst) ? 'capture' : 'inference'; }
+  function typeOf(inst) { var c = dw.cfg[inst.id]; return after && c && c.type ? c.type : 'inference'; }
+  // After change: shown when an instance in the drawer needs a model and can run Inferencing.
+  function showLoadingMode() {
+    if (!after) return true;
+    var insts = dw.bulk ? list() : [dw.target];
+    return insts.some(function (i) { return i.needsModel && canInfer(i); });
+  }
   function step1() {
     var insts = dw.bulk ? list() : [dw.target];
-    var cols = (dw.bulk ? [{ t: 'Select' }] : []).concat([
-      { t: 'Instance Name' },
+    var lmOn = showLoadingMode();
+    var cols = (dw.bulk ? [{ t: 'Select' }] : []).concat([{ t: 'Instance Name' }], [
       { t: 'Active Dashboard', tip: 'Dashboard that opens for this instance. Change it in Dashboard Builder.' },
       { t: 'Current Variant', tip: "Variant this instance's dashboard opens on. Defaults to the variant it last ran." },
-      { t: 'PLC Name', tip: "PLC used by this instance. 'PLC to be added' means PLC rules exist but no PLC is linked." },
-      { t: 'Loading Mode', tip: 'How AI models are loaded into memory: for the whole instance, per variant or per capture.' },
+      { t: 'PLC Name', tip: "PLC used by this instance. 'PLC to be added' means PLC rules exist but no PLC is linked." }
+    ], after ? [{ t: 'Deployment Type', tip: 'Inferencing inspects images with AI models. Only Capture saves raw images without loading models.' }] : [],
+    lmOn ? [{ t: 'Loading Mode', tip: 'How AI models are loaded into memory: for the whole instance, per variant or per capture.' }] : [], [
       { t: 'Screen', tip: "Monitor on which this instance's dashboard opens." }
     ]);
+    var firstTip = true, firstType = true;
     var body = insts.map(function (inst) {
       var c = dw.cfg[inst.id] || {};
       var run = inst.status === 'running';
-      var reason = blockedReason(inst);
+      var reason = run ? null : blockedReason(inst);
+      var greyed = !!reason && !dw.readOnly;
       var locked = run || !!reason;
       var ro = dw.readOnly || run;
-      var off = dw.bulk && !c.selected;
-      var h = '<tr>';
+      var off = (dw.bulk && !c.selected) || greyed;
+      var type = run ? (inst.kind || 'inference') : typeOf(inst);
+      var h = '<tr' + (greyed ? ' class="off"' : '') + '>';
       if (dw.bulk) {
+        var tipId = reason && firstTip ? ' id="selTip"' : '';
+        if (tipId) firstTip = false;
         h += td(locked
-          ? '<div class="tip-blk" data-tip="' + esc(run ? 'Already deployed — stop it first to change its settings.' : reason) + '"' + (reason ? ' id="selTip"' : '') + '>' + cb(run, true) + '</div>'
+          ? '<div class="tip-blk" data-tip="' + esc(run ? 'Already deployed — stop it first to change its settings.' : reason) + '"' + tipId + '>' + cb(run, true) + '</div>'
           : cb(!!c.selected, false, ' data-pick="' + inst.id + '"'));
       }
-      h += td('<span class="fw5">' + esc(inst.name) + '</span>' + (run ? '<span class="run-tag">Running</span>' : '') + tag(inst), isBlocked(inst) ? ' class="wrap"' : '');
+      // After change: the Model Status chip sits under the name (a separate column overflows the 56rem drawer).
+      h += td('<span class="fw5">' + esc(inst.name) + '</span>' + (run ? '<span class="run-tag">Running</span>' : '') + (after ? '<span style="flex-basis:100%;display:flex;justify-content:center">' + chip(inst) + '</span>' : ''), after ? ' class="wrap"' : '');
       h += td(esc(inst.activeDashboard || '–'));
       h += td(ro ? '<span>' + esc(inst.variant || '–') + '</span>' : selHTML(inst.id + '|variant', [{ id: 'Variant A', name: 'Variant A' }], c.variant, 'w36', 'Select Variant', off));
       h += td(inst.plcName ? esc(inst.plcName) : '–');
-      h += td(ro ? '<span>' + esc(LM[run ? inst.loadingMode : c.loadingMode] || '–') + '</span>' : selHTML(inst.id + '|loadingMode', LOADING_MODES, c.loadingMode, 'w44', 'Select Loading Mode', off));
+      if (after) {
+        // Instances without all models present are fixed to Only Capture; the reason is in the tooltip.
+        var fixed = !canInfer(inst);
+        var dtId = fixed && !ro && firstType ? ' id="dtTip"' : '';
+        if (dtId) firstType = false;
+        h += td(ro ? '<span>' + esc(KIND_LABEL[type]) + '</span>'
+          : fixed ? '<div class="tip-blk" style="width:100%" data-tip="' + esc(NO_INFERENCE[inst.models]) + '"' + dtId + '>' + selHTML(inst.id + '|type', TYPES, 'capture', 'w36', '', true) + '</div>'
+          : selHTML(inst.id + '|type', TYPES, c.type, 'w36', 'Select Deployment Type', off));
+      }
+      if (lmOn) {
+        h += td(greyed || (after && (!inst.needsModel || type === 'capture')) ? '<span>–</span>'
+          : ro ? '<span>' + esc(LM[run ? inst.loadingMode : c.loadingMode] || '–') + '</span>'
+          : selHTML(inst.id + '|loadingMode', LOADING_MODES, c.loadingMode, 'w44', 'Select Loading Mode', off));
+      }
       h += td(ro ? '<span>' + esc((run ? inst.screen : c.screen) || '–') + '</span>' : selHTML(inst.id + '|screen', screensFor(inst.id), c.screen, 'w32', 'Select Screen', off));
       return h + '</tr>';
     }).join('');
     if (!insts.length) body = '<tr>' + td('<span class="td-empty">No instances available.</span>', ' colspan="' + cols.length + '"') + '</tr>';
-    return tableHTML(cols, body, {});
+    var W = { 'Select': 62, 'Instance Name': after ? 150 : 96, 'Active Dashboard': 122, 'Current Variant': 136, 'PLC Name': 84, 'Deployment Type': 150, 'Loading Mode': 136, 'Screen': 136 };
+    return tableHTML(cols, body, { widths: cols.map(function (c) { return W[c.t]; }) });
   }
   function chosen() {
     if (dw.readOnly) return [dw.target];
@@ -610,12 +714,17 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     return list().filter(function (i) { return dw.cfg[i.id] && dw.cfg[i.id].selected; });
   }
   function step2() {
+    // After change: each instance's Model Status chip on its block.
+    var heads = [{ t: 'Variant' }, { t: 'Capture' }].concat([
+      { t: 'Trigger Type', tip: 'How the camera is triggered: Hardware, Software or Streaming. Set in Capture Configuration.' },
+      { t: 'Trigger Event', tip: 'What fires the capture, e.g. a camera line, a PLC read, a dashboard button or an internal action.' }]);
     return '<div>' + chosen().map(function (inst) {
-      var rows = CAPTURES.map(function (c) { return '<tr>' + td(esc(c.variant)) + td(esc(c.capture)) + td('<span>' + esc(c.type) + '</span>') + td('<span>' + esc(c.event) + '</span>') + '</tr>'; }).join('');
-      return '<div class="cap-blk"><div class="cap-h"><span>' + esc(inst.name) + '</span></div>' +
-        tableHTML([{ t: 'Variant' }, { t: 'Capture' },
-          { t: 'Trigger Type', tip: 'How the camera is triggered: Hardware, Software or Streaming. Set in Capture Configuration.' },
-          { t: 'Trigger Event', tip: 'What fires the capture, e.g. a camera line, a PLC read, a dashboard button or an internal action.' }], rows, {}) + '</div>';
+      var rows = CAPTURES.map(function (c) {
+        return '<tr>' + td(esc(c.variant)) + td(esc(c.capture)) +
+          td('<span>' + esc(c.type) + '</span>') + td('<span>' + esc(c.event) + '</span>') + '</tr>';
+      }).join('');
+      return '<div class="cap-blk"><div class="cap-h"><span>' + esc(inst.name) + '</span>' + (after ? chip(inst) : '') + '</div>' +
+        tableHTML(heads, rows, {}) + '</div>';
     }).join('') + '</div>';
   }
   function step3() {
@@ -637,7 +746,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   }
   function nextDisabled() {
     if (dw.readOnly) return false;
-    if (dw.step === 0) {
+    if (curStep() === 'instance-details') {
       if (dw.bulk) {
         var sel = chosen();
         return !sel.length || sel.some(function (i) { return !dw.cfg[i.id].screen; });
@@ -653,35 +762,43 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     hideTip(); closeSel();
     if (!dw) { document.getElementById('drawerRoot').innerHTML = ''; syncSwitch(); return; }
     var title = dw.readOnly ? 'View ' + dw.target.name : dw.bulk ? 'Deploy Instances' : 'Deploy ' + dw.target.name;
-    var s = dw.step;
-    var stp = function (n, label) { return '<div class="stp' + (s === n ? ' on' : '') + '"><div class="c">' + (n + 1) + '</div><span class="l">' + label + '</span></div>'; };
+    var s = dw.step, cur = curStep();
+    var stepper = STEP_IDS.map(function (id, n) {
+      return (n ? '<div class="ln"></div>' : '') + '<div class="stp' + (s === n ? ' on' : '') + '"><div class="c">' + (n + 1) + '</div><span class="l">' + STEP_LABEL[id] + '</span></div>';
+    }).join('');
     var footer = '<div class="ft"><button type="button" class="b b-border b-lg w24" data-dw="cancel">Cancel</button><div class="ft-r">' +
       (s > 0 ? '<button type="button" class="b b-border b-lg w24" data-dw="back">Back</button>' : '') +
-      (s < 2 ? '<button type="button" class="b b-pri b-lg w24" data-dw="next"' + (nextDisabled() ? ' disabled' : '') + '>Next</button>' : '') +
-      (s === 2 && !dw.readOnly ? '<button type="button" class="b b-pri b-lg w24" data-dw="deploy"' + (deployDisabled() ? ' disabled' : '') + '>Deploy</button>' : '') +
+      (s < LAST ? '<button type="button" class="b b-pri b-lg w24" data-dw="next"' + (nextDisabled() ? ' disabled' : '') + '>Next</button>' : '') +
+      (s === LAST && !dw.readOnly ? '<button type="button" class="b b-pri b-lg w24" data-dw="deploy"' + (deployDisabled() ? ' disabled' : '') + '>Deploy</button>' : '') +
       '</div></div>';
-    var h = '<div class="dr-bd" data-dw="cancel"></div><div class="dr" role="dialog" aria-label="' + esc(title) + '">' +
+    var content = cur === 'instance-details' ? step1() : cur === 'capture-type' ? step2() : step3();
+    var h = '<div class="dr-bd" data-dw="cancel"></div><div class="dr' + (after ? ' wide' : '') + '" role="dialog" aria-label="' + esc(title) + '">' +
       '<div class="dr-h">' + esc(title) + '<span data-dw="cancel">' + CLOSE + '</span></div>' +
-      '<div class="dr-b"><div class="col-h"><div class="steps-w"><div class="steps">' +
-      stp(0, 'Instance Details') + '<div class="ln"></div>' + stp(1, 'Capture Type') + '<div class="ln"></div>' + stp(2, 'Instance Settings') +
-      '</div></div><div class="stc">' + (s === 0 ? step1() : s === 1 ? step2() : step3()) + '</div></div></div>' +
+      '<div class="dr-b"><div class="col-h"><div class="steps-w"><div class="steps">' + stepper +
+      '</div></div><div class="stc">' + content + '</div></div></div>' +
       '<div class="dr-f">' + footer + '</div></div>';
     document.getElementById('drawerRoot').innerHTML = h;
     syncSwitch();
     sizeColumns();
-    if (forceTip && s === 0) { var o = document.getElementById('selTip'); if (o) showTip(o); }
+    if (forceTip) {
+      var o = cur === 'instance-details' ? document.getElementById('dtTip') || document.getElementById('selTip') : null;
+      if (o) showTip(o);
+    }
   }
+  // opts: { bulk, readOnly, target, kind, step, pick: [ids ticked with a screen, cycle time and Instance level], instant }
   function openDrawer(opts) {
     dw = { bulk: !!opts.bulk, readOnly: !!opts.readOnly, target: opts.target || null, step: 0, cfg: {}, settings: {} };
+    if (opts.step) dw.step = stepIndex(opts.step);
+    var pick = opts.pick || [];
     if (dw.bulk) {
-      list().forEach(function (i) { if (i.status !== 'running') dw.cfg[i.id] = { selected: false, loadingMode: 0, screen: null, variant: 'Variant A' }; });
-      // ?pick=1 (screenshots): our instance already ticked with a screen, where it can be picked.
-      if (opts.pick && dw.cfg[L3.id] && !isBlocked(L3)) { dw.cfg[L3.id].selected = true; dw.cfg[L3.id].screen = 'Screen 2'; }
+      list().forEach(function (i) { if (i.status !== 'running') dw.cfg[i.id] = { selected: false, type: defaultType(i), loadingMode: 0, screen: null, variant: 'Variant A' }; });
+      pick.forEach(function (id, n) { if (dw.cfg[id]) { dw.cfg[id].selected = true; dw.cfg[id].screen = 'Screen ' + (n + 1); } });
     } else if (!dw.readOnly) {
-      dw.cfg[dw.target.id] = { loadingMode: 0, screen: null, variant: 'Variant A' };
+      dw.cfg[dw.target.id] = { type: defaultType(dw.target), loadingMode: 0, screen: pick.indexOf(dw.target.id) >= 0 ? 'Screen 1' : null, variant: 'Variant A' };
     }
     list().forEach(function (i) {
-      dw.settings[i.id] = i.status === 'running' ? { cycleTime: String(i.cycleTime), endCycle: true, fastMode: false, webrtc: false } : { cycleTime: '', endCycle: true, fastMode: false, webrtc: false };
+      dw.settings[i.id] = i.status === 'running' ? { cycleTime: String(i.cycleTime), endCycle: true, fastMode: false, webrtc: false }
+        : { cycleTime: pick.indexOf(i.id) >= 0 ? '3' : '', endCycle: true, fastMode: false, webrtc: false };
     });
     loader('Loading configuration...');
     setTimeout(function () { loader(null); renderDrawer(); }, opts.instant ? 0 : 350);
@@ -692,7 +809,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   function openSelect(btn) {
     closeSel();
     var parts = btn.getAttribute('data-sel').split('|'), id = parts[0], field = parts[1];
-    var data = field === 'variant' ? [{ id: 'Variant A', name: 'Variant A' }] : field === 'loadingMode' ? LOADING_MODES : screensFor(id);
+    var data = field === 'variant' ? [{ id: 'Variant A', name: 'Variant A' }] : field === 'loadingMode' ? LOADING_MODES : field === 'type' ? TYPES : screensFor(id);
     var cur = dw.cfg[id][field];
     var r = btn.getBoundingClientRect();
     var ul = document.createElement('ul');
@@ -730,8 +847,8 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     else if (act === 'back') { dw.step = Math.max(dw.step - 1, 0); renderDrawer(); }
     else if (act === 'next') {
       if (nextDisabled()) return;
-      if (dw.step === 0 && !dw.readOnly) { loader('Loading capture configuration...'); dw.step = 1; setTimeout(function () { loader(null); renderDrawer(); }, 300); return; }
-      dw.step += 1; renderDrawer();
+      if (curStep() === 'instance-details' && !dw.readOnly) { loader('Loading capture configuration...'); dw.step += 1; setTimeout(function () { loader(null); renderDrawer(); }, 300); return; }
+      dw.step = Math.min(dw.step + 1, LAST); renderDrawer();
     }
     else if (act === 'deploy') deploy();
   });
@@ -746,10 +863,25 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   // POST /deployment/create → readiness monitor (SSE "deployment-status": checking → deployed | failed)
   function deploy() {
     var picked = chosen().map(function (i) {
-      var c = dw.cfg[i.id] || {}, s = dw.settings[i.id];
-      return { inst: i, loadingMode: c.loadingMode != null ? c.loadingMode : 0, screen: c.screen, cycleTime: parseFloat(s.cycleTime || 0) };
+      var c = dw.cfg[i.id] || {}, st = dw.settings[i.id];
+      return { inst: i, type: typeOf(i), loadingMode: c.loadingMode != null ? c.loadingMode : 0, screen: c.screen, cycleTime: parseFloat(st.cycleTime || 0) };
     });
     loader('Starting deployment...');
+    // Today: the pre-deploy model check (failure/modelFilesCheck.ts) rejects the whole request; the drawer stays open.
+    var bad = picked.filter(function (p) { return p.inst.models === 'bad'; });
+    if (!after && bad.length) {
+      setTimeout(function () { loader(null); toast('err', failMsg(bad.map(function (p) { return p.inst.name; }))); }, 700);
+      return;
+    }
+    // Stage "none" bulk deploy is the walk's own deploy: store the picks per Deployment Type and move the workflow on.
+    if (stage === 'none' && dw.bulk) {
+      var inf = picked.filter(function (p) { return p.type === 'inference'; }), cap = picked.filter(function (p) { return p.type === 'capture'; });
+      var lm = {};
+      inf.forEach(function (p) { if (!(after && !p.inst.needsModel)) lm[p.inst.id] = p.loadingMode; });
+      writeShared({ inference: { selected: inf.map(function (p) { return p.inst.id; }), loadingMode: lm }, capture: { selected: cap.map(function (p) { return p.inst.id; }) } });
+      if (goToStep('edge-deployed')) return;
+    }
+    // Row "Deploy", stage some / all, or opened on its own: play the deployment out on this page.
     setTimeout(function () {
       dw = null; renderDrawer();
       picked.forEach(function (p) { p.inst.status = 'deploying'; });
@@ -758,27 +890,34 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       setTimeout(function () {
         loader(null);
         // Today the deploy check skips empty model slots (failure/modelFilesCheck.ts), so an instance
-        // without models starts and fails once its inspection container tries to load them.
-        var fails = picked.filter(function (p) { return p.inst === L3 && noModels; });
-        if (fails.length) {
+        // without its models starts and fails once its inspection container tries to load them.
+        if (!after && picked.some(function (p) { return missingToday(p.inst); })) {
           picked.forEach(function (p) { p.inst.status = 'failed'; });
-          toast('err', failMsg());
+          toast('err', failMsgOpen());
         } else {
-          picked.forEach(function (p) { p.inst.status = 'running'; p.inst.loadingMode = p.loadingMode; p.inst.screen = p.screen; p.inst.cycleTime = p.cycleTime; });
+          picked.forEach(function (p) {
+            p.inst.status = 'running'; p.inst.kind = p.type; p.inst.loadingMode = p.type === 'capture' || (after && !p.inst.needsModel) ? null : p.loadingMode;
+            p.inst.screen = p.screen; p.inst.cycleTime = p.cycleTime;
+          });
           toast('ok', 'Deployed.');
         }
         renderPage();
-      }, 2200);
+      }, after ? 1500 : 2200);
     }, 700);
   }
-  function failMsg() { return 'Deployment failed - The model could not be opened for instance-' + L3.instanceId + '.'; }
+  function failMsg(names) { return 'Deployment failed - Models are missing or not ready for: ' + names.join(', ') + '.'; }
+  function failMsgOpen() { return 'Deployment failed - The model could not be opened for instance-' + L3.instanceId + '.'; }
 
   // ---------- Page actions ----------
   document.querySelector('.main').addEventListener('click', function (e) {
     var b = e.target.closest('button');
     if (!b || b.disabled) return;
     if (b.getAttribute('data-act') === 'bulk') { openDrawer({ bulk: true }); return; }
-    if (b.hasAttribute('data-deploy')) { L3.status = L3.status === 'failed' ? 'stopped' : L3.status; openDrawer({ target: byId(b.getAttribute('data-deploy')) }); return; }
+    if (b.hasAttribute('data-deploy')) {
+      var t = byId(b.getAttribute('data-deploy'));
+      if (t.status === 'failed') t.status = 'stopped';
+      openDrawer({ target: t }); return;
+    }
     if (b.hasAttribute('data-view')) { openDrawer({ readOnly: true, target: byId(b.getAttribute('data-view')) }); return; }
     if (b.hasAttribute('data-stop')) { confirmModal('Stop Instance', 'Are you sure you want to stop this instance? Other running deployments will not be affected.', 'Stop', function () { stopOne(byId(b.getAttribute('data-stop'))); }); return; }
     if (b.getAttribute('data-act') === 'stopall') { confirmModal('Stop All Deployments', 'Are you sure you want to stop all deployments? This will stop all inferencing.', 'Stop', stopAll); return; }
@@ -839,25 +978,63 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   sw.addEventListener('click', function (e) {
     var b = e.target.closest('button[data-mode]');
     if (!b || b.getAttribute('data-mode') === mode) return;
-    var q = new URLSearchParams(); q.set('state', rawState); q.set('mode', b.getAttribute('data-mode'));
+    var q = new URLSearchParams(location.search); q.set('mode', b.getAttribute('data-mode'));
     location.search = q.toString();
   });
 
   window.addEventListener('storage', function (e) {
     if (e.key !== null && e.key !== KEY) return;
-    syncNames(); renderPage(); if (dw) renderDrawer();
+    syncNames();
+    if (deployedState) applyDeployed();
+    renderPage();
+    if (dw) renderDrawer();
   });
   window.addEventListener('resize', sizeColumns);
 
   // ---------- Initial view ----------
-  if (open === 'failed' && noModels && !blocked) { L3.status = 'failed'; }
-  if (open === 'deployed' && !blocked) { L3.status = 'running'; L3.loadingMode = 0; L3.cycleTime = 3; L3.screen = 'Screen 2'; }
+  // deployed-*: the instances chosen in the earlier step (shared state) are Running. Returns an error toast, if any.
+  function applyDeployed() {
+    var sh = readShared();
+    list().forEach(function (i) { i.status = 'stopped'; i.kind = null; i.loadingMode = null; i.screen = null; i.cycleTime = null; });
+    var inf = ((sh.inference || {}).selected || []).map(byId).filter(Boolean);
+    var cap = after ? ((sh.capture || {}).selected || []).map(byId).filter(Boolean) : [];
+    if (after) inf = inf.filter(canInfer);
+    if (!after) {
+      // Today: the whole request is rejected when a picked instance has a model that is missing or not ready...
+      var badPicked = inf.filter(function (i) { return i.models === 'bad'; });
+      if (badPicked.length) return failMsg(badPicked.map(function (i) { return i.name; }));
+      // ...and an instance without its models starts, then fails to open them.
+      if (inf.some(missingToday)) { inf.forEach(function (i) { i.status = 'failed'; }); return failMsgOpen(); }
+    }
+    var lm = (sh.inference || {}).loadingMode || {}, n = 0;
+    inf.forEach(function (i) {
+      i.status = 'running'; i.kind = 'inference'; i.screen = 'Screen ' + (++n); i.cycleTime = 3;
+      i.loadingMode = after && !i.needsModel ? null : (lm[i.id] != null ? lm[i.id] : 0);
+    });
+    cap.forEach(function (i) { if (i.status === 'running') return; i.status = 'running'; i.kind = 'capture'; i.screen = 'Screen ' + (++n); i.cycleTime = 3; i.loadingMode = null; });
+    return '';
+  }
+  var deployedState = state === 'deployed' || state === 'deployed-inference' || state === 'deployed-capture';
+  var deployErr = deployedState ? applyDeployed() : '';
+  if (open === 'failed' && !after && missingToday(L3)) L3.status = 'failed';
   renderPage();
-  if (open === 'failed' && L3.status === 'failed') toast('err', failMsg(), true);
-  if (open === 'deployed' && L3.status === 'running') toast('ok', 'Deployed.', true);
-  if (open === 'create') openDrawer({ bulk: true, instant: true, pick: qs.get('pick') === '1' });
-  else if (open === 'deploy' && !blocked) openDrawer({ target: L3, instant: true });
-  else if (forceTip) { var o = document.getElementById('rowTip'); if (o) showTip(o); }
+  if (deployedState) {
+    if (deployErr) toast('err', deployErr, true);
+    else if (open !== 'view' && list().some(function (i) { return i.status === 'running'; })) toast('ok', 'Deployed.', true);
+  }
+  if (open === 'failed' && L3.status === 'failed') toast('err', failMsgOpen(), true);
+  if (open === 'create') {
+    // Line 3 is ticked once it can be deployed: all models (after), or some models (today, where it is still selectable)
+    // After: Line 3 is ticked at every stage (Only Capture until all its models are on Edge). Today: only once it has models.
+    var pick0 = stage === 'none' ? (after ? ['line-2', 'line-3', 'line-6'] : ['line-2', 'line-6']) : ['line-2', 'line-3'];
+    openDrawer({ bulk: true, instant: true, pick: pick0, step: stepParam });
+  } else if (open === 'deploy') {
+    var tgt = byId(targetParam) || byId('line-4');
+    openDrawer({ target: tgt, instant: true, pick: [tgt.id], step: stepParam });
+  } else if (open === 'view') {
+    var v = list().filter(function (i) { return i.status === 'running'; })[0];
+    if (v) openDrawer({ readOnly: true, target: v, instant: true, step: stepParam });
+  }
 })();
 </script>
 </body>

@@ -7,7 +7,7 @@ with their screenshots. The Prototype column opens each PRD's live, clickable pr
 | Date | PRD | Prototype | Product | Status | Owner | Timeline |
 |---|---|---|---|---|---|---|
 | 6 Nov 2026 | [File Names](2026-10-30-file-names/PRD-file-names.md) | [Live prototype](https://frinks-ai.github.io/frinks-PRDs/2026-10-30-file-names/prototype/) | Frinks Edge | Approved | Akshat Sharma | — |
-| 29 Oct 2026 | [Configuration only instance](2026-10-28-configuration-only-instance/PRD-configuration-only-instance.md) | [Live prototype](https://vbv-fr.github.io/configuration-only-instance-prototype/) | Vision + Edge | Approved | Deb | 10 Nov – 23 Nov 2026 |
+| 10 Nov 2026 | [Configuration only instance and Only Capture deployment](2026-10-28-configuration-only-instance/PRD-configuration-only-instance.md) | [Live prototype](https://vbv-fr.github.io/capture-only-deployment-prototype/) | Vision + Edge | In review | Deb | 10 Nov – 23 Nov 2026 (to re-confirm) |
 | 29 Oct 2026 | [Older Edge with newer instance packages](2026-10-29-older-edge-new-packages/PRD-older-edge-new-packages.md) | Pending | Vision + Edge | Draft (not started) | Tanay Deo | — |
 | 29 Oct 2026 | [Rename Matting to Edge Refinement](2026-10-27-edge-refinement-rename/PRD-edge-refinement-rename.md) | None (no screen changes) | Vision + Edge | Approved | Swayam (SDE POC) | SPRINT 26-15 (running sprint) |
 | 28 Oct 2026 | [Shape Extractor rows in Analysed Image Configurations](2026-10-26-shape-extractor-analysed-image/PRD-shape-extractor-analysed-image.md) | [Live prototype](https://vbv-fr.github.io/shape-extractor-analysed-image-prototype/) | Frinks Edge | Approved | Tanay Deo | Post Diwali: sprint after 26-15, from 10 Nov 2026 |

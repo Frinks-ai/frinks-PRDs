@@ -74,7 +74,6 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .tab.on{border-bottom:2px solid #ff4301;color:#ff4301}
 .h2{font-size:20px;line-height:28px;font-weight:600}
 .h2.mb4{margin-bottom:16px}
-.name-row{display:flex;align-items:center;gap:8px}
 .grid4{margin-bottom:32px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;border-radius:8px;background:#fff;padding:24px;box-shadow:0 1px 2px 0 rgb(0 0 0/.05)}
 .lbl{margin-bottom:4px;font-size:14px;line-height:20px;color:#6b7280}
 .val{font-weight:500}
@@ -82,8 +81,13 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .bordered{border:1px solid #e5e7eb}
 .empty-box{border-radius:8px;border:1px solid #e5e7eb;background:#fff;padding:32px;text-align:center;box-shadow:0 1px 2px 0 rgb(0 0 0/.05)}
 .empty-box p{color:#6b7280}
-/* Models Remaining tag (pill style of AnalysedImageConfigurations.jsx:410, amber tone of dimension-configuration/formFields.jsx:113) */
-.tag-mr{display:inline-flex;align-items:center;border-radius:9999px;border:1px solid #fde68a;background:#fef3c7;padding:2px 8px;font-size:12px;line-height:16px;font-weight:500;color:#92400e;white-space:nowrap}
+/* Model Status chip (pill: inferencing-customizations/bead-emc/BeadConfigApplyModal.jsx:12-16 STATUS_META; red by analogy) */
+.mchip{display:inline-flex;align-items:center;white-space:nowrap;border-radius:9999px;border:1px solid;padding:2px 8px;font-size:11px;line-height:16px;font-weight:500}
+.ch-all{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+.ch-some{background:#fefce8;color:#a16207;border-color:#fef08a}
+.ch-none{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+.ch-bad{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+
 
 /* Testing tab */
 .tcol{display:flex;flex-direction:column;gap:24px}
@@ -100,6 +104,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .mm-cell{display:flex;width:100%;flex-direction:column;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
 .mm-name{font-weight:500;color:#111827}
 .mm-name.none{color:#9ca3af}
+.mm-bad{font-size:12px;line-height:16px;font-weight:500;color:#dc2626}
 .mm-cls{display:flex;flex-wrap:wrap;justify-content:center;gap:4px}
 .chip-cls{border-radius:9999px;border:1px solid #e5e7eb;background:#f3f4f6;padding:2px 8px;font-size:10px;line-height:15px;font-weight:500;color:#6b7280}
 .chip-mods{display:inline-block;border-radius:9999px;background:rgb(231 76 60/.1);padding:2px 8px;font-size:10px;line-height:15px;font-weight:500;color:#E74C3C}
@@ -304,9 +309,9 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 <!-- Main (InstanceLayout) -->
 <div class="main">
   <div class="heading">
-    <div class="h-main"><a href="#" data-nolink>Instances</a></div>
+    <div class="h-main"><a href="#" data-back>Instances</a></div>
     <div class="h-sub">
-      <a href="#" class="crumb" data-nolink><svg class="arr" viewBox="0 0 10 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 17L9 9L1 1" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Instance Details</span></a>
+      <a href="#" class="crumb" data-back><svg class="arr" viewBox="0 0 10 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 17L9 9L1 1" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Instance Details</span></a>
       <svg class="arr" viewBox="0 0 10 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 17L9 9L1 1" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span id="crumbName"></span>
       <span class="self-center"><span class="tip-w" data-tip="Details, cameras, models and test runs of this instance."><span class="tip-i" role="button" tabindex="0" aria-label="Details, cameras, models and test runs of this instance."><svg stroke="currentColor" fill="none" stroke-width="2.25" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="15" width="15" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></span></span></span>
@@ -335,20 +340,17 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 (function () {
   'use strict';
 
-  // ---------- Prototype params: ?state=no-models|some-models|ready  ?mode=today|after (default after)
+  // ---------- Prototype params: ?inst=line-2|line-3|line-4|line-5|line-6 (default line-3)
+  // ?state=no-models|some-models|ready (Line 3 only)  ?mode=today|after (default after)
   // ?tab=testing  ?tip=1 (Run Test bubble)  ?open=run (Run a new test drawer) ----------
   var qs = new URLSearchParams(location.search);
   var mode = qs.get('mode') === 'today' ? 'today' : 'after';
+  var instKey = ['line-2', 'line-3', 'line-4', 'line-5', 'line-6'].indexOf(qs.get('inst')) >= 0 ? qs.get('inst') : 'line-3';
   var state = qs.get('state') === 'ready' ? 'ready' : qs.get('state') === 'some-models' ? 'some-models' : 'no-models';
   var openRun = qs.get('open') === 'run';
   var tab = qs.get('tab') === 'testing' || openRun ? 'testing' : 'overview';
   var forceTip = qs.get('tip') === '1';
   var inShell = window.self !== window.top;
-
-  // Models Remaining only exists after the change; today the same instance has no such status.
-  // no-models: no module has a model. some-models: Part Presence + Label Text have theirs, Seal Bead + Surface Check don't.
-  var missingAny = state !== 'ready';
-  var locked = missingAny && mode === 'after';             // Models Remaining tag + "Not added yet" rows
 
   // ---------- Shared prototype state (localStorage "cfgonly-state") ----------
   var KEY = 'cfgonly-state';
@@ -371,15 +373,50 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   // ---------- Sample data (brief) ----------
-  // One row per module mapping (GET /instance/models). Barcode (Code Reader) needs no model.
-  var MAPPINGS = [
-    { variant: 'Variant A', capture: 'Front View', module: 'Part Presence', model: 'ODC_Front_27-10', classes: ['Bolt', 'Washer', 'Clip'], some: true },
-    { variant: 'Variant A', capture: 'Front View', module: 'Label Text', model: 'OCR-D_Front_27-10', classes: [], some: true },
-    { variant: 'Variant A', capture: 'Front View', module: 'Label Text', model: 'OCR-R_Front_27-10', classes: [], some: true },
-    { variant: 'Variant A', capture: 'Top View', module: 'Seal Bead', model: 'Bead_Top_27-10', classes: [] },
-    { variant: 'Variant A', capture: 'Top View', module: 'Surface Check', model: 'SEG_Top_27-10', classes: ['Scratch', 'Dent'] }
+  // Modules that need a model (Variant A). Barcode (Code Reader) needs no model and isn't listed.
+  var MODULES = [
+    { key: 'pp', capture: 'Front View', module: 'Part Presence', models: ['ODC_Front_'], classes: ['Bolt', 'Washer', 'Clip'], some: true },
+    { key: 'lt', capture: 'Front View', module: 'Label Text', models: ['OCR-D_Front_', 'OCR-R_Front_'], classes: [], some: true },
+    { key: 'sb', capture: 'Top View', module: 'Seal Bead', models: ['Bead_Top_'], classes: [] },
+    { key: 'sc', capture: 'Top View', module: 'Surface Check', models: ['SEG_Top_'], classes: ['Scratch', 'Dent'] }
   ];
-  function hasModel(m) { return state === 'ready' || (state === 'some-models' && !!m.some); }
+  // Line 3 is the journey instance (?state). The others are fixed. models: module key → 'ready' | 'none' | the failed Edge check.
+  // Dates: [y, mo, d, h, mi, s] (IST). Valid Till = created + 1 year.
+  var INST = {
+    'line-2': { name: 'Line 2 Assembly', id: '5c1e7a92-3f4b-4d8e-9a26-0b7f3c51e8d4', suffix: '14-10',
+      models: { pp: 'ready', lt: 'ready', sb: 'ready', sc: 'ready' },
+      created: [2026, 10, 14, 15, 33, 18], updated: [2026, 10, 27, 11, 8, 42] },
+    'line-4': { name: 'Line 4 Assembly', id: '9d84b2f0-1c6e-4a37-b5e9-6f0a3d2c8b41', suffix: '20-10',
+      models: { pp: 'ready', lt: 'ready', sb: 'ready', sc: 'Model file missing' },
+      created: [2026, 10, 20, 12, 5, 51], updated: [2026, 10, 24, 14, 27, 9] },
+    // Own recipe with a fifth model-needing module; Seal Bead and Surface Check have no model (3 of 5).
+    'line-5': { name: 'Line 5 Assembly', id: 'e2b7c4d9-8a15-4f60-93de-71c0b5a4f2e8', suffix: '22-10',
+      modules: MODULES.concat([{ key: 'cc', capture: 'Top View', module: 'Connector Check', models: ['IC_Top_'], classes: ['Seated', 'Loose'] }]),
+      models: { pp: 'ready', lt: 'ready', sb: 'none', sc: 'none', cc: 'ready' },
+      created: [2026, 10, 22, 10, 26, 3], updated: [2026, 10, 22, 10, 26, 3] },
+    // Captures with only master images and Search Areas: no module needs a model.
+    'line-6': { name: 'Line 6 Assembly', id: '7a1d3e58-2c9b-4f04-8e6a-b3f90c2d1a67', suffix: '21-10', noModules: true,
+      models: {}, created: [2026, 10, 21, 9, 12, 47], updated: [2026, 10, 21, 9, 12, 47] }
+  };
+  var FIXED = INST[instKey] || null;                       // null = Line 3
+  var SUFFIX = FIXED ? FIXED.suffix : '27-10';
+  var MODS = FIXED && FIXED.noModules ? [] : FIXED && FIXED.modules ? FIXED.modules : MODULES;
+  // no-models: no module has a model. some-models: Part Presence + Label Text have theirs, Seal Bead + Surface Check don't.
+  function modStatus(mod) {
+    if (FIXED) return FIXED.models[mod.key] || 'none';
+    return state === 'ready' || (state === 'some-models' && mod.some) ? 'ready' : 'none';
+  }
+  // One row per module mapping (GET /instance/models); OCR's two models are two rows.
+  var MAPPINGS = [];
+  MODS.forEach(function (mod) {
+    mod.models.forEach(function (n) {
+      MAPPINGS.push({ variant: 'Variant A', capture: mod.capture, module: mod.module, model: n + SUFFIX, classes: mod.classes, mod: mod });
+    });
+  });
+  function hasModel(m) { return modStatus(m.mod) !== 'none'; }
+  // After: a model that fails an Edge check shows the reason under its name.
+  function bad(m) { var v = modStatus(m.mod); return mode === 'after' && v !== 'none' && v !== 'ready'; }
+  var locked = mode === 'after' && MODS.some(function (mod) { return modStatus(mod) === 'none'; }); // "Not added yet" rows
   function joinNames(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
   var CAMERAS = [
     { variant: 'Variant A', ip: '192.168.1.11', capture: 'Front View' },
@@ -396,7 +433,12 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   function fmt(y, mo, d, h, mi, s) {
     return new Date(Date.UTC(y, mo - 1, d, h - 5, mi - 30, s)).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
   }
-  var DATES = {
+  function fmtA(a, plusYear) { return fmt(a[0] + (plusYear ? 1 : 0), a[1], a[2], a[3], a[4], a[5]); }
+  var DATES = FIXED ? {
+    createdAt: fmtA(FIXED.created),
+    updatedAt: fmtA(FIXED.updated),
+    validTill: fmtA(FIXED.created, true)
+  } : {
     createdAt: fmt(2026, 10, 27, 16, 42, 5),
     updatedAt: state === 'ready' ? fmt(2026, 10, 28, 15, 32, 8) : state === 'some-models' ? fmt(2026, 10, 28, 13, 5, 47) : fmt(2026, 10, 28, 10, 14, 31),
     validTill: fmt(2027, 10, 27, 16, 42, 5)
@@ -493,39 +535,36 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     });
   }
 
-  // ---------- Model - Module Mapping (ModelModuleMappingTable.jsx) ----------
+  // ---------- Model - Module Mapping (ModelModuleMappingTable.jsx); After drops the "n modules" chip ----------
   function mappingTable() {
     var headers = [{ t: 'Model Name', tip: 'AI model and its classes.' }, { t: 'Variant' }, { t: 'Capture' }, { t: 'Modules', tip: 'Modules that use this model.' }];
     var body = '', idx = 0;
     // Grouped by model; every model here has one variant and one capture, so one row each.
     MAPPINGS.filter(hasModel).forEach(function (m) {
       body += '<tr class="' + (idx++ % 2 === 0 ? 'row-alt' : '') + '">' +
-        td('<div class="mm-cell"><span class="mm-name">' + esc(m.model) + '</span><div class="mm-cls">' +
+        td('<div class="mm-cell"><span class="mm-name">' + esc(m.model) + '</span>' + (bad(m) ? '<span class="mm-bad">' + esc(modStatus(m.mod)) + '</span>' : '') + '<div class="mm-cls">' +
           m.classes.map(function (c) { return '<span class="chip-cls">' + esc(c) + '</span>'; }).join('') +
-          '</div><span class="chip-mods">1 modules</span></div>') +
+          '</div>' + (mode === 'after' ? '' : '<span class="chip-mods">1 modules</span>') + '</div>') +
         td(esc(m.variant), ' class="g700"') + td(esc(m.capture), ' class="g700"') +
         td('<div class="trunc">' + esc(m.module) + '</div>', ' class="g700"') + '</tr>';
     });
     if (locked) {
-      // After: modules whose model slot is empty are grouped under one "not added" entry, same grouping as a model.
-      var byCap = {};
+      // After: each module whose model slot is empty is its own "Not added yet" row (no "n modules" chip).
+      var seen = {};
       MAPPINGS.filter(function (m) { return !hasModel(m); }).forEach(function (m) {
-        byCap[m.capture] = byCap[m.capture] || [];
-        if (byCap[m.capture].indexOf(m.module) < 0) byCap[m.capture].push(m.module);
-      });
-      var caps = Object.keys(byCap), total = caps.reduce(function (n, c) { return n + byCap[c].length; }, 0);
-      var cls = idx++ % 2 === 0 ? 'row-alt' : '';
-      caps.forEach(function (c, ci) {
-        body += '<tr class="' + cls + '">' +
-          (ci === 0 ? td('<div class="mm-cell"><span class="mm-name none">Not added yet</span><div class="mm-cls"></div><span class="chip-mods">' + total + ' modules</span></div>', ' rowspan="' + caps.length + '"') +
-            td('Variant A', ' rowspan="' + caps.length + '" class="g700"') : '') +
-          td(esc(c), ' class="g700"') +
-          td('<div class="trunc">' + esc(byCap[c].join(', ')) + '</div>', ' class="g700"') + '</tr>';
+        if (seen[m.module]) return;
+        seen[m.module] = 1;
+        body += '<tr class="' + (idx++ % 2 === 0 ? 'row-alt' : '') + '">' +
+          td('<div class="mm-cell"><span class="mm-name none">Not added yet</span></div>') +
+          td(esc(m.variant), ' class="g700"') + td(esc(m.capture), ' class="g700"') +
+          td('<div class="trunc">' + esc(m.module) + '</div>', ' class="g700"') + '</tr>';
       });
     }
     if (!body) {
       // Today: rows without a model are skipped (ModelModuleMappingTable.jsx:40), so nothing is left to show.
-      body = '<tr><td colspan="4"><div class="td-in"><span class="td-empty">No mapping information found.</span></div></td></tr>';
+      // After: an instance whose captures need no model says so.
+      var empty = mode === 'after' && !MODS.length ? 'No models required' : 'No mapping information found.';
+      body = '<tr><td colspan="4"><div class="td-in"><span class="td-empty">' + empty + '</span></div></td></tr>';
     }
     return '<div class="bordered">' + tableHTML(headers, body, { full: true, cls: 'text-sm' }) + '</div>';
   }
@@ -539,15 +578,16 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   function render() {
     hideTip();
     var S = readState();
+    var name = FIXED ? FIXED.name : S.instanceName, id = FIXED ? FIXED.id : S.instanceId;
     document.title = 'Instance Details';
-    document.getElementById('crumbName').textContent = S.instanceName;
+    document.getElementById('crumbName').textContent = name;
     document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === tab); });
     var h = '';
     if (tab === 'overview') {
       h += '<div>';
-      h += '<h2 class="h2' + (locked ? ' name-row' : '') + '">' + esc(S.instanceName) + (locked ? '<span class="tag-mr">Models Remaining</span>' : '') + '</h2>';
+      h += '<h2 class="h2">' + esc(name) + '</h2>';
       h += '<div class="grid4">' +
-        '<div><div class="lbl">Instance ID</div><div class="val">' + esc(S.instanceId) + '</div></div>' +
+        '<div><div class="lbl">Instance ID</div><div class="val">' + esc(id) + '</div></div>' +
         '<div><div class="lbl">Created At</div><div class="val">' + esc(DATES.createdAt) + '</div></div>' +
         '<div><div class="lbl">Updated At</div><div class="val">' + esc(DATES.updatedAt) + '</div></div>' +
         '<div><div class="lbl">Valid Till</div><div class="val">' + esc(DATES.validTill) + '</div></div>' +
@@ -648,12 +688,19 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   }
 
   // ---------- Chrome links ----------
-  document.querySelectorAll('[data-nolink], .sb a').forEach(function (a) {
+  document.querySelectorAll('[data-nolink], [data-back], .sb a').forEach(function (a) {
     a.addEventListener('click', function (e) { e.preventDefault(); });
+  });
+  // Breadcrumb "Instances" / "Instance Details" go back to the instances table.
+  document.querySelectorAll('[data-back]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      if (history.length > 1) history.back();
+      else location.href = 'edge-instances.html?mode=' + mode + '&state=uploaded';
+    });
   });
   var dep = document.querySelector('.sb a[aria-label="Deployments"]');
   if (dep) dep.addEventListener('click', function () {
-    if (!nav('edge-deploy')) location.href = 'edge-deploy.html?state=' + state + '&mode=' + mode;
+    if (!nav('edge-inference-instances')) location.href = 'edge-deploy.html?state=' + state + '&mode=' + mode;
   });
 
   // ---------- Prototype switch ----------

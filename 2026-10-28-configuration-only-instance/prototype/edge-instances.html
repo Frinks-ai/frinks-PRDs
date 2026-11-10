@@ -171,9 +171,32 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 .flt-rad.on::after{content:'';height:8px;width:8px;border-radius:9999px;background:#111827}
 .flt-opt span{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* Instance name + Models Remaining tag (pill: inferencing-customizations/bead-emc/BeadConfigApplyModal.jsx:14,114) */
-.nm{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.tag-mr{white-space:nowrap;border-radius:9999px;border:1px solid #fef08a;background:#fefce8;color:#a16207;padding:2px 8px;font-size:11px;font-weight:500}
+/* Model Status chip (pill: inferencing-customizations/bead-emc/BeadConfigApplyModal.jsx:12-16 STATUS_META; red by analogy) */
+.mchip{display:inline-flex;align-items:center;white-space:nowrap;border-radius:9999px;border:1px solid;padding:2px 8px;font-size:11px;line-height:16px;font-weight:500}
+button.mchip{cursor:pointer}
+button.mchip:hover{filter:brightness(.96)}
+.ch-all{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+.ch-some{background:#fefce8;color:#a16207;border-color:#fef08a}
+.ch-none{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+.ch-bad{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+.ch-nr{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+/* Row greyed while a model isn't Completed (InstanceTable.jsx:339,399 "cursor-not-allowed bg-gray-100") */
+.tbl tbody tr.row-off,.tbl tbody tr.row-off:hover{background:#f3f4f6;cursor:not-allowed}
+/* Model Status chip popup: the instance page's Model - Module Mapping table (ModelModuleMappingTable.jsx) */
+.mdl.mdl-models{width:60%!important;max-width:56rem}
+.ms-tbl{border:1px solid #e5e7eb}
+.ms-tbl .tbl tbody tr{cursor:default}
+.ms-tbl .tbl tbody tr:hover{background:inherit}
+.ms-tbl .tbl td{font-size:14px;line-height:20px}
+.mm-cell{display:flex;width:100%;flex-direction:column;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
+.mm-name{font-weight:500;color:#111827}
+.mm-name.none{color:#9ca3af}
+.mm-bad{font-size:12px;line-height:16px;font-weight:500;color:#dc2626}
+.mm-cls{display:flex;flex-wrap:wrap;justify-content:center;gap:4px}
+.chip-cls{border-radius:9999px;border:1px solid #e5e7eb;background:#f3f4f6;padding:2px 8px;font-size:10px;line-height:15px;font-weight:500;color:#6b7280}
+.g700{color:#374151}
+.row-alt{background:rgb(255 247 237/.1)}
+.td-empty{display:block;width:100%;padding:32px 0;text-align:center;color:#6b7280}
 
 /* Error banner (instance/hooks/useInstanceUpload.jsx:204-229) */
 .eb{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:50;max-width:550px;width:90%;display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -187,7 +210,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 
 /* Warning modal: package summary rows */
 .iw-kv{display:flex;flex-direction:column;gap:4px}
-.iw-kv p{margin:0;font-size:14px;line-height:20px;color:#1f2937}
+.iw-kv p{margin:0;display:flex;align-items:center;gap:6px;font-size:14px;line-height:20px;color:#1f2937}
 .iw-kv .k{font-weight:600}
 
 /* Delete confirmation (shared/ui/WarningModal.jsx), Modal className "!w-auto max-w-md" */
@@ -400,7 +423,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 (function () {
   'use strict';
 
-  // ---------- ?mode=today|after (default after), ?state=, ?open=dialog ----------
+  // ---------- ?mode=today|after (default after), ?state=, ?open=dialog|models-L2|models-L3|models-L4|models-L5|models-L6 ----------
   var STATES = ['upload', 'uploaded', 'some-models', 'models', 'wrong-instance', 'missing-config', 'reupload-config', 'reupload-full', 'duplicate-id'];
   var mode = 'after', state = 'upload', openParam = '';
   try {
@@ -453,26 +476,92 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20, 32);
   }
 
+  // ---------- Modules of every instance (one recipe, Variant A; Barcode / Code Reader needs no model, so it is not listed) ----------
+  var CAPTURES = ['Front View', 'Top View'];
+  var MODULES = [
+    { key: 'odc', capture: 'Front View', module: 'Part Presence', models: ['ODC_Front_'], classes: ['Bolt', 'Washer', 'Clip'] },
+    { key: 'ocr', capture: 'Front View', module: 'Label Text', models: ['OCR-D_Front_', 'OCR-R_Front_'], classes: [] },
+    { key: 'bead', capture: 'Top View', module: 'Seal Bead', models: ['Bead_Top_'], classes: [] },
+    { key: 'seg', capture: 'Top View', module: 'Surface Check', models: ['SEG_Top_'], classes: ['Scratch', 'Dent'] }
+  ];
+  // Line 5's own recipe adds a fifth model-needing module
+  var MODULES_L5 = MODULES.concat([{ key: 'ic', capture: 'Top View', module: 'Connector Check', models: ['IC_Top_'], classes: ['Seated', 'Loose'] }]);
+  // Model on each module: 'ready' | 'none' | the check it fails on this Edge (e.g. 'Model file missing')
+  function modelsMap(ready) { var o = {}; MODULES.forEach(function (m) { o[m.key] = ready.indexOf(m.key) >= 0 ? 'ready' : 'none'; }); return o; }
+  // Line 3's models by stage: Configuration only → some models → all models
+  var L3_MODELS = { none: modelsMap([]), some: modelsMap(['odc', 'ocr']), all: modelsMap(['odc', 'ocr', 'bead', 'seg']) };
+
   // ---------- Instances on this Edge ----------
-  var L2 = { id: '5c1e7a92-3f4b-4d8e-9a26-0b7f3c51e8d4', name: 'Line 2 Assembly', teamName: 'Team 1' };
-  function L3() { var sh = readShared(); return { id: seedUuid(sh.instanceId), name: sh.instanceName, teamName: 'Team 1' }; }
-  function inst(ref) { return ref === 'L3' ? L3() : L2; }
+  // modelStatus: today's instance-list flag (dao/instances.ts:270-294); non-zero greys the row (InstanceTable.jsx:339,399).
+  var INST = {
+    L2: { id: '5c1e7a92-3f4b-4d8e-9a26-0b7f3c51e8d4', name: 'Line 2 Assembly', teamName: 'Team 1', sfx: '14-10', models: L3_MODELS.all, modelStatus: 0 },
+    L4: { id: '9d84b2f0-1c6e-4a37-b5e9-6f0a3d2c8b41', name: 'Line 4 Assembly', teamName: 'Team 1', sfx: '20-10',
+      models: { odc: 'ready', ocr: 'ready', bead: 'ready', seg: 'Model file missing' }, modelStatus: 3 },
+    // Line 5 (after change only: today an upload with empty model slots is blocked): 3 of 5, Seal Bead + Surface Check have none
+    L5: { id: 'e2b7c4d9-8a15-4f60-93de-71c0b5a4f2e8', name: 'Line 5 Assembly', teamName: 'Team 1', sfx: '22-10', modules: MODULES_L5,
+      models: { odc: 'ready', ocr: 'ready', bead: 'none', seg: 'none', ic: 'ready' }, modelStatus: 0 },
+    // Line 6: captures with only master images / Search Areas, so no module needs a model
+    L6: { id: '7a1d3e58-2c9b-4f04-8e6a-b3f90c2d1a67', name: 'Line 6 Assembly', teamName: 'Team 1', sfx: '21-10', models: {}, noModules: true, modelStatus: 0 }
+  };
+  var L2 = INST.L2;
+  function L3() {
+    var sh = readShared(), r = rowOf('L3');
+    return { id: seedUuid(sh.instanceId), name: sh.instanceName, teamName: 'Team 1', sfx: '27-10', models: L3_MODELS[r ? r.stage : 'none'], modelStatus: 0 };
+  }
+  function inst(ref) { return ref === 'L3' ? L3() : INST[ref]; }
+  var INST_PAGE = { L2: 'line-2', L3: 'line-3', L4: 'line-4', L5: 'line-5', L6: 'line-6' };
+  var STAGE_PAGE = { none: 'no-models', some: 'some-models', all: 'ready' };
   var REUPLOAD_DAY = state === 'reupload-config' || state === 'reupload-full' || state === 'duplicate-id';
   var T = {
     l2Created: new Date(2026, 9, 14, 15, 33, 18).getTime(), l2Updated: new Date(2026, 9, 27, 11, 8, 42).getTime(),
     l2Reup: new Date(2026, 9, REUPLOAD_DAY ? 29 : 28, 9, 2, 16).getTime(),
     l3Created: new Date(2026, 9, 27, 16, 42, 5).getTime(), l3Cfg: new Date(2026, 9, 28, 10, 14, 31).getTime(),
     l3Some: new Date(2026, 9, 28, 13, 40, 22).getTime(), l3Models: new Date(2026, 9, 28, 16, 5, 12).getTime(),
-    l3ReCfg: new Date(2026, 9, 29, 10, 48, 9).getTime(), l3ReFull: new Date(2026, 9, 29, 11, 39, 51).getTime()
+    l3ReCfg: new Date(2026, 9, 29, 10, 48, 9).getTime(), l3ReFull: new Date(2026, 9, 29, 11, 39, 51).getTime(),
+    l4Created: new Date(2026, 9, 20, 12, 5, 51).getTime(), l4Updated: new Date(2026, 9, 24, 14, 27, 9).getTime(),
+    l5Created: new Date(2026, 9, 22, 10, 26, 3).getTime(),
+    l6Created: new Date(2026, 9, 21, 9, 12, 47).getTime(), l6Updated: new Date(2026, 9, 21, 9, 12, 47).getTime()
   };
-  var rows = [{ ref: 'L2', createdAt: T.l2Created, updatedAt: T.l2Updated, tagged: false }];
-  function addL3Row(tagged, updatedAt) { rows.push({ ref: 'L3', createdAt: T.l3Created, updatedAt: updatedAt, tagged: tagged }); }
-  // Line 3 on the box: Configuration only (tagged), or with some models (still tagged)
-  if (state === 'uploaded' && mode === 'after') addL3Row(true, T.l3Cfg);
-  if (['some-models', 'wrong-instance', 'reupload-config', 'reupload-full', 'duplicate-id'].indexOf(state) >= 0) addL3Row(mode === 'after', T.l3Cfg);
-  if (state === 'models') addL3Row(mode === 'after', T.l3Some);
+  // Line 2 stays first, so it is still the instance "LIMIT 1" samples (manifestParser.ts:245-296).
+  var ORDER = ['L2', 'L3', 'L4', 'L5', 'L6'];
+  var rows = [
+    { ref: 'L2', createdAt: T.l2Created, updatedAt: T.l2Updated },
+    { ref: 'L4', createdAt: T.l4Created, updatedAt: T.l4Updated },
+    { ref: 'L6', createdAt: T.l6Created, updatedAt: T.l6Updated }
+  ];
+  if (mode === 'after') rows.splice(2, 0, { ref: 'L5', createdAt: T.l5Created, updatedAt: T.l5Created });
+  // stage = Line 3's models on the box: none (Configuration only) | some | all
+  function addL3Row(stage, updatedAt) {
+    rows.push({ ref: 'L3', createdAt: T.l3Created, updatedAt: updatedAt, stage: stage });
+    rows.sort(function (a, b) { return ORDER.indexOf(a.ref) - ORDER.indexOf(b.ref); });
+  }
+  // Line 3 on the box: Configuration only, or with some models
+  if (state === 'uploaded' && mode === 'after') addL3Row('none', T.l3Cfg);
+  if (['some-models', 'wrong-instance', 'reupload-config', 'reupload-full', 'duplicate-id'].indexOf(state) >= 0) addL3Row('none', T.l3Cfg);
+  if (state === 'models') addL3Row('some', T.l3Some);
   function rowOf(ref) { return rows.filter(function (r) { return r.ref === ref; })[0] || null; }
   function rowById(id) { return rows.filter(function (r) { return inst(r.ref).id === id; })[0] || null; }
+
+  // ---------- Model Status of an instance ----------
+  function modulesOf(i) { return i.noModules ? [] : i.modules || MODULES; }
+  // No models required when no module needs a model; else Incorrect if any model fails a check; else All; else No models; else n of m.
+  function modelSummary(i) {
+    var mods = modulesOf(i), total = mods.length, have = 0, bad = 0;
+    mods.forEach(function (x) { var v = i.models[x.key]; if (v !== 'none') have++; if (v !== 'none' && v !== 'ready') bad++; });
+    var status = !total ? 'notneeded' : bad ? 'incorrect' : have === total ? 'all' : have === 0 ? 'none' : 'some';
+    return { status: status, have: have, total: total };
+  }
+  var CHIP = { all: 'ch-all', some: 'ch-some', none: 'ch-none', incorrect: 'ch-bad', notneeded: 'ch-nr' };
+  function chipLabel(s) {
+    return s.status === 'notneeded' ? 'No models required' : s.status === 'all' ? 'All models present' : s.status === 'some' ? s.have + ' of ' + s.total + ' models present'
+      : s.status === 'none' ? 'No models' : 'Incorrect models';
+  }
+  function chipHTML(i, ref) {
+    var s = modelSummary(i);
+    return ref
+      ? '<button type="button" class="mchip ' + CHIP[s.status] + '" data-models="' + ref + '">' + esc(chipLabel(s)) + '</button>'
+      : '<span class="mchip ' + CHIP[s.status] + '">' + esc(chipLabel(s)) + '</span>';
+  }
 
   // ---------- Line 3's models ----------
   var M = {
@@ -535,15 +624,13 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     'Dashboards preserved, but some widget keys may be affected if class or model references changed.',
     'Inferencing customization (file paths, naming configs) preserved, but may need reconfiguration.'
   ];
-  // After: the analysed-image (ROI) reset is out of this change's scope, so its line is not shown.
-  var REUPLOAD_W_AFTER = [REUPLOAD_W[0], REUPLOAD_W[2], REUPLOAD_W[3]];
   // validateNewInstanceOnExistingEdge (228-233)
   var NEW_INSTANCE_W = [
     'Shared configs (camera configs, capture positions) will be deleted and re-created. This affects all instances on this edge.',
     'If camera config IDs have changed, re-upload the first instance as well.'
   ];
-  var LOCKED_NONE = 'Deploy and Edge testing stay locked until models are added.';
-  var LOCKED_SOME = 'Deploy stays locked until every module has a model.';
+  var LOCKED_NONE = 'Edge testing stays locked until models are added. Inferencing deployment stays locked until all models are added.';
+  var LOCKED_SOME = 'Captures missing models can\'t be tested. Inferencing deployment stays locked until all models are added.';
 
   function validate(p, target) {
     var errors = [], warnings = [];
@@ -561,11 +648,13 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       if (target && target.id !== p.instId) { errors.push("This package is for '" + p.instName + "', not '" + target.name + "'."); return done(); }
       var onBox = !!rowById(p.instId);
       if (p.kind === 'models' && !onBox) { errors.push("This models package is for '" + p.instName + "'. Upload its configuration first."); return done(); }
-      var bracket = p.kind === 'config' ? ' (Configuration only)' : p.kind === 'some' ? ' (Models Remaining)' : '';
-      res.summary = [['Instance', p.instName + bracket]];
+      var bracket = p.kind === 'config' ? ' (Configuration only)' : '';
+      // Summary values are HTML: the instance line, then the Model Status the instance will have after this upload
+      var l3After = L3(); l3After.models = L3_MODELS[stageAfter(p.key)];
+      res.summary = [['Instance', esc(p.instName + bracket)], ['Model Status', chipHTML(l3After)]];
       if (p.kind === 'config') push([LOCKED_NONE]);
       if (p.kind === 'some') push([LOCKED_SOME]);
-      if (p.hasSql) push(onBox ? REUPLOAD_W_AFTER : NEW_INSTANCE_W);
+      if (p.hasSql) push(onBox ? REUPLOAD_W : NEW_INSTANCE_W);
       res.models = modelsIn(p);
       res.gtDiffs = gtDiffsFor(p);
       return done();
@@ -639,12 +728,13 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       var inner = h.tip ? '<span class="th-in">' + esc(h.t) + INFO(h.tip) + '</span>' : esc(h.t || h);
       return '<th scope="col">' + inner + '<div class="rh"></div></th>';
     }).join('');
-    return '<div class="tbl" data-cols="' + headers.length + '" data-full="' + (full ? 1 : 0) + '"><div style="width:max-content;min-width:100%">' +
+    return '<div class="tbl" data-cols="' + headers.length + '" data-full="' + (full === 'auto' ? 'auto' : full ? 1 : 0) + '"><div style="width:max-content;min-width:100%">' +
       '<table style="table-layout:auto"><colgroup>' + headers.map(function () { return '<col>'; }).join('') + '</colgroup>' +
       '<thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div></div>';
   }
   function sizeColumns() {
     document.querySelectorAll('.tbl[data-cols]').forEach(function (ref) {
+      if (ref.getAttribute('data-full') === 'auto') return;
       var n = Number(ref.getAttribute('data-cols')), w = ref.offsetWidth;
       var per = ref.getAttribute('data-full') === '1' ? (w - 20) / n : Math.min(w / n, 300);
       if (!w) per = 150;
@@ -655,32 +745,42 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   // ---------- Instances table (InstanceTable.jsx:383-438) ----------
   var THREE_DOTS = '<svg viewBox="0 0 4 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 10.9167C2.5 10.5025 2.16421 10.1667 1.75 10.1667C1.33579 10.1667 1 10.5025 1 10.9167C1 11.3309 1.33579 11.6667 1.75 11.6667C2.16421 11.6667 2.5 11.3309 2.5 10.9167Z" fill="#0E0F0F" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 1.58333C2.5 1.16912 2.16421 0.833332 1.75 0.833332C1.33579 0.833332 1 1.16912 1 1.58333C1 1.99755 1.33579 2.33333 1.75 2.33333C2.16421 2.33333 2.5 1.99755 2.5 1.58333Z" fill="#0E0F0F" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 20.25C2.5 19.8358 2.16421 19.5 1.75 19.5C1.33579 19.5 1 19.8358 1 20.25C1 20.6642 1.33579 21 1.75 21C2.16421 21 2.5 20.6642 2.5 20.25Z" fill="#0E0F0F" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var filterName = '';
+  var after = mode === 'after';
   function renderTable() {
     var list = rows.filter(function (r) { return !filterName || inst(r.ref).name === filterName; });
+    var cols = after ? 7 : 6;
     var body = list.length ? list.map(function (r) {
       var i = inst(r.ref);
-      var name = '<span class="nm">' + esc(i.name) + (mode === 'after' && r.tagged ? '<span class="tag-mr">Models Remaining</span>' : '') + '</span>';
-      return '<tr data-row="' + r.ref + '">' +
+      // Today's greyed row: a model not Completed (InstanceTable.jsx:399)
+      return '<tr data-row="' + r.ref + '"' + (i.modelStatus ? ' class="row-off"' : '') + '>' +
         '<td><div class="td-in">' + esc(i.id) + '</div></td>' +
-        '<td><div class="td-in">' + name + '</div></td>' +
+        '<td><div class="td-in">' + esc(i.name) + '</div></td>' +
+        (after ? '<td><div class="td-in">' + chipHTML(i, r.ref) + '</div></td>' : '') +
         '<td><div class="td-in">' + esc(new Date(r.createdAt).toLocaleString()) + '</div></td>' +
         '<td><div class="td-in">' + esc(new Date(r.updatedAt).toLocaleString()) + '</div></td>' +
         '<td><div class="td-in">' + esc(i.teamName || '-') + '</div></td>' +
         '<td data-stop="1"><div class="td-in"><div class="dots"><div data-ra="' + r.ref + '">' + THREE_DOTS + '</div></div></div></td>' +
         '</tr>';
-    }).join('') : '<tr><td colspan="6"><div class="td-in"><div style="padding:8px 0;text-align:center;color:#4b5563;width:100%">No instances found.</div></div></td></tr>';
-    document.getElementById('tblWrap').innerHTML = tableHTML([
-      { t: 'Instance ID', tip: 'Unique ID of the instance.' }, { t: 'Instance Name' }, { t: 'Created At' }, { t: 'Updated At' },
-      { t: 'Team', tip: 'Team that owns this instance in Frinks Vision.' }, { t: 'Actions' }
-    ], body, false);
+    }).join('') : '<tr><td colspan="' + cols + '"><div class="td-in"><div style="padding:8px 0;text-align:center;color:#4b5563;width:100%">No instances found.</div></div></td></tr>';
+    var headers = [{ t: 'Instance ID', tip: 'Unique ID of the instance.' }, { t: 'Instance Name' }];
+    if (after) headers.push({ t: 'Model Status' });
+    headers = headers.concat([{ t: 'Created At' }, { t: 'Updated At' }, { t: 'Team', tip: 'Team that owns this instance in Frinks Vision.' }, { t: 'Actions' }]);
+    document.getElementById('tblWrap').innerHTML = tableHTML(headers, body, false);
     sizeColumns();
   }
-  // Row click opens the instance page (InstanceTable.jsx:338-343)
+  // Chip opens the Model Status popup; a row click opens the instance page in this frame (InstanceTable.jsx:338-343),
+  // except on a greyed row (instance.modelStatus) or the Actions menu.
   document.getElementById('tblWrap').addEventListener('click', function (e) {
+    var chip = e.target.closest('[data-models]');
+    if (chip) { e.stopPropagation(); hideTip(); openModels(chip.getAttribute('data-models')); return; }
     if (e.target.closest('[data-stop]')) return;
     var tr = e.target.closest('tr[data-row]');
     if (!tr) return;
-    if (tr.getAttribute('data-row') === 'L3') nav('edge-instance');
+    var ref = tr.getAttribute('data-row');
+    if (inst(ref).modelStatus) return;
+    var url = 'edge-instance-detail.html?mode=' + mode + '&inst=' + INST_PAGE[ref];
+    if (ref === 'L3') url += '&state=' + STAGE_PAGE[(rowOf('L3') || {}).stage || 'none'];
+    location.href = url;
   });
 
   // ---------- Filter (shared/components/Filter.jsx) ----------
@@ -852,16 +952,23 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       }, 450);
     }, 800);
   }
-  function applyUpload(pkgKey) {
+  // Line 3's models once this package is in: a configuration package → none (today a db_only re-upload keeps the weights
+  // already on the Edge); some → Part Presence + Label Text; the models package or a complete package → all.
+  function stageAfter(pkgKey) {
     var r = rowOf('L3');
-    function touchL3(tagged, at) { if (r) { r.tagged = tagged; r.updatedAt = at; } else addL3Row(tagged, at); }
-    var tagOn = mode === 'after';
-    if (pkgKey === 'l3cfg') { touchL3(tagOn, T.l3Cfg); writeShared({ configUploaded: true }); return null; }
-    if (pkgKey === 'l3cfg2') { touchL3(r ? r.tagged : tagOn, T.l3ReCfg); return null; }
-    // Some models: still Models Remaining, so the tag stays
-    if (pkgKey === 'l3some') { touchL3(tagOn, T.l3Some); writeShared({ someUploaded: true }); return 'edge-emc-some'; }
-    if (pkgKey === 'l3models') { if (r) { r.tagged = false; r.updatedAt = T.l3Models; } writeShared({ modelsUploaded: true }); return 'edge-ready'; }
-    if (pkgKey === 'l3full') { touchL3(false, T.l3ReFull); return null; }
+    if (pkgKey === 'l3cfg' || pkgKey === 'l3cfg2') return mode === 'after' || !r ? 'none' : r.stage;
+    if (pkgKey === 'l3some') return 'some';
+    if (pkgKey === 'l3models' || pkgKey === 'l3full') return 'all';
+    return r ? r.stage : 'none';
+  }
+  function applyUpload(pkgKey) {
+    var r = rowOf('L3'), stage = stageAfter(pkgKey);
+    function touchL3(at) { if (r) { r.stage = stage; r.updatedAt = at; } else addL3Row(stage, at); }
+    if (pkgKey === 'l3cfg') { touchL3(T.l3Cfg); writeShared({ configUploaded: true }); return state === 'upload' ? 'edge-instances' : null; }
+    if (pkgKey === 'l3cfg2') { touchL3(T.l3ReCfg); return null; }
+    if (pkgKey === 'l3some') { touchL3(T.l3Some); writeShared({ someUploaded: true }); return 'edge-emc-some'; }
+    if (pkgKey === 'l3models') { if (r) { r.stage = stage; r.updatedAt = T.l3Models; } writeShared({ modelsUploaded: true }); return 'edge-ready'; }
+    if (pkgKey === 'l3full') { touchL3(T.l3ReFull); return null; }
     var l2 = rowOf('L2'); if (l2) l2.updatedAt = T.l2Reup;
     return null;
   }
@@ -874,10 +981,11 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
   }
   function openWarning(hookKey, pkgKey, targetRef, r) {
     lastWarn = { hookKey: hookKey, pkgKey: pkgKey, targetRef: targetRef };
+    modelsRef = null;
     var h = '<div class="ov" data-ov="warn" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="mdl"><div class="mdl-in"><div class="iw">';
     h += '<div class="iw-h"><h2 id="modal-title">Warning</h2><button type="button" class="iw-x" data-w="discard">✕</button></div>';
     if (r.summary) {
-      h += '<div class="iw-kv">' + r.summary.map(function (kv) { return '<p><span class="k">' + esc(kv[0]) + ':</span> ' + esc(kv[1]) + '</p>'; }).join('') + '</div>';
+      h += '<div class="iw-kv">' + r.summary.map(function (kv) { return '<p><span class="k">' + esc(kv[0]) + ':</span> ' + kv[1] + '</p>'; }).join('') + '</div>';
     }
     // The real modal always renders the list; an after-change dialog with no warnings leaves it out.
     if (r.warnings.length || !r.summary) h += '<ul class="iw-ul">' + r.warnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>';
@@ -897,12 +1005,48 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     document.getElementById('modalRoot').innerHTML = h;
     sizeColumns();
   }
-  function closeModal() { document.getElementById('modalRoot').innerHTML = ''; lastWarn = null; }
+  // ---------- Model Status chip popup (new): the instance page's Model - Module Mapping table ----------
+  // One row per model; each module with an empty slot is its own "Not added yet" row; a model failing an Edge check shows why.
+  // No "n modules" chip: the Modules column already names them.
+  var modelsRef = null;
+  function openModels(ref) {
+    var i = inst(ref), mods = modulesOf(i), body = '', idx = 0;
+    lastWarn = null; modelsRef = ref;
+    function td(inner, attrs) { return '<td' + (attrs || '') + '><div class="td-in">' + inner + '</div></td>'; }
+    mods.filter(function (m) { return i.models[m.key] !== 'none'; }).forEach(function (m) {
+      var v = i.models[m.key];
+      m.models.forEach(function (n) {
+        body += '<tr class="' + (idx++ % 2 === 0 ? 'row-alt' : '') + '">' +
+          td('<div class="mm-cell"><span class="mm-name">' + esc(n + i.sfx) + '</span>' + (v !== 'ready' ? '<span class="mm-bad">' + esc(v) + '</span>' : '') +
+            '<div class="mm-cls">' + m.classes.map(function (c) { return '<span class="chip-cls">' + esc(c) + '</span>'; }).join('') + '</div></div>') +
+          td('Variant A', ' class="g700"') + td(esc(m.capture), ' class="g700"') + td(esc(m.module), ' class="g700"') + '</tr>';
+      });
+    });
+    mods.filter(function (m) { return i.models[m.key] === 'none'; }).forEach(function (m) {
+      body += '<tr class="' + (idx++ % 2 === 0 ? 'row-alt' : '') + '">' +
+        td('<div class="mm-cell"><span class="mm-name none">Not added yet</span></div>') +
+        td('Variant A', ' class="g700"') + td(esc(m.capture), ' class="g700"') + td(esc(m.module), ' class="g700"') + '</tr>';
+    });
+    if (!body) body = '<tr><td colspan="4"><div class="td-in"><span class="td-empty">No models required</span></div></td></tr>';
+    document.getElementById('modalRoot').innerHTML =
+      '<div class="ov" data-ov="models" role="dialog" aria-modal="true" aria-labelledby="models-title"><div class="mdl mdl-models"><div class="mdl-in"><div class="iw">' +
+      '<div class="iw-h"><h2 id="models-title">Model - Module Mapping — ' + esc(i.name) + '</h2><button type="button" class="iw-x" data-m="close">✕</button></div>' +
+      '<div class="ms-tbl">' + tableHTML([{ t: 'Model Name', tip: 'AI model and its classes.' }, { t: 'Variant' }, { t: 'Capture' }, { t: 'Modules', tip: 'Modules that use this model.' }], body, true) + '</div>' +
+      '</div></div></div></div>';
+    sizeColumns();
+  }
+
+  function closeModal() { document.getElementById('modalRoot').innerHTML = ''; lastWarn = null; modelsRef = null; }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modelsRef) closeModal(); });
   document.getElementById('modalRoot').addEventListener('click', function (e) {
     var ov = e.target.closest('.ov');
     if (!ov) return;
     // Modal closes on a click outside the panel (modules/modal/index.jsx: useClickOutSide)
     if (!e.target.closest('.mdl')) { closeModal(); return; }
+    if (ov.getAttribute('data-ov') === 'models') {
+      if (e.target.closest('[data-m="close"]')) closeModal();
+      return;
+    }
     if (ov.getAttribute('data-ov') === 'warn') {
       var b = e.target.closest('[data-w]');
       if (!b) return;
@@ -926,6 +1070,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
 
   // ---------- Delete confirmation (InstanceTable.jsx:369-380) ----------
   function openDelete(ref) {
+    modelsRef = null;
     document.getElementById('modalRoot').innerHTML =
       '<div class="ov" data-ov="del" data-ref="' + ref + '" role="dialog" aria-modal="true"><div class="mdl auto"><div class="mdl-in">' +
       '<div class="wm-h"><h3>Confirmation Message</h3><div style="cursor:pointer" data-d="close"><svg width="25" height="25" viewBox="0 0 32 32" fill="none"><path d="M24 8L8 24M8 8L24 24" stroke="#0E0F0F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>' +
@@ -943,6 +1088,9 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
     if (state === 'wrong-instance') hooks.tbl.errors = validate(pkgs().l3models, L2).errors;
     if (state === 'missing-config') hooks.top.errors = validate(pkgs().l3models, null).errors;
     renderBanners();
+    // ?open=models-L2|L3|L4|L5|L6 opens that instance's chip popup (After, when the instance is on the box)
+    var om = /^models-(L[23456])$/.exec(openParam);
+    if (after && om && rowOf(om[1])) { openModels(om[1]); return; }
     if (openParam !== 'dialog') return;
     // [package, row whose Update is used (null = Add Instance), banner/hook]
     var OPEN = { 'upload': ['l3cfg', null, 'top'], 'some-models': ['l3some', 'L3', 'tbl'], 'models': ['l3models', 'L3', 'tbl'],
@@ -965,6 +1113,7 @@ a.sb-item:hover{background:rgb(255 255 255/.2)}
       var w = lastWarn, r = validate(pkgs()[w.pkgKey], w.targetRef ? inst(w.targetRef) : null);
       if (r.canProceed) openWarning(w.hookKey, w.pkgKey, w.targetRef, r);
     }
+    if (modelsRef && rowOf(modelsRef)) openModels(modelsRef);
   });
   function initialViewBanners() {
     if (state === 'wrong-instance' && hooks.tbl.errors.length) hooks.tbl.errors = validate(pkgs().l3models, L2).errors;

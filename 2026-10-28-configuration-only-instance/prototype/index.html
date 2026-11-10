@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Configuration only workflow</title>
+<title>Prototype workflow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
@@ -15,15 +15,16 @@
   button { font:inherit; color:inherit; }
 
   .bar { flex:none; min-height:var(--bar-h); display:flex; align-items:center; gap:12px; padding:0 12px; background:var(--bar); border-bottom:1px solid var(--line); }
-  .nav { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:2px; overflow:hidden; white-space:nowrap; }
+  .nav { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:2px; overflow-x:auto; scrollbar-width:none; white-space:nowrap; }
   .grp { flex:none; padding:0 6px 0 2px; font-size:12px; font-weight:600; color:var(--muted); }
   .sep { flex:none; width:1px; height:20px; background:var(--line); margin:0 8px 0 6px; }
   .step { flex:none; display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 9px 0 4px; border:0; border-radius:14px; background:transparent; cursor:pointer; color:#3d3f41; }
-  .step:hover { background:var(--chip); }
+  .step:hover:not(:disabled) { background:var(--chip); }
   .step .n { width:20px; height:20px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:var(--chip); color:var(--muted); font-size:11px; font-weight:600; }
-  .step:hover .n { background:#e2e2e2; }
+  .step:hover:not(:disabled) .n { background:#e2e2e2; }
   .step[aria-current="step"] { background:var(--brand-soft); color:var(--brand); font-weight:600; }
   .step[aria-current="step"] .n { background:var(--brand); color:#fff; }
+  .step:disabled { opacity:.38; cursor:not-allowed; }
   .step.nl .t { display:none; }
   .step.nl { padding:0 4px; }
 
@@ -80,28 +81,50 @@
 <script>
 (function () {
   'use strict';
+  // ---- Edit only this block ------------------------------------------------
+  var TITLE = 'Configuration only instance and capture-only deployment';
+  var SLUG = 'cfgonly';                             // short; gives the "<slug>-state" storage key and the "<slug>-nav" message
+  // In journey order. The number on each step is its position here, so reordering renumbers the bar.
+  // group: starts a new labelled group at this step. file: the screen and its ?state=.
+  // today: false when the step only exists after the change (greyed out in Today).
   var SECTIONS = [
-    { id: 'vision-models',          group: 'Frinks Vision',       label: 'Model Selection',            file: 'vision-model-selection.html?state=create' },
-    { id: 'vision-instances',       label: 'Instance table',             file: 'vision-instances.html?state=models-remaining' },
-    { id: 'edge-upload',            group: 'Frinks Edge',         label: 'Upload configuration',       file: 'edge-instances.html?state=upload' },
-    { id: 'edge-instance',          label: 'Instance page',              file: 'edge-instance-detail.html?state=no-models' },
-    { id: 'edge-test-locked',       label: 'Edge testing',               file: 'edge-instance-detail.html?state=no-models&tab=testing&tip=1' },
-    { id: 'edge-dashboard',         label: 'Dashboard Builder',          file: 'edge-dashboard.html?state=default&view=list' },
-    { id: 'edge-emc',               label: 'Edit Module Configurations', file: 'edge-emc.html?state=odc&models=none' },
-    { id: 'edge-deploy',            label: 'Deploy',                     file: 'edge-deploy.html?state=no-models' },
-    { id: 'vision-some-models',     group: 'Vision: some models', label: 'Add some models',            file: 'vision-model-selection.html?state=edit-some' },
-    { id: 'vision-download-some',   label: 'Download',                   file: 'vision-instances.html?state=some-models' },
-    { id: 'edge-upload-some',       group: 'Edge: some models',   label: 'Upload some models',         file: 'edge-instances.html?state=some-models' },
-    { id: 'edge-emc-some',          label: 'Thresholds',                 file: 'edge-emc.html?state=odc&models=some' },
-    { id: 'edge-test-some',         label: 'Edge testing',               file: 'edge-instance-detail.html?state=some-models&tab=testing' },
-    { id: 'vision-add-models',      group: 'Vision: all models',  label: 'Add remaining models',       file: 'vision-model-selection.html?state=edit' },
-    { id: 'vision-download-models', label: 'Download models',            file: 'vision-instances.html?state=completed' },
-    { id: 'edge-add-models',        group: 'Edge: all models',    label: 'Upload models',              file: 'edge-instances.html?state=models' },
-    { id: 'edge-ready',             label: 'Ready to deploy',            file: 'edge-deploy.html?state=ready' },
-    { id: 'edge-reupload-config',   group: 'Edge: re-upload',     label: 'Re-upload configuration',    file: 'edge-instances.html?state=reupload-config' },
-    { id: 'edge-reupload-full',     label: 'Re-upload complete',         file: 'edge-instances.html?state=reupload-full' },
-    { id: 'edge-add-again',         label: 'Add Instance again',         file: 'edge-instances.html?state=duplicate-id' }
+    { id: 'vision-models',            group: 'Frinks Vision',               label: 'Model Selection',              file: 'vision-model-selection.html?state=create' },
+    { id: 'vision-models-some',                                             label: 'Create with some models',      file: 'vision-model-selection.html?state=create-some' },
+    { id: 'vision-instances',                                               label: 'Instance table',               file: 'vision-instances.html?state=models-remaining' },
+    { id: 'edge-upload',              group: 'Frinks Edge',                 label: 'Upload configuration',         file: 'edge-instances.html?state=upload' },
+    { id: 'edge-instances',                                                 label: 'Instances table',              file: 'edge-instances.html?state=uploaded' },
+    { id: 'edge-models-incorrect',                                          label: 'Model status: incorrect',      file: 'edge-instances.html?state=uploaded&open=models-L4', today: false },
+    { id: 'edge-instance',                                                  label: 'Instance page',                file: 'edge-instance-detail.html?state=no-models' },
+    { id: 'edge-test-locked',                                               label: 'Edge testing',                 file: 'edge-instance-detail.html?state=no-models&tab=testing&tip=1' },
+    { id: 'edge-dashboard',                                                 label: 'Dashboard Builder',            file: 'edge-dashboard.html?state=default&view=list' },
+    { id: 'edge-emc',                                                       label: 'Edit Module Configurations',   file: 'edge-emc.html?state=odc&models=none' },
+    { id: 'edge-image-saving',                                              label: 'Image Saving',                 file: 'edge-image-saving.html' },
+    { id: 'edge-inference-instances', group: 'Edge: Deploy',                label: 'Deploy: Instance Details',     file: 'edge-deploy.html?open=create&step=instance-details' },
+    { id: 'edge-deploy-type',                                               label: 'Deployment Type',              file: 'edge-deploy.html?open=create&step=instance-details&tip=1', today: false },
+    { id: 'edge-deployed',                                                  label: 'Deployed',                     file: 'edge-deploy.html?state=deployed' },
+    { id: 'edge-deploy-model-free',                                         label: 'No model needed',              file: 'edge-deploy.html?open=deploy&target=line-6&step=instance-details' },
+    { id: 'edge-deploy-row',                                                label: 'Deploy from a row',            file: 'edge-deploy.html?open=deploy&target=line-4' },
+    { id: 'edge-reports-capture',     group: 'Edge: Only Capture results',  label: 'Reports',                      file: 'edge-reports.html?state=capture-only', today: false },
+    { id: 'edge-reports-minute',                                            label: 'Reports: minute-wise',         file: 'edge-reports.html?state=capture-only&view=minute', today: false },
+    { id: 'edge-reports-minute-none',                                       label: 'Minute-wise: no Only Capture', file: 'edge-reports.html?state=inspected-only&view=minute', today: false },
+    { id: 'vision-some-models',       group: 'Vision: some models',         label: 'Add some models',              file: 'vision-model-selection.html?state=edit-some' },
+    { id: 'vision-download-some',                                           label: 'Download',                     file: 'vision-instances.html?state=some-models' },
+    { id: 'edge-upload-some',         group: 'Edge: some models',           label: 'Upload some models',           file: 'edge-instances.html?state=some-models' },
+    { id: 'edge-models-some',                                               label: 'Model status: some',           file: 'edge-instances.html?state=models&open=models-L3', today: false },
+    { id: 'edge-emc-some',                                                  label: 'Thresholds',                   file: 'edge-emc.html?state=odc&models=some' },
+    { id: 'edge-test-some',                                                 label: 'Edge testing',                 file: 'edge-instance-detail.html?state=some-models&tab=testing' },
+    { id: 'edge-deploy-some',                                               label: 'Deploy: not all models',       file: 'edge-deploy.html?open=create&kind=inference&stage=some&step=instance-details&tip=1' },
+    { id: 'vision-add-models',        group: 'Vision: all models',          label: 'Add remaining models',         file: 'vision-model-selection.html?state=edit' },
+    { id: 'vision-download-models',                                         label: 'Download models',              file: 'vision-instances.html?state=completed' },
+    { id: 'edge-add-models',          group: 'Edge: all models',            label: 'Upload models',                file: 'edge-instances.html?state=models' },
+    { id: 'edge-ready',                                                     label: 'Ready to deploy',              file: 'edge-deploy.html?open=create&kind=inference&stage=all&step=instance-details' },
+    { id: 'edge-reupload-config',     group: 'Edge: re-upload',             label: 'Re-upload configuration',      file: 'edge-instances.html?state=reupload-config' },
+    { id: 'edge-reupload-full',                                             label: 'Re-upload complete',           file: 'edge-instances.html?state=reupload-full' },
+    { id: 'edge-add-again',                                                 label: 'Add Instance again',           file: 'edge-instances.html?state=duplicate-id' }
   ];
+  // --------------------------------------------------------------------------
+
+  var KEY = SLUG + '-state', NAV = SLUG + '-nav';
   var INDEX = {};
   SECTIONS.forEach(function (s, i) { INDEX[s.id] = i; });
 
@@ -111,6 +134,11 @@
   var mode = new URLSearchParams(location.search).get('mode') === 'today' ? 'today' : 'after';
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function open_(s) { return mode === 'after' || s.today !== false; }
+  function nearest(from, dir) {
+    for (var i = from + dir; i >= 0 && i < SECTIONS.length; i += dir) if (open_(SECTIONS[i])) return i;
+    return -1;
+  }
 
   nav.innerHTML = SECTIONS.map(function (s, i) {
     var pre = s.group ? (i ? '<span class="sep" aria-hidden="true"></span>' : '') + '<span class="grp">' + esc(s.group) + '</span>' : '';
@@ -126,6 +154,9 @@
       .sort(function (a, b) { return Math.abs(b - current) - Math.abs(a - current) || b - a; });
     for (var k = 0; k < order.length && nav.scrollWidth > nav.clientWidth + 1; k++) steps[order[k]].classList.add('nl');
     if (nav.scrollWidth > nav.clientWidth + 1 && steps[current]) steps[current].classList.add('nl');
+    // Still too wide even as numbers (a narrow window): the bar scrolls and the current step stays in view.
+    if (current === 0) nav.scrollLeft = 0;
+    else if (steps[current]) steps[current].scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
   function srcFor(s) { return s.file + (s.file.indexOf('?') < 0 ? '?' : '&') + 'mode=' + mode; }
   function hashId() { var h = decodeURIComponent(location.hash.replace(/^#/, '')); return INDEX.hasOwnProperty(h) ? h : null; }
@@ -134,49 +165,58 @@
     current = INDEX[id];
     var s = SECTIONS[current];
     Array.prototype.forEach.call(nav.querySelectorAll('.step'), function (b) {
+      var step = SECTIONS[INDEX[b.getAttribute('data-id')]];
       if (b.getAttribute('data-id') === id) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+      b.disabled = !open_(step);
+      b.title = (INDEX[step.id] + 1) + '. ' + step.label + (open_(step) ? '' : ' (only in After change)');
     });
     Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === mode));
     });
-    backBtn.disabled = current === 0;
-    nextBtn.disabled = current === SECTIONS.length - 1;
-    document.title = (current + 1) + '. ' + s.label + ' · Configuration only workflow';
+    backBtn.disabled = nearest(current, -1) < 0;
+    nextBtn.disabled = nearest(current, 1) < 0;
+    document.title = (current + 1) + '. ' + s.label + ' · ' + TITLE;
     frame.src = srcFor(s);
     fit();
   }
   function go(id) {
-    if (!INDEX.hasOwnProperty(id)) return;
+    if (!INDEX.hasOwnProperty(id) || !open_(SECTIONS[INDEX[id]])) return;
     if (hashId() === id) show(id); else location.hash = id;   // hashchange calls show()
   }
 
   nav.addEventListener('click', function (e) {
-    var b = e.target.closest('.step'); if (b) go(b.getAttribute('data-id'));
+    var b = e.target.closest('.step'); if (b && !b.disabled) go(b.getAttribute('data-id'));
   });
-  backBtn.addEventListener('click', function () { if (current > 0) go(SECTIONS[current - 1].id); });
-  nextBtn.addEventListener('click', function () { if (current < SECTIONS.length - 1) go(SECTIONS[current + 1].id); });
+  backBtn.addEventListener('click', function () { var i = nearest(current, -1); if (i >= 0) go(SECTIONS[i].id); });
+  nextBtn.addEventListener('click', function () { var i = nearest(current, 1); if (i >= 0) go(SECTIONS[i].id); });
   document.getElementById('modeSeg').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-mode]'); if (!b || b.getAttribute('data-mode') === mode) return;
     mode = b.getAttribute('data-mode');
     try { history.replaceState(null, '', location.pathname + (mode === 'today' ? '?mode=today' : '') + location.hash); } catch (err) {}
-    show(SECTIONS[current].id);
+    var here = SECTIONS[current];
+    if (open_(here)) { show(here.id); return; }
+    // This step doesn't exist in Today: land on the nearest step that does.
+    var i = nearest(current, -1); if (i < 0) i = nearest(current, 1);
+    go(SECTIONS[i].id);
   });
   document.getElementById('restartBtn').addEventListener('click', function () {
-    try { localStorage.removeItem('cfgonly-state'); } catch (err) {}
-    go(SECTIONS[0].id); show(SECTIONS[0].id);
+    try { localStorage.removeItem(KEY); } catch (err) {}
+    var i = open_(SECTIONS[0]) ? 0 : nearest(0, 1);
+    go(SECTIONS[i].id); show(SECTIONS[i].id);
   });
-  window.addEventListener('hashchange', function () { var id = hashId(); if (id) show(id); });
-  // A screen asks to move on, e.g. Download in Vision Model Selection -> "vision-instances".
+  window.addEventListener('hashchange', function () { var id = hashId(); if (id && open_(SECTIONS[INDEX[id]])) show(id); });
+  // A screen asks to move on, e.g. Finish on one screen -> the next step's id.
   window.addEventListener('message', function (e) {
     if (e.source !== frame.contentWindow) return;
     var d = e.data;
-    if (d && d.type === 'cfgonly-nav' && typeof d.to === 'string') go(d.to);
+    if (d && d.type === NAV && typeof d.to === 'string') go(d.to);
   });
   window.addEventListener('resize', fit);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 
   var first = hashId();
-  if (!first) { first = SECTIONS[0].id; try { history.replaceState(null, '', location.pathname + location.search + '#' + first); } catch (err) {} }
+  if (first && !open_(SECTIONS[INDEX[first]])) first = null;
+  if (!first) { first = SECTIONS[open_(SECTIONS[0]) ? 0 : nearest(0, 1)].id; try { history.replaceState(null, '', location.pathname + location.search + '#' + first); } catch (err) {} }
   show(first);
 })();
 </script>
